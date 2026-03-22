@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Sparkles, Home, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '../../lib/supabaseClient';
 
 interface ClothItem {
   id: string;
@@ -34,30 +35,45 @@ export default function GalleryPage() {
   const [activeTab, setActiveTab] = useState<'wardrobe' | 'memories'>('wardrobe');
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<ClothItem[]>([]);
-  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchClothes = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase.from('clothes').select('*').order('created_at', { ascending: false });
+    
+    if (data && !error) {
+      const mapped = data.map((row: any) => ({
+        id: row.id,
+        image: row.image_url,
+        name: row.name,
+        categoryId: row.category
+      }));
+      setLocalItems(mapped);
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    setLocalItems(JSON.parse(localStorage.getItem('ootd_wardrobe') || '[]'));
-    setDeletedIds(JSON.parse(localStorage.getItem('ootd_deleted') || '[]'));
+    fetchClothes();
   }, []);
 
-  const handleDelete = (id: string) => {
-    if (id.startsWith('local_')) {
-      const newLocal = localItems.filter(i => i.id !== id);
-      setLocalItems(newLocal);
-      localStorage.setItem('ootd_wardrobe', JSON.stringify(newLocal));
-    } else {
-      const newDeleted = [...deletedIds, id];
-      setDeletedIds(newDeleted);
-      localStorage.setItem('ootd_deleted', JSON.stringify(newDeleted));
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말로 옷장에서 삭제하시겠습니까?')) return;
+    
+    // Optimistic UI updates
+    setLocalItems(prev => prev.filter(i => i.id !== id));
+    
+    const { error } = await supabase.from('clothes').delete().eq('id', id);
+    if (error) {
+      alert('삭제 중 오류가 발생했습니다.');
+      fetchClothes(); // Revert on failure
     }
   };
 
   const getMergedCategories = () => {
     return WARDROBE_DATA.map(cat => {
-      const mockRemaining = cat.items.filter(i => !deletedIds.includes(i.id));
-      const locals = localItems.filter(i => i.categoryId === cat.id);
-      return { ...cat, items: [...locals, ...mockRemaining] };
+      const dbItems = localItems.filter(i => i.categoryId === cat.id);
+      return { ...cat, items: dbItems };
     });
   };
 
@@ -67,7 +83,12 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-[#dcc4a3] text-stone-900 pb-28 font-sans selection:bg-stone-300 relative">
       
       {/* Wood Texture Background for Wardrobe */}
-      <div className="fixed inset-0 pointer-events-none bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=80&w=800')] bg-cover bg-center opacity-40 mix-blend-multiply z-0" />
+      <div className="fixed inset-0 pointer-events-none bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center opacity-60 mix-blend-multiply z-0" />
+      <style>{`
+        .sticker-effect {
+          filter: drop-shadow(0px -3px 0px rgba(255,255,255,1)) drop-shadow(0px 3px 0px rgba(255,255,255,1)) drop-shadow(3px 0px 0px rgba(255,255,255,1)) drop-shadow(-3px 0px 0px rgba(255,255,255,1)) drop-shadow(0 15px 25px rgba(0,0,0,0.1));
+        }
+      `}</style>
       {/* Header */}
       <header className="pt-12 pb-6 sticky top-0 bg-[#dcc4a3]/80 backdrop-blur-xl z-40 border-b border-stone-800/10 shadow-[0_10px_30px_rgba(120,90,50,0.1)]">
         
@@ -128,8 +149,8 @@ export default function GalleryPage() {
               {displayCategories.map(category => (
                 <section key={category.id} className="relative">
                   <div className="flex justify-between items-end px-6 mb-4 z-20 relative">
-                    <h2 className="text-4xl font-serif italic text-stone-900 tracking-tight drop-shadow-md">{category.title}</h2>
-                    <span className="text-[10px] font-bold tracking-widest text-stone-600 uppercase leading-relaxed bg-stone-100/50 px-2 py-0.5 rounded-full">{String(category.items.length).padStart(2, '0')} ITEMS</span>
+                    <h2 className="text-4xl font-serif italic text-stone-100 tracking-tight drop-shadow-md">{category.title}</h2>
+                    <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase leading-relaxed bg-black/40 border border-white/10 px-2 py-0.5 rounded-full">{String(category.items.length).padStart(2, '0')} ITEMS</span>
                   </div>
                   
                   <div className="relative">
@@ -149,7 +170,7 @@ export default function GalleryPage() {
                           )}
                           <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3">
                             {/* Hanger Graphic attached to Rail */}
-                            <div className="text-stone-800 -mb-5 relative z-20 drop-shadow-[0_4px_2px_rgba(0,0,0,0.3)]">
+                            <div className="text-white/30 -mb-5 relative z-20 drop-shadow-[0_4px_2px_rgba(0,0,0,0.3)]">
                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M4 14 l8-6 l8 6Z"/>
                                   <path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
@@ -161,8 +182,7 @@ export default function GalleryPage() {
                               <img 
                                 src={item.image} 
                                 alt={item.name} 
-                                className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15]"
-                                style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.2)) drop-shadow(0px 4px 6px rgba(0,0,0,0.1))' }}
+                                className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15] sticker-effect"
                                 draggable={false}
                               />
                             </div>
@@ -177,15 +197,15 @@ export default function GalleryPage() {
                       {/* Empty Add Placeholder (Hanger Only) */}
                       <Link href="/test-bg">
                         <div className="snap-center shrink-0 w-[140px] h-[160px] mt-[20px] flex flex-col items-center justify-start cursor-pointer group transition">
-                          <div className="text-stone-500/50 mb-4 group-hover:text-stone-500 transition-colors">
+                          <div className="text-white/10 mb-4 group-hover:text-white/30 transition-colors">
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                <path d="M4 14 l8-6 l8 6Z"/><path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
                             </svg>
                           </div>
-                          <div className="w-10 h-10 rounded-full bg-white/40 border border-stone-400/30 flex items-center justify-center group-hover:bg-white/80 transition shadow-sm">
-                            <Plus className="w-5 h-5 text-stone-600" />
+                          <div className="w-10 h-10 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition shadow-sm">
+                            <Plus className="w-5 h-5 text-white/50" />
                           </div>
-                          <span className="text-[9px] font-bold text-stone-600 tracking-widest uppercase mt-4">ADD NEW</span>
+                          <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase mt-4">ADD NEW</span>
                         </div>
                       </Link>
                     </div>
@@ -204,24 +224,28 @@ export default function GalleryPage() {
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className="flex flex-col gap-6 px-6 mt-4"
             >
-               {MEMORIES_DATA.map(memory => (
+               {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => (
                  <div key={memory.id} className="bg-white rounded-[2rem] overflow-hidden border border-stone-200 shadow-[0_15px_40px_rgba(0,0,0,0.1)] relative group">
                   <div className="aspect-[4/5] overflow-hidden relative">
                     <img src={memory.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
-                    <span className="absolute top-4 right-4 bg-white/90 backdrop-blur text-black text-[9px] font-extrabold tracking-widest px-2.5 py-1 rounded-full shadow-md">
-                      {memory.date}
-                    </span>
+                    <button onClick={() => handleDelete(memory.id)} className="absolute top-4 right-4 bg-black/60 backdrop-blur text-white p-2.5 rounded-full shadow-md z-20 hover:scale-110 active:scale-95">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="p-5 relative z-10 bg-[#fdfdfd] border-t border-stone-100 flex flex-col gap-3">
-                    <p className="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-bold">Look</p>
-                    <div className="flex gap-2">
-                       {memory.tags.map(tag => (
-                         <span key={tag} className="px-3 py-1 bg-stone-100 rounded-full text-stone-600 font-bold uppercase tracking-widest text-[9px] border border-stone-200/50">{tag}</span>
-                       ))}
+                  <div className="p-5 pb-6 relative z-10 bg-[#fdfdfd] border-t border-stone-100 flex flex-col gap-3">
+                    <p className="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-bold">OOTD AI Insight</p>
+                    <div className="text-[13px] font-extrabold text-stone-800 leading-relaxed font-sans break-keep drop-shadow-sm">
+                       "{memory.name.split(':')[1] ? memory.name.split(':')[1].trim() : memory.name}"
+                    </div>
+                    <div className="absolute top-[-25px] right-6 bg-black text-white px-4 py-2 rounded-full font-black text-lg shadow-[0_5px_15px_rgba(0,0,0,0.3)] ring-4 ring-[#fdfdfd]">
+                       {memory.name.split('점')[0]}
                     </div>
                   </div>
                  </div>
                ))}
+               {localItems.filter(i => i.categoryId === 'ootd_feed').length === 0 && (
+                 <p className="text-stone-600/70 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-white/20 rounded-xl border border-stone-500/10">등록된 과거 OOTD 스크랩이 아직 없습니다.</p>
+               )}
             </motion.div>
           )}
         </AnimatePresence>

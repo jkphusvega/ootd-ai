@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Zap, User, Grid, Settings2, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets } from 'lucide-react';
+import { Camera, Zap, User, Grid, Settings2, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '../lib/supabaseClient';
 
 interface WeatherData {
   temperature: number;
@@ -23,6 +24,7 @@ export default function Home() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [critique, setCritique] = useState<FashionCritique | null>(null);
   const [originalImage, setOriginalImage] = useState<string>("https://images.unsplash.com/photo-1485230895905-312046452294?q=80&w=800&auto=format&fit=crop");
+  const [base64Image, setBase64Image] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +84,7 @@ export default function Home() {
       reader.readAsDataURL(file);
     });
 
+    setBase64Image(base64);
     setScanState('scanning');
     
     try {
@@ -113,6 +116,35 @@ export default function Home() {
   const triggerCamera = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+
+  const handleSaveToFeed = async () => {
+    if (!base64Image || !critique) return;
+    setScanState('scanning');
+    try {
+      const fetchResponse = await fetch(base64Image);
+      const blob = await fetchResponse.blob();
+      const fileName = `ootd_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
+      
+      const { error: uploadError } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
+      if (uploadError) throw new Error('업로드 에러');
+      
+      const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
+      
+      const { error: dbError } = await supabase.from('clothes').insert({
+        category: 'ootd_feed',
+        name: `${critique.score}점: ${critique.summary}`,
+        image_url: publicUrl,
+        user_id: 'guest_user_123'
+      });
+      if (dbError) throw new Error('DB 무결성 에러');
+      
+      alert('성공적으로 내 OOTD 갤러리에 저장되었습니다! 📸\\n(마이옷장 -> OOTD Feeds 탭에서 확인하세요)');
+      setScanState('success');
+    } catch(e) {
+      alert('서버 저장 실패!');
+      setScanState('success');
     }
   };
 
@@ -261,16 +293,30 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="mt-8 flex gap-3">
-                 <button onClick={() => setScanState('idle')} className="flex-1 py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-widest text-[11px] uppercase rounded-2xl shadow-sm active:scale-95 transition-transform">
-                   다시 입고 확인받기
+              <div className="mt-8 flex flex-col gap-3">
+                 <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                   <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
                  </button>
-                 <Link href="/test-bg" className="flex-1">
-                   <button className="w-full py-4 bg-black text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-1">
-                     분리해서 옷장 넣기
-                     <ChevronRight className="w-4 h-4" />
+                 <div className="grid grid-cols-4 gap-2">
+                   <button onClick={() => setScanState('idle')} className="col-span-1 py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">
+                     다시입기
                    </button>
-                 </Link>
+                   <Link href="/wardrobe" className="col-span-1 block">
+                     <button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">
+                       옷장 가기
+                     </button>
+                   </Link>
+                   <button onClick={() => {
+                     if (base64Image) {
+                       sessionStorage.setItem('ootd_transfer_image', base64Image);
+                       sessionStorage.setItem('ootd_auto_start', 'true');
+                       window.location.href = '/test-bg';
+                     }
+                   }} className="col-span-2 py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
+                       AI로 옷 추출하기
+                       <ChevronRight className="w-3.5 h-3.5" />
+                   </button>
+                 </div>
               </div>
             </div>
           </motion.div>
