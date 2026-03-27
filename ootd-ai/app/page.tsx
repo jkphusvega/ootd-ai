@@ -53,7 +53,7 @@ export default function Home() {
         else if (code >= 70) cond = 'Snow';
         
         setWeather({
-          temperature: data.current.temperature_2m,
+          temperature: Math.round(data.current.temperature_2m), // 정수 반올림
           condition: cond
         });
       } catch (err) {
@@ -178,12 +178,14 @@ export default function Home() {
 
       {/* Background: uploaded image or clean white */}
       <div className="absolute inset-0 z-0 bg-white">
-        {originalImage && (
+        {originalImage ? (
           <img 
             src={originalImage} 
             alt="OOTD Preview" 
             className="w-full h-full object-cover"
           />
+        ) : (
+          <div className="w-full h-full bg-stone-50/30" />
         )}
         {/* Light overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-transparent to-white/90 pointer-events-none" />
