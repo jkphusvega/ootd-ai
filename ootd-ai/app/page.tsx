@@ -23,7 +23,7 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [critique, setCritique] = useState<FashionCritique | null>(null);
-  const [originalImage, setOriginalImage] = useState<string>("https://images.unsplash.com/photo-1485230895905-312046452294?q=80&w=800&auto=format&fit=crop");
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [base64Image, setBase64Image] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,8 +153,7 @@ export default function Home() {
       
       <input 
         type="file" 
-        accept="image/*" 
-        capture="environment" 
+        accept="image/*"
         className="hidden" 
         ref={fileInputRef} 
         onChange={handleFileChange} 
@@ -177,13 +176,15 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Live Camera Feed or Static Background */}
-      <div className="absolute inset-0 z-0 bg-zinc-100">
-        <img 
-          src={originalImage} 
-          alt="Camera Feed Background" 
-          className="w-full h-full object-cover"
-        />
+      {/* Background: uploaded image or clean white */}
+      <div className="absolute inset-0 z-0 bg-white">
+        {originalImage && (
+          <img 
+            src={originalImage} 
+            alt="OOTD Preview" 
+            className="w-full h-full object-cover"
+          />
+        )}
         {/* Light overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-transparent to-white/90 pointer-events-none" />
       </div>
