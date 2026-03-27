@@ -74,6 +74,13 @@ export default function Home() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     const file = e.target.files[0];
+
+    // 🔒 보안: 5MB 이상 이미지 업로드 차단
+    if (file.size > 5 * 1024 * 1024) {
+      alert('📸 사진 용량이 너무 큽니다!\n5MB 이하의 사진을 사용해주세요.\n(카메라로 직접 촬영한 사진을 권장합니다)');
+      e.target.value = '';
+      return;
+    }
     
     const objectUrl = URL.createObjectURL(file);
     setOriginalImage(objectUrl);
