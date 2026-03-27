@@ -70,8 +70,9 @@ Only output the JSON object. Do not include labels, explanations, or code blocks
     const parsedOutputs = JSON.parse(jsonMatch[0]);
     return NextResponse.json(parsedOutputs);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Auto Segmentation API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown segmentation error';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

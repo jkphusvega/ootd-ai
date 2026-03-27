@@ -98,7 +98,7 @@ export default function JournalPage() {
            className="w-full p-8 border border-dashed border-zinc-200 rounded-[2rem] flex flex-col items-center justify-center gap-3 text-zinc-400 hover:text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50/50 transition-all cursor-pointer mt-4"
         >
           <Calendar className="w-8 h-8 opacity-50" strokeWidth={1.5} />
-          <p className="text-xs font-semibold tracking-widest uppercase">Add Today's Outfit</p>
+          <p className="text-xs font-semibold tracking-widest uppercase">Add Today&apos;s Outfit</p>
         </motion.div>
       </main>
 
@@ -137,7 +137,7 @@ export default function JournalPage() {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full flex flex-col items-center">
                   <div className="w-full flex justify-between items-center mb-8">
                     <div>
-                      <h2 className="text-2xl font-serif italic text-zinc-900">Log Today's Outfit</h2>
+                      <h2 className="text-2xl font-serif italic text-zinc-900">Log Today&apos;s Outfit</h2>
                       <p className="text-[10px] text-zinc-500 mt-1.5 uppercase tracking-widest font-semibold">Gemini Vision AI Analysis</p>
                     </div>
                     <button onClick={closeModal} className="p-2.5 bg-zinc-50 rounded-full text-zinc-500 hover:bg-zinc-100 transition border border-zinc-100">

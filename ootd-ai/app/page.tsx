@@ -258,7 +258,7 @@ export default function Home() {
                  <div>
                    <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Review</span>
                    <h2 className="text-2xl font-black tracking-tight text-black leading-snug break-keep pr-4 text-balance">
-                     "{critique.summary}"
+                     &quot;{critique.summary}&quot;
                    </h2>
                  </div>
                  <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">

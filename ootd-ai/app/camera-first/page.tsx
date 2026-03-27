@@ -37,7 +37,7 @@ export default function CameraFirstPage() {
 
         <div className="px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center gap-2.5 shadow-xl">
           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]" />
-          <span className="text-white text-[10px] font-black tracking-[0.2em] uppercase">Today's OOTD</span>
+          <span className="text-white text-[10px] font-black tracking-[0.2em] uppercase">Today&apos;s OOTD</span>
         </div>
 
         <button className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white shadow-xl hover:bg-black/60 transition">

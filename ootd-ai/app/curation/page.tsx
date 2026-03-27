@@ -51,7 +51,7 @@ export default function CurationPage() {
             <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">Seoul, Hongdae</span>
           </div>
           <h1 className="text-3xl font-black tracking-tight text-black mb-1">
-            Today's <br/>AI Curation
+            Today&apos;s <br/>AI Curation
           </h1>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-xl rounded-full border border-black/5 mt-1 shadow-sm">
             <CloudRain className="w-4 h-4 text-zinc-600" />
