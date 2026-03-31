@@ -60,8 +60,9 @@ Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and profe
     const parsedData = JSON.parse(jsonString);
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to process AI Evaluation' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process AI Evaluation';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

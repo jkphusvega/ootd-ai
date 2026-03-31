@@ -100,7 +100,7 @@ export default function UnifiedSandboxPage() {
       setResultImage(base64data);
       setProgressMsg('');
       setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
-    } catch(e) {
+    } catch (e: unknown) {
       console.error(e);
       alert('추출 실패!');
     } finally {
@@ -125,7 +125,7 @@ export default function UnifiedSandboxPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: targetBase64 })
       });
-      if (!response.ok) { let errStr = '통신 에러'; try { const errObj = await response.json(); errStr = errObj.error; } catch(e){} throw new Error(errStr); }
+      if (!response.ok) { let errStr = '통신 에러'; try { const errObj = await response.json(); errStr = errObj.error; } catch(err: unknown){} throw new Error(errStr); }
       const data = await response.json();
       if (!data.items || data.items.length === 0) throw new Error('AI가 뚜렷한 옷 조각을 찾지 못했습니다.');
 
@@ -152,9 +152,10 @@ export default function UnifiedSandboxPage() {
       setProgressMsg('');
       setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
 
-    } catch(e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      alert('자동 분할 추출 실패: ' + e.message);
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      alert('자동 분할 추출 실패: ' + msg);
     } finally {
       setIsProcessing(false);
     }
@@ -181,9 +182,10 @@ export default function UnifiedSandboxPage() {
 
       alert('단품 옷이 옷장에 안전하게 저장되었습니다! ☁️🎉');
       window.location.href = '/wardrobe';
-    } catch(e: any) {
+    } catch (e: unknown) {
       console.error('Supabase Error:', e);
-      alert(e.message || '저장 중 서버 연동 오류가 발생했습니다.');
+      const msg = e instanceof Error ? e.message : '저장 중 서버 연동 오류가 발생했습니다.';
+      alert(msg);
     } finally {
       setIsProcessing(false); setProgressMsg('');
     }
@@ -216,9 +218,10 @@ export default function UnifiedSandboxPage() {
 
       alert('선택된 모든 옷이 옷장에 안전하게 동기화 저장되었습니다! ☁️🎉');
       window.location.href = '/wardrobe';
-    } catch(e: any) {
+    } catch (e: unknown) {
       console.error('Supabase Error:', e);
-      alert(e.message || '저장 중 오류 발생.');
+      const msg = e instanceof Error ? e.message : '저장 중 오류 발생.';
+      alert(msg);
     } finally {
       setIsProcessing(false); setProgressMsg('');
     }
