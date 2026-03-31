@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, Sparkles, Ruler } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowRight, Check, Sparkles, Ruler, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '../../lib/supabaseClient';
 
 const MOODS = [
   { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
@@ -21,6 +21,27 @@ export default function OnboardingPage() {
   const [weight, setWeight] = useState(70);
   const [fit, setFit] = useState('regular');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  // 이미 온보딩을 완료한 사용자인지 확인
+  useEffect(() => {
+    const checkProfile = async () => {
+      const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (data) {
+        // 이미 프로필이 있으면 홈으로
+        router.push('/');
+      }
+      setIsChecking(false);
+    };
+    checkProfile();
+  }, [router]);
   
   const toggleMood = (id: string) => {
     setSelectedMoods(prev => 
@@ -29,27 +50,62 @@ export default function OnboardingPage() {
     );
   };
 
-  const nextStep = () => {
-    if (step === 1) setStep(2);
-    else {
-      // Finish onboarding
-      router.push('/');
+  const nextStep = async () => {
+    if (step === 1) {
+      setStep(2);
+    } else {
+      // 온보딩 완료: Supabase에 저장
+      setIsSaving(true);
+      try {
+        const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
+        
+        const { error } = await supabase
+          .from('user_profiles')
+          .upsert({
+            user_id: userId,
+            height,
+            weight,
+            fit_preference: fit,
+            style_moods: selectedMoods,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+
+        if (error) throw error;
+
+        // 온보딩 완료 표시
+        localStorage.setItem('ootd_onboarded', 'true');
+        router.push('/');
+      } catch (err) {
+        console.error('프로필 저장 실패:', err);
+        alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
+
+  // 로딩 중
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans overflow-hidden flex flex-col justify-between selection:bg-zinc-200">
       
-      {/* Background Effect Light Mode */}
+      {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.03),transparent_50%)] pointer-events-none" />
 
       {/* Progress */}
-      <div className="px-6 pt-16 relative z-10 flex gap-2">
+      <div className="px-6 pt-16 relative z-10 flex gap-2 max-w-lg mx-auto w-full">
         <div className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= 1 ? 'bg-black shadow-[0_0_10px_rgba(0,0,0,0.1)]' : 'bg-zinc-200'}`} />
         <div className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= 2 ? 'bg-black shadow-[0_0_10px_rgba(0,0,0,0.1)]' : 'bg-zinc-200'}`} />
       </div>
 
-      <main className="px-8 flex-1 flex flex-col justify-center relative z-10 mt-10">
+      <main className="px-8 flex-1 flex flex-col justify-center relative z-10 mt-10 max-w-lg mx-auto w-full">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: Body Profile */}
@@ -65,7 +121,7 @@ export default function OnboardingPage() {
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
                   <Ruler className="w-6 h-6 text-black" />
                 </motion.div>
-                <h1 className="text-4xl font-extrabold tracking-tight mb-3">나의 체형 정보</h1>
+                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">나의 체형 정보</h1>
                 <p className="text-zinc-500 text-sm leading-relaxed">보다 정확한 핏과 코디 추천을 위해<br/>딱 3가지만 알려주세요.</p>
               </div>
 
@@ -126,7 +182,7 @@ export default function OnboardingPage() {
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
                   <Sparkles className="w-6 h-6 text-black" />
                 </motion.div>
-                <h1 className="text-4xl font-extrabold tracking-tight mb-3">스타일 DNA</h1>
+                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">스타일 DNA</h1>
                 <p className="text-zinc-500 text-sm leading-relaxed">추구하는 무드를 최대 3개 선택해주세요.<br/>AI 스타일리스트가 큐레이션에 반영합니다.</p>
               </div>
 
@@ -155,18 +211,20 @@ export default function OnboardingPage() {
         </AnimatePresence>
       </main>
 
-      {/* Footer Area */}
-      <div className="px-6 pb-12 pt-8 relative z-10 bg-gradient-to-t from-white via-white/90 to-transparent">
+      {/* Footer */}
+      <div className="px-6 pb-12 pt-8 relative z-10 bg-gradient-to-t from-white via-white/90 to-transparent max-w-lg mx-auto w-full">
         <button 
           onClick={nextStep}
-          disabled={step === 2 && selectedMoods.length === 0}
+          disabled={(step === 2 && selectedMoods.length === 0) || isSaving}
           className="w-full flex items-center justify-center gap-2 py-5 bg-black text-white font-extrabold tracking-[0.2em] text-[11px] uppercase rounded-[1.5rem] disabled:opacity-40 shadow-[0_10px_30px_rgba(0,0,0,0.3)] hover:bg-zinc-800 transition-all active:scale-[0.98]"
         >
-          {step === 1 ? '다음 단계로' : '완료하고 시작하기'}
-          <ArrowRight className="w-4 h-4" />
+          {isSaving ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
+          ) : (
+            <>{step === 1 ? '다음 단계로' : '완료하고 시작하기'} <ArrowRight className="w-4 h-4" /></>
+          )}
         </button>
       </div>
-
     </div>
   );
 }

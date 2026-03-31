@@ -1,161 +1,256 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, CloudRain, MapPin, RefreshCw, X, Home } from 'lucide-react';
-import Link from 'next/link';
+import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
-// Detailed Mock Data for AI layers
-const AI_OUTFIT_SUGGESTION = [
-  { id: 'l1', type: 'BOTTOM', image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=400&auto=format&fit=crop', zIndex: 1, yOffset: 120, scale: 0.95 },
-  { id: 'l2', type: 'TOP', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=400&auto=format&fit=crop', zIndex: 2, yOffset: -30, scale: 1 },
-  { id: 'l3', type: 'OUTER', image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=400&auto=format&fit=crop', zIndex: 3, yOffset: -50, scale: 1.1 },
-];
+interface WeatherData {
+  temperature: number;
+  condition: string;
+}
+
+interface CurationItem {
+  category: string;
+  name: string;
+  image_url: string;
+  reason: string;
+}
+
+interface CurationResult {
+  title: string;
+  description: string;
+  style: string;
+  colorTone: string;
+  items: CurationItem[];
+}
 
 export default function CurationPage() {
-  const [layers, setLayers] = useState(AI_OUTFIT_SUGGESTION);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [curation, setCuration] = useState<CurationResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [wardrobeCount, setWardrobeCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const bringToFront = (id: string) => {
-    setLayers(prev => {
-      const maxZ = Math.max(...prev.map(l => l.zIndex));
-      return prev.map(l => l.id === id ? { ...l, zIndex: maxZ + 1 } : l);
-    });
+  // Fetch weather
+  useEffect(() => {
+    const fetchWeather = async (lat = 37.5665, lon = 126.9780) => {
+      try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+        const data = await res.json();
+        const code = data.current.weather_code;
+        let cond = 'Clear';
+        if (code >= 60 && code <= 67) cond = 'Rain';
+        else if (code >= 1 && code <= 3) cond = 'Cloudy';
+        else if (code >= 70) cond = 'Snow';
+        setWeather({ temperature: data.current.temperature_2m, condition: cond });
+      } catch {}
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => fetchWeather()
+      );
+    } else fetchWeather();
+  }, []);
+
+  // Check wardrobe count
+  useEffect(() => {
+    const checkWardrobe = async () => {
+      const { count } = await supabase
+        .from('clothes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', 'guest_user_123')
+        .neq('category', 'ootd_feed');
+      setWardrobeCount(count || 0);
+    };
+    checkWardrobe();
+  }, []);
+
+  const generateCuration = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      const res = await fetch('/api/curate-outfit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weatherInfo: weather || { temperature: 20, condition: 'Clear' },
+          userProfile: profile || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCuration(data);
+      } else {
+        setError(data.error || 'AI 큐레이션 오류');
+      }
+    } catch (err) {
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGenerateNew = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      setLayers(prev => prev.map(l => ({ ...l, yOffset: l.yOffset + (Math.random() * 20 - 10) })));
-      setIsGenerating(false);
-    }, 1500);
+  const WeatherIcon = () => {
+    if (!weather) return null;
+    if (weather.condition === 'Rain') return <CloudRain className="w-4 h-4" />;
+    if (weather.condition === 'Snow') return <CloudSnow className="w-4 h-4" />;
+    if (weather.condition === 'Cloudy') return <Cloud className="w-4 h-4" />;
+    return <Sun className="w-4 h-4" />;
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans overflow-hidden selection:bg-zinc-200 flex flex-col">
-      
-      {/* Light Theme Background Dynamic Element */}
+    <div className="min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans selection:bg-zinc-200 flex flex-col pb-20 lg:pb-0">
       <div className="absolute inset-0 bg-gradient-to-b from-white via-[#f8f9fa] to-zinc-100 z-0 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.03),transparent_40%)] z-0 pointer-events-none" />
 
-      {/* Header: Weather Context */}
-      <header className="relative z-10 pt-12 pb-6 px-8 flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/">
-              <button className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-600 shadow-sm hover:bg-zinc-50 transition active:scale-95">
-                <Home className="w-3.5 h-3.5" />
-              </button>
-            </Link>
-            <MapPin className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">Seoul, Hongdae</span>
+      {/* Header */}
+      <header className="relative z-10 pt-12 lg:pt-8 pb-6 px-8 max-w-6xl mx-auto w-full">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">Seoul</span>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-black mb-1">
+              Today's<br className="lg:hidden" /> AI Curation
+            </h1>
+            {weather && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-xl rounded-full border border-black/5 mt-2 shadow-sm">
+                <WeatherIcon />
+                <span className="text-[10px] font-bold tracking-widest text-zinc-500">{weather.temperature}°C {weather.condition.toUpperCase()}</span>
+              </div>
+            )}
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-black mb-1">
-            Today's <br/>AI Curation
-          </h1>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-xl rounded-full border border-black/5 mt-1 shadow-sm">
-            <CloudRain className="w-4 h-4 text-zinc-600" />
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500">16°C RAINY</span>
-          </div>
+          <button
+            onClick={generateCuration}
+            disabled={isLoading}
+            className="w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
+          >
+            <RefreshCw className={`w-5 h-5 text-white ${isLoading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
+          </button>
         </div>
-
-        <button 
-          onClick={handleGenerateNew}
-          disabled={isGenerating}
-          className="w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
-        >
-          <RefreshCw className={`w-5 h-5 text-white ${isGenerating ? 'animate-spin' : ''}`} strokeWidth={2.5} />
-        </button>
       </header>
 
-      {/* Main Canvas Area */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-end pb-12 overflow-hidden" ref={containerRef}>
-        
-        {/* The Pedestal / Stage (Light theme) */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-64 h-12 bg-black/5 rounded-full blur-xl z-0" />
-        
-        {/* Outfit Layers Container */}
-        <div className="relative w-full max-w-sm h-[60vh] flex items-center justify-center z-10">
-          <AnimatePresence>
-            {!isGenerating && layers.sort((a, b) => a.zIndex - b.zIndex).map((layer, index) => (
-              <motion.div
-                key={layer.id}
-                drag
-                dragConstraints={containerRef}
-                dragElastic={0.1}
-                whileDrag={{ scale: 1.05, cursor: "grabbing" }}
-                onDragStart={() => bringToFront(layer.id)}
-                initial={{ opacity: 0, y: layer.yOffset + 100, scale: 0.8 }}
-                animate={{ opacity: 1, y: layer.yOffset, scale: layer.scale }}
-                exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
-                transition={{ 
-                  type: "spring", 
-                  stiffness: 300, 
-                  damping: 20, 
-                  delay: index * 0.15 
-                }}
-                className="absolute"
-                style={{ zIndex: layer.zIndex }}
+      {/* Main Content */}
+      <main className="relative z-10 flex-1 px-8 max-w-6xl mx-auto w-full" ref={containerRef}>
+        <AnimatePresence mode="wait">
+          
+          {/* Initial State: No curation yet */}
+          {!curation && !isLoading && !error && (
+            <motion.div key="initial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-16 lg:py-24 text-center">
+              <div className="w-20 h-20 bg-white border border-zinc-200 rounded-3xl flex items-center justify-center mb-6 shadow-lg">
+                <Sparkles className="w-9 h-9 text-zinc-300" />
+              </div>
+              <h2 className="text-xl font-bold text-zinc-500 mb-3">AI 코디 추천 받기</h2>
+              <p className="text-sm text-zinc-400 leading-relaxed mb-2">
+                내 옷장에 등록된 <span className="font-bold text-zinc-600">{wardrobeCount}개의 아이템</span>과<br />
+                오늘의 날씨를 고려해서 AI가 코디를 추천합니다
+              </p>
+              {wardrobeCount === 0 && (
+                <p className="text-xs text-amber-500 font-bold mt-2">⚠️ 먼저 옷장에 아이템을 등록해주세요</p>
+              )}
+              <button
+                onClick={generateCuration}
+                disabled={isLoading || wardrobeCount === 0}
+                className="mt-8 px-8 py-4 bg-black text-white rounded-2xl font-extrabold tracking-widest text-xs uppercase shadow-xl hover:bg-zinc-800 transition disabled:opacity-40 flex items-center gap-2"
               >
-                {/* Die-cut Card (Light Theme) */}
-                <motion.div 
-                  className="w-48 h-56 bg-white rounded-3xl border border-zinc-200 shadow-[0_15px_40px_rgba(0,0,0,0.08)] relative overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing"
-                  whileHover={{ y: -5 }}
-                >
-                   {/* subtle inner shadow */}
-                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.02),transparent)] pointer-events-none" />
-                   
-                   <img 
-                     src={layer.image} 
-                     alt="Clothing" 
-                     className="w-full h-full object-cover p-2 mix-blend-multiply" 
-                     draggable="false"
-                   />
-                   
-                   {/* Layer Type Badge */}
-                   <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur border border-zinc-100 px-2 py-1 rounded-md shadow-sm">
-                     <span className="text-[8px] font-black tracking-widest text-zinc-600">{layer.type}</span>
-                   </div>
-                </motion.div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {isGenerating && (
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-50 text-zinc-500"
-            >
-               <Sparkles className="w-8 h-8 animate-pulse text-black" />
-               <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-black">AI Stylist Thinking...</p>
+                <Sparkles className="w-4 h-4" /> AI 큐레이션 시작
+              </button>
             </motion.div>
           )}
-        </div>
+
+          {/* Loading */}
+          {isLoading && (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24 text-center">
+              <Loader2 className="w-10 h-10 animate-spin text-zinc-400 mb-6" />
+              <h3 className="text-lg font-bold text-zinc-600 mb-2">AI 스타일리스트가 고민 중...</h3>
+              <p className="text-xs text-zinc-400">옷장과 날씨를 분석해서 최적의 코디를 찾고 있어요</p>
+            </motion.div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24 text-center">
+              <AlertCircle className="w-10 h-10 text-red-400 mb-4" />
+              <p className="text-sm text-red-500 font-bold mb-4">{error}</p>
+              <button onClick={generateCuration} className="px-6 py-3 bg-zinc-900 text-white rounded-xl text-xs font-bold tracking-widest uppercase">
+                다시 시도
+              </button>
+            </motion.div>
+          )}
+
+          {/* Result */}
+          {curation && !isLoading && (
+            <motion.div key="result" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}>
+              
+              {/* ── Desktop: Side by Side ── */}
+              <div className="lg:grid lg:grid-cols-2 lg:gap-10">
+                
+                {/* Items Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-8 lg:mb-0">
+                  {curation.items.map((item, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1, duration: 0.4 }}
+                      className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all"
+                    >
+                      <div className="aspect-square overflow-hidden bg-zinc-50 flex items-center justify-center p-3">
+                        <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110" draggable={false}
+                          style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
+                      </div>
+                      <div className="p-4">
+                        <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-1">{item.category}</span>
+                        <p className="text-sm font-bold text-zinc-800 mb-2 line-clamp-1">{item.name}</p>
+                        <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">{item.reason}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Info Panel */}
+                <div className="flex flex-col gap-5">
+                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm">
+                    <h2 className="text-2xl font-black tracking-tight mb-3">{curation.title}</h2>
+                    <p className="text-sm text-zinc-600 leading-relaxed mb-5">{curation.description}</p>
+                    <div className="flex gap-3 flex-wrap">
+                      <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50">
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-500">Style</span>
+                        <span className="text-[10px] font-bold text-black">{curation.style}</span>
+                      </div>
+                      <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50">
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-500">Color</span>
+                        <span className="text-[10px] font-bold text-black">{curation.colorTone}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={generateCuration}
+                    disabled={isLoading}
+                    className="w-full py-4 bg-black text-white rounded-2xl font-extrabold tracking-widest text-xs uppercase shadow-xl hover:bg-zinc-800 transition flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" /> 다른 코디 추천받기
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
-
-      {/* Info Bottom Sheet */}
-      <div className="relative z-20 mt-auto">
-        <div className="w-full bg-white backdrop-blur-2xl rounded-t-[3rem] border-t border-black/5 shadow-[0_-20px_50px_rgba(0,0,0,0.03)] p-8 pt-10 relative">
-           <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-200 rounded-full" />
-           
-           <h2 className="text-2xl font-black tracking-tight mb-2">Rainy Day Layering</h2>
-           <p className="text-zinc-500 text-xs leading-relaxed mb-6">
-             현재 기온 16도의 비오는 날씨를 반영하여 구성한 레이어드 룩입니다. 오버핏 가죽 자켓이 빗방울을 막아주며 내부의 캐주얼 티셔츠가 편안함을 유지합니다.
-           </p>
-
-           <div className="flex gap-3 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-              <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50 shadow-sm shrink-0">
-                <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-600">Style</span>
-                <span className="text-[10px] font-bold text-black">Street</span>
-              </div>
-              <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50 shadow-sm shrink-0">
-                <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-600">Color</span>
-                <span className="text-[10px] font-bold text-black">Monotone</span>
-              </div>
-           </div>
-        </div>
-      </div>
-
     </div>
   );
 }

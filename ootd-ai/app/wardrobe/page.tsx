@@ -26,11 +26,6 @@ const WARDROBE_DATA: CategoryInfo[] = [
   { id: 'socks', title: 'SOCKS / ETC', items: [] }
 ];
 
-const MEMORIES_DATA = [
-  { id: 'm1', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop', date: 'TODAY', tags: ['Minimal', 'Casual'] },
-  { id: 'm2', image: 'https://images.unsplash.com/photo-1509631179647-0c57283fce83?q=80&w=800&auto=format&fit=crop', date: 'YESTERDAY', tags: ['Street', 'Dark'] },
-];
-
 export default function GalleryPage() {
   const [activeTab, setActiveTab] = useState<'wardrobe' | 'memories'>('wardrobe');
   const [editMode, setEditMode] = useState(false);
@@ -40,34 +35,22 @@ export default function GalleryPage() {
   const fetchClothes = async () => {
     setIsLoading(true);
     const { data, error } = await supabase.from('clothes').select('*').order('created_at', { ascending: false });
-    
     if (data && !error) {
       const mapped = data.map((row: any) => ({
-        id: row.id,
-        image: row.image_url,
-        name: row.name,
-        categoryId: row.category
+        id: row.id, image: row.image_url, name: row.name, categoryId: row.category
       }));
       setLocalItems(mapped);
     }
     setIsLoading(false);
   };
 
-  useEffect(() => {
-    fetchClothes();
-  }, []);
+  useEffect(() => { fetchClothes(); }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('정말로 옷장에서 삭제하시겠습니까?')) return;
-    
-    // Optimistic UI updates
     setLocalItems(prev => prev.filter(i => i.id !== id));
-    
     const { error } = await supabase.from('clothes').delete().eq('id', id);
-    if (error) {
-      alert('삭제 중 오류가 발생했습니다.');
-      fetchClothes(); // Revert on failure
-    }
+    if (error) { alert('삭제 중 오류가 발생했습니다.'); fetchClothes(); }
   };
 
   const getMergedCategories = () => {
@@ -78,134 +61,107 @@ export default function GalleryPage() {
   };
 
   const displayCategories = getMergedCategories();
+  const totalItems = localItems.filter(i => i.categoryId !== 'ootd_feed').length;
 
   return (
-    <div className="min-h-screen bg-[#dcc4a3] text-stone-900 pb-28 font-sans selection:bg-stone-300 relative">
+    <div className="min-h-screen bg-[#dcc4a3] text-stone-900 pb-28 lg:pb-8 font-sans selection:bg-stone-300 relative">
       
-      {/* Wood Texture Background for Wardrobe */}
+      {/* Wood Texture Background */}
       <div className="fixed inset-0 pointer-events-none bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center opacity-60 mix-blend-multiply z-0" />
       <style>{`
         .sticker-effect {
           filter: drop-shadow(0px -3px 0px rgba(255,255,255,1)) drop-shadow(0px 3px 0px rgba(255,255,255,1)) drop-shadow(3px 0px 0px rgba(255,255,255,1)) drop-shadow(-3px 0px 0px rgba(255,255,255,1)) drop-shadow(0 15px 25px rgba(0,0,0,0.1));
         }
       `}</style>
+
       {/* Header */}
-      <header className="pt-12 pb-6 sticky top-0 bg-[#dcc4a3]/80 backdrop-blur-xl z-40 border-b border-stone-800/10 shadow-[0_10px_30px_rgba(120,90,50,0.1)]">
-        
-        {/* Top bar */}
-        <div className="flex justify-between items-center mb-6 px-6 relative z-10">
-          <Link href="/">
-            <button className="w-10 h-10 rounded-full border border-stone-800/20 bg-white/50 backdrop-blur flex items-center justify-center text-stone-800 shadow-md hover:bg-white/80 transition active:scale-95">
-              <Home className="w-4 h-4" />
+      <header className="pt-12 lg:pt-8 pb-6 sticky top-0 bg-[#dcc4a3]/80 backdrop-blur-xl z-40 border-b border-stone-800/10 shadow-[0_10px_30px_rgba(120,90,50,0.1)]">
+        <div className="max-w-6xl mx-auto">
+          {/* Top bar */}
+          <div className="flex justify-between items-center mb-6 px-6 relative z-10">
+            {/* Home button: mobile only (desktop has sidebar) */}
+            <Link href="/" className="lg:hidden">
+              <button className="w-10 h-10 rounded-full border border-stone-800/20 bg-white/50 backdrop-blur flex items-center justify-center text-stone-800 shadow-md hover:bg-white/80 transition active:scale-95">
+                <Home className="w-4 h-4" />
+              </button>
+            </Link>
+            <div className="hidden lg:block" />
+
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-black tracking-[0.3em] uppercase text-stone-900 drop-shadow-sm">MY CLOSET</h1>
+              <span className="hidden lg:inline-flex text-[10px] font-bold bg-black/20 text-white px-2.5 py-1 rounded-full tracking-widest">
+                {totalItems} ITEMS
+              </span>
+            </div>
+            
+            <button onClick={() => setEditMode(!editMode)} className={`w-10 h-10 rounded-full border flex items-center justify-center transition shadow-md shrink-0 ${editMode ? 'bg-red-500 border-red-600 text-white' : 'bg-white/50 backdrop-blur border-stone-800/20 text-stone-800 hover:bg-white/80'}`}>
+              {editMode ? <X className="w-5 h-5" strokeWidth={2.5} /> : <Trash2 className="w-4 h-4" />}
             </button>
-          </Link>
-          <h1 className="text-xl font-black tracking-[0.3em] uppercase text-stone-900 drop-shadow-sm">
-            MY CLOSET
-          </h1>
-          
-          <button onClick={() => setEditMode(!editMode)} className={`w-10 h-10 rounded-full border flex items-center justify-center transition shadow-md shrink-0 ${editMode ? 'bg-red-500 border-red-600 text-white' : 'bg-white/50 backdrop-blur border-stone-800/20 text-stone-800 hover:bg-white/80'}`}>
-            {editMode ? <X className="w-5 h-5" strokeWidth={2.5} /> : <Trash2 className="w-4 h-4" />}
-          </button>
-        </div>
-        {/* Custom Segmented Control */}
-        <div className="px-6 mb-2 relative z-10">
-          <div className="flex p-1 bg-white/40 backdrop-blur-md border border-stone-800/10 rounded-full shadow-sm relative">
-            <motion.div
-               layoutId="activeTabIndicator"
-               className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-stone-900 rounded-full z-0 shadow-md"
-               initial={false}
-               animate={{ x: activeTab === 'wardrobe' ? 0 : '100%' }}
-               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            />
-            <button 
-              onClick={() => setActiveTab('wardrobe')}
-              className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'wardrobe' ? 'text-white' : 'text-stone-700 hover:text-stone-900'}`}
-            >
-              Wardrobe
-            </button>
-            <button 
-              onClick={() => setActiveTab('memories')}
-              className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'memories' ? 'text-white' : 'text-stone-700 hover:text-stone-900'}`}
-            >
-              OOTD Feeds
-            </button>
+          </div>
+
+          {/* Segmented Control */}
+          <div className="px-6 mb-2 relative z-10">
+            <div className="flex p-1 bg-white/40 backdrop-blur-md border border-stone-800/10 rounded-full shadow-sm relative max-w-md lg:max-w-sm">
+              <motion.div
+                layoutId="activeTabIndicator"
+                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-stone-900 rounded-full z-0 shadow-md"
+                initial={false}
+                animate={{ x: activeTab === 'wardrobe' ? 0 : '100%' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+              <button 
+                onClick={() => setActiveTab('wardrobe')}
+                className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'wardrobe' ? 'text-white' : 'text-stone-700 hover:text-stone-900'}`}
+              >Wardrobe</button>
+              <button 
+                onClick={() => setActiveTab('memories')}
+                className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'memories' ? 'text-white' : 'text-stone-700 hover:text-stone-900'}`}
+              >OOTD Feeds</button>
+            </div>
           </div>
         </div>
       </header>
-      {/* Main Content Area */}
-      <main className="relative z-10 pt-4">
+
+      {/* Main Content */}
+      <main className="relative z-10 pt-4 max-w-6xl mx-auto">
         <AnimatePresence mode="wait">
           
-          {/* TAB 1: WARDROBE (Hanging directly on wood) */}
+          {/* TAB 1: WARDROBE */}
           {activeTab === 'wardrobe' && (
-            <motion.div
-              key="wardrobe"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex flex-col gap-14 mt-6"
-            >
+            <motion.div key="wardrobe" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }} className="flex flex-col gap-14 mt-6">
               {displayCategories.map(category => (
                 <section key={category.id} className="relative">
                   <div className="flex justify-between items-end px-6 mb-4 z-20 relative">
                     <h2 className="text-4xl font-serif italic text-stone-100 tracking-tight drop-shadow-md">{category.title}</h2>
-                    <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase leading-relaxed bg-black/40 border border-white/10 px-2 py-0.5 rounded-full">{String(category.items.length).padStart(2, '0')} ITEMS</span>
+                    <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase leading-relaxed bg-black/40 border border-white/10 px-2 py-0.5 rounded-full">
+                      {String(category.items.length).padStart(2, '0')} ITEMS
+                    </span>
                   </div>
                   
                   <div className="relative">
-                    {/* Metal Clothes Rail (Darker for Wood Contrast) */}
+                    {/* Metal Rail */}
                     <div className="absolute top-[16px] z-0 left-0 right-0 mx-6 h-[4px] bg-gradient-to-r from-stone-700 via-stone-500 to-stone-700 shadow-[0_5px_5px_rgba(0,0,0,0.5)] rounded-full" />
                     
-                    <div className="flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {/* ── MOBILE: Horizontal Scroll ── */}
+                    <div className="lg:hidden flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none' }}>
                       {category.items.map((item) => (
-                        <div key={item.id} className="snap-center shrink-0 w-[150px] cursor-pointer group flex flex-col items-center relative">
-                          {editMode && (
-                            <button 
-                              onClick={() => handleDelete(item.id)}
-                              className="absolute -top-2 -right-1 z-50 bg-red-500 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(239,68,68,0.5)] border-[3px] border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform"
-                            >
-                              <X className="w-5 h-5" strokeWidth={3} />
-                            </button>
-                          )}
-                          <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3">
-                            {/* Hanger Graphic attached to Rail */}
-                            <div className="text-white/30 -mb-5 relative z-20 drop-shadow-[0_4px_2px_rgba(0,0,0,0.3)]">
-                               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M4 14 l8-6 l8 6Z"/>
-                                  <path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
-                               </svg>
-                            </div>
-                            
-                            {/* Direct Clothing (No White Card Box) */}
-                            <div className="w-[140px] h-[160px] relative flex items-center justify-center">
-                              <img 
-                                src={item.image} 
-                                alt={item.name} 
-                                className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15] sticker-effect"
-                                draggable={false}
-                              />
-                            </div>
-                            
-                            {/* Label */}
-                            <div className="mt-5 px-3 py-1.5 bg-white/90 backdrop-blur border border-stone-200 rounded-lg shadow-md">
-                              <p className="text-[9px] font-black tracking-widest text-stone-800 uppercase text-center">{item.name}</p>
-                            </div>
-                          </div>
-                        </div>
+                        <MobileClothCard key={item.id} item={item} editMode={editMode} onDelete={handleDelete} />
                       ))}
-                      {/* Empty Add Placeholder (Hanger Only) */}
+                      <AddNewCard />
+                    </div>
+
+                    {/* ── DESKTOP: Grid Layout ── */}
+                    <div className="hidden lg:grid grid-cols-4 xl:grid-cols-5 gap-6 px-6 pt-8 pb-6 relative z-10">
+                      {category.items.map((item) => (
+                        <DesktopClothCard key={item.id} item={item} editMode={editMode} onDelete={handleDelete} />
+                      ))}
                       <Link href="/test-bg">
-                        <div className="snap-center shrink-0 w-[140px] h-[160px] mt-[20px] flex flex-col items-center justify-start cursor-pointer group transition">
-                          <div className="text-white/10 mb-4 group-hover:text-white/30 transition-colors">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                               <path d="M4 14 l8-6 l8 6Z"/><path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
-                            </svg>
+                        <div className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
+                          <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
+                            <Plus className="w-6 h-6 text-white/50" />
                           </div>
-                          <div className="w-10 h-10 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition shadow-sm">
-                            <Plus className="w-5 h-5 text-white/50" />
-                          </div>
-                          <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase mt-4">ADD NEW</span>
+                          <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">ADD NEW</span>
                         </div>
                       </Link>
                     </div>
@@ -214,18 +170,14 @@ export default function GalleryPage() {
               ))}
             </motion.div>
           )}
-          {/* TAB 2: MEMORIES */}
+
+          {/* TAB 2: MEMORIES / OOTD FEEDS */}
           {activeTab === 'memories' && (
-             <motion.div
-              key="memories"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
+            <motion.div key="memories" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex flex-col gap-6 px-6 mt-4"
-            >
-               {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => (
-                 <div key={memory.id} className="bg-white rounded-[2rem] overflow-hidden border border-stone-200 shadow-[0_15px_40px_rgba(0,0,0,0.1)] relative group">
+              className="px-6 mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => (
+                <div key={memory.id} className="bg-white rounded-[2rem] overflow-hidden border border-stone-200 shadow-[0_15px_40px_rgba(0,0,0,0.1)] relative group">
                   <div className="aspect-[4/5] overflow-hidden relative">
                     <img src={memory.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
                     <button onClick={() => handleDelete(memory.id)} className="absolute top-4 right-4 bg-black/60 backdrop-blur text-white p-2.5 rounded-full shadow-md z-20 hover:scale-110 active:scale-95">
@@ -241,17 +193,22 @@ export default function GalleryPage() {
                        {memory.name.split('점')[0]}
                     </div>
                   </div>
-                 </div>
-               ))}
-               {localItems.filter(i => i.categoryId === 'ootd_feed').length === 0 && (
-                 <p className="text-stone-600/70 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-white/20 rounded-xl border border-stone-500/10">등록된 과거 OOTD 스크랩이 아직 없습니다.</p>
-               )}
+                </div>
+              ))}
+              {localItems.filter(i => i.categoryId === 'ootd_feed').length === 0 && (
+                <div className="col-span-full">
+                  <p className="text-stone-600/70 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-white/20 rounded-xl border border-stone-500/10">
+                    등록된 과거 OOTD 스크랩이 아직 없습니다.
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-      {/* Manual Upload FAB */}
-      <div className="fixed bottom-8 right-6 z-50">
+
+      {/* FAB */}
+      <div className="fixed bottom-24 lg:bottom-8 right-6 z-50">
         <Link href="/test-bg">
           <button className="w-14 h-14 bg-stone-900 rounded-full flex items-center justify-center text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-all outline-none pb-0.5 border border-stone-700">
             <Plus className="w-7 h-7" strokeWidth={2.5} />
@@ -259,5 +216,70 @@ export default function GalleryPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+/* ───── Sub Components ───── */
+
+function MobileClothCard({ item, editMode, onDelete }: { item: ClothItem; editMode: boolean; onDelete: (id: string) => void }) {
+  return (
+    <div className="snap-center shrink-0 w-[150px] cursor-pointer group flex flex-col items-center relative">
+      {editMode && (
+        <button onClick={() => onDelete(item.id)}
+          className="absolute -top-2 -right-1 z-50 bg-red-500 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(239,68,68,0.5)] border-[3px] border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform">
+          <X className="w-5 h-5" strokeWidth={3} />
+        </button>
+      )}
+      <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3">
+        <div className="text-white/30 -mb-5 relative z-20 drop-shadow-[0_4px_2px_rgba(0,0,0,0.3)]">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14 l8-6 l8 6Z"/><path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
+          </svg>
+        </div>
+        <div className="w-[140px] h-[160px] relative flex items-center justify-center">
+          <img src={item.image} alt={item.name} className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
+        </div>
+        <div className="mt-5 px-3 py-1.5 bg-white/90 backdrop-blur border border-stone-200 rounded-lg shadow-md">
+          <p className="text-[9px] font-black tracking-widest text-stone-800 uppercase text-center">{item.name}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DesktopClothCard({ item, editMode, onDelete }: { item: ClothItem; editMode: boolean; onDelete: (id: string) => void }) {
+  return (
+    <div className="relative group cursor-pointer">
+      {editMode && (
+        <button onClick={() => onDelete(item.id)}
+          className="absolute -top-2 -right-2 z-50 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform">
+          <X className="w-4 h-4" strokeWidth={3} />
+        </button>
+      )}
+      <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:bg-white/20 group-hover:shadow-xl group-hover:-translate-y-1">
+        <img src={item.image} alt={item.name} className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
+      </div>
+      <div className="mt-3 text-center">
+        <p className="text-[10px] font-black tracking-widest text-white/80 uppercase">{item.name}</p>
+      </div>
+    </div>
+  );
+}
+
+function AddNewCard() {
+  return (
+    <Link href="/test-bg">
+      <div className="snap-center shrink-0 w-[140px] h-[160px] mt-[20px] flex flex-col items-center justify-start cursor-pointer group transition">
+        <div className="text-white/10 mb-4 group-hover:text-white/30 transition-colors">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14 l8-6 l8 6Z"/><path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
+          </svg>
+        </div>
+        <div className="w-10 h-10 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition shadow-sm">
+          <Plus className="w-5 h-5 text-white/50" />
+        </div>
+        <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase mt-4">ADD NEW</span>
+      </div>
+    </Link>
   );
 }
