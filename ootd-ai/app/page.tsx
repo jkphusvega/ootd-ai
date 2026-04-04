@@ -27,7 +27,7 @@ export default function Home() {
   const [hasCustomImage, setHasCustomImage] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{height?: number; weight?: number; fit_preference?: string; style_moods?: string[]} | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const desktopFileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +81,11 @@ export default function Home() {
   }, []);
 
   const processFile = async (file: File) => {
+    // 🔒 보안: 5MB 이상 이미지 업로드 차단
+    if (file.size > 5 * 1024 * 1024) {
+      alert('📸 사진 용량이 너무 큽니다!\n5MB 이하의 사진을 사용해주세요.');
+      return;
+    }
     const objectUrl = URL.createObjectURL(file);
     setOriginalImage(objectUrl);
     setHasCustomImage(true);
