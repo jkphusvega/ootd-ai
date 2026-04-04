@@ -19,42 +19,31 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // 프롬프트: 패션 이미지 객체 인식 전문가 페르소나 적용 및 엄격한 좌표 리턴 지시
-    const prompt = `You are a precise fashion image segmentation expert.
+    // Y-range only 접근: Gemini에 세로 위치 비율만 요청 (가로는 전체 사용)
+    const prompt = `Analyze this full-body photo of a person wearing clothes.
 
-TASK: Given a full-body photo, identify and return tight bounding boxes for each visible clothing item.
+Your job: identify each visible clothing item and tell me WHERE it is vertically in the image.
 
-COORDINATE FORMAT (CRITICAL):
-- Use normalized coordinates from 0.0 to 1.0
-- Format: [y_min, x_min, y_max, x_max]
-- (0.0, 0.0) = TOP-LEFT corner of image
-- (1.0, 1.0) = BOTTOM-RIGHT corner of image
-- y increases DOWNWARD, x increases RIGHTWARD
+For each item, provide:
+- "category": one of "tops", "outer", "bottoms", "shoes"  
+- "y_start": where the item starts vertically (0.0 = very top of image, 1.0 = very bottom)
+- "y_end": where the item ends vertically
 
-CATEGORIES (use only these exact strings):
-- "tops": shirts, sweaters, hoodies, t-shirts (upper body garment)
-- "outer": jackets, coats, cardigans (ONLY if a separate outer layer is clearly visible over the top)
-- "bottoms": pants, skirts, shorts (lower body garment)
-- "shoes": footwear visible at the bottom
+IMPORTANT GUIDELINES:
+- "tops" (shirts, sweaters, hoodies): usually starts around 0.15-0.25 (neckline), ends around 0.45-0.55 (waist)
+- "bottoms" (pants, skirts): usually starts around 0.45-0.55 (waist), ends around 0.82-0.92 (ankles)
+- "shoes" (footwear): usually starts around 0.88-0.93, ends around 0.97-1.0
+- "outer" (jackets, coats): ONLY if clearly worn over another top. Similar range to tops but may extend longer.
+- Do NOT include "outer" if there is only one upper body layer.
+- NEVER include the face/head. tops y_start must be at or below the neckline.
+- Items must NOT overlap significantly in their y ranges.
 
-LOCATION GUIDE for a typical standing full-body photo:
-- tops: typically y_min ≈ 0.15-0.25, y_max ≈ 0.45-0.55 (upper torso area, BELOW the chin)
-- bottoms: typically y_min ≈ 0.45-0.55, y_max ≈ 0.80-0.90 (waist to ankles)
-- shoes: typically y_min ≈ 0.85-0.92, y_max ≈ 0.95-1.0 (feet area at bottom)
-- outer: similar to tops but slightly larger if a jacket/coat is worn over
-
-RULES:
-1. Each box MUST NOT include the person's face or head. For tops/outer, y_min must start at the neckline.
-2. Boxes for different categories MUST NOT significantly overlap.
-3. Only include categories that are clearly visible. Do NOT guess.
-4. If no outer layer is visible (just a single top), do NOT include "outer".
-
-Return ONLY a raw JSON object (no markdown, no code fences):
+Return ONLY raw JSON (no markdown, no code fences):
 {
   "items": [
-    { "category": "tops", "box": [0.20, 0.25, 0.50, 0.75] },
-    { "category": "bottoms", "box": [0.50, 0.25, 0.88, 0.75] },
-    { "category": "shoes", "box": [0.88, 0.30, 0.98, 0.70] }
+    { "category": "tops", "y_start": 0.22, "y_end": 0.50 },
+    { "category": "bottoms", "y_start": 0.50, "y_end": 0.88 },
+    { "category": "shoes", "y_start": 0.90, "y_end": 0.99 }
   ]
 }`;
 

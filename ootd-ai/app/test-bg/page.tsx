@@ -136,7 +136,12 @@ export default function UnifiedSandboxPage() {
         const item = data.items[i];
         setProgressMsg(`[${item.category}] 부위 누끼 따는 중... (${i+1}/${total})`);
         
-        const [ymin, xmin, ymax, xmax] = item.box;
+        // Y-range only: 가로는 10% 마진의 전체 너비, 세로는 Gemini 응답값 사용
+        const xmin = 0.05;
+        const xmax = 0.95;
+        const ymin = item.y_start;
+        const ymax = item.y_end;
+        
         const croppedBlob = await getSegmentedBlob(targetOriginal, xmin, ymin, xmax, ymax);
         const imglyBlob = await removeBackground(croppedBlob);
         const base64data = await blobToBase64(imglyBlob);
