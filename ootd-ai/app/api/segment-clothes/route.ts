@@ -20,30 +20,43 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // 프롬프트: 패션 이미지 객체 인식 전문가 페르소나 적용 및 엄격한 좌표 리턴 지시
-    const prompt = `You are a highly precise computer vision expert specializing in fashion and apparel parsing.
-Analyze the uploaded full body selfie/photo.
-Identify the distinct clothing items worn by the person. Specifically classify them tightly into:
-- "outer" (long coats, heavy jackets, cardigans)
-- "tops" (inner shirts, sweaters, hoodies worn INSIDE the outer)
-- "bottoms" (pants, skirts, shorts)
-- "shoes" (sneakers, boots, etc)
+    const prompt = `You are a precise fashion image segmentation expert.
 
-CRITICAL INSTRUCTION:
-The bounding boxes MUST tightly encapsulate ONLY the clothing fabric. 
-You MUST strictly EXCLUDE the person's face, head, hair, hands, and bare skin as much as realistically possible.
-For 'outer' and 'tops', the ymin MUST start strictly below the chin (at the neckline/collar), never higher.
-Do NOT include the head under any circumstances.
+TASK: Given a full-body photo, identify and return tight bounding boxes for each visible clothing item.
 
-Return your analysis strictly as a raw JSON object and nothing else. No markdown wrappers.
-Use the exact following structure:
+COORDINATE FORMAT (CRITICAL):
+- Use normalized coordinates from 0.0 to 1.0
+- Format: [y_min, x_min, y_max, x_max]
+- (0.0, 0.0) = TOP-LEFT corner of image
+- (1.0, 1.0) = BOTTOM-RIGHT corner of image
+- y increases DOWNWARD, x increases RIGHTWARD
+
+CATEGORIES (use only these exact strings):
+- "tops": shirts, sweaters, hoodies, t-shirts (upper body garment)
+- "outer": jackets, coats, cardigans (ONLY if a separate outer layer is clearly visible over the top)
+- "bottoms": pants, skirts, shorts (lower body garment)
+- "shoes": footwear visible at the bottom
+
+LOCATION GUIDE for a typical standing full-body photo:
+- tops: typically y_min ≈ 0.15-0.25, y_max ≈ 0.45-0.55 (upper torso area, BELOW the chin)
+- bottoms: typically y_min ≈ 0.45-0.55, y_max ≈ 0.80-0.90 (waist to ankles)
+- shoes: typically y_min ≈ 0.85-0.92, y_max ≈ 0.95-1.0 (feet area at bottom)
+- outer: similar to tops but slightly larger if a jacket/coat is worn over
+
+RULES:
+1. Each box MUST NOT include the person's face or head. For tops/outer, y_min must start at the neckline.
+2. Boxes for different categories MUST NOT significantly overlap.
+3. Only include categories that are clearly visible. Do NOT guess.
+4. If no outer layer is visible (just a single top), do NOT include "outer".
+
+Return ONLY a raw JSON object (no markdown, no code fences):
 {
   "items": [
-    { "category": "outer", "box": [0.15, 0.10, 0.85, 0.90] },
-    { "category": "tops", "box": [0.20, 0.30, 0.45, 0.70] },
-    { "category": "bottoms", "box": [0.45, 0.25, 0.85, 0.75] }
+    { "category": "tops", "box": [0.20, 0.25, 0.50, 0.75] },
+    { "category": "bottoms", "box": [0.50, 0.25, 0.88, 0.75] },
+    { "category": "shoes", "box": [0.88, 0.30, 0.98, 0.70] }
   ]
-}
-Only output the JSON object. Do not include labels, explanations, or code blocks like \`\`\`json.`;
+}`;
 
     const imagePart = {
       inlineData: {
