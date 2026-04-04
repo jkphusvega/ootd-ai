@@ -68,8 +68,8 @@ export default function UnifiedSandboxPage() {
         const pxW = (xmax - xmin) * img.width;
         const pxH = (ymax - ymin) * img.height;
 
-        const paddingX = pxW * 0.02; // Tight 2% horizontal padding
-        const paddingY = pxH * 0.02; // Tight 2% vertical padding
+        const paddingX = pxW * 0.15; // 15% horizontal padding for better bg-removal context
+        const paddingY = pxH * 0.15; // 15% vertical padding for better bg-removal context
         const finalX = Math.max(0, pxX - paddingX);
         const finalY = Math.max(0, pxY - paddingY);
         const finalW = Math.min(img.width - finalX, pxW + paddingX * 2);
