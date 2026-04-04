@@ -140,11 +140,19 @@ export default function UnifiedSandboxPage() {
         let xmin = 0.10;
         let xmax = 0.90;
         const cat = item.category.toLowerCase();
-        if (cat.includes('bottom')) { xmin = 0.15; xmax = 0.85; } // 바지는 좁게 (손 제외)
-        else if (cat.includes('shoe')) { xmin = 0.20; xmax = 0.80; } // 신발은 더 좁게
+        if (cat.includes('bottom')) { xmin = 0.15; xmax = 0.85; }
+        else if (cat.includes('shoe')) { xmin = 0.20; xmax = 0.80; }
         
-        const ymin = item.y_start;
-        const ymax = item.y_end;
+        // 🔒 강제 보정: Gemini가 y_start를 너무 높게 잡아 얼굴/목이 포함되는 것을 방지
+        let ymin = item.y_start;
+        let ymax = item.y_end;
+        if (cat.includes('top') || cat.includes('outer')) {
+          ymin = Math.max(ymin, 0.28); // 상의는 절대 이미지 상단 28% 위로 올라가지 않음
+        } else if (cat.includes('bottom')) {
+          ymin = Math.max(ymin, 0.45); // 하의는 절대 45% 위로 올라가지 않음
+        } else if (cat.includes('shoe')) {
+          ymin = Math.max(ymin, 0.85); // 신발은 절대 85% 위로 올라가지 않음
+        }
         
         const croppedBlob = await getSegmentedBlob(targetOriginal, xmin, ymin, xmax, ymax);
         const imglyBlob = await removeBackground(croppedBlob);
