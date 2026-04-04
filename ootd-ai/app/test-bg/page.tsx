@@ -68,8 +68,8 @@ export default function UnifiedSandboxPage() {
         const pxW = (xmax - xmin) * img.width;
         const pxH = (ymax - ymin) * img.height;
 
-        const paddingX = pxW * 0.15; // 15% horizontal padding for better bg-removal context
-        const paddingY = pxH * 0.15; // 15% vertical padding for better bg-removal context
+        const paddingX = pxW * 0.05; // 5% horizontal padding - tight to minimize skin/hands
+        const paddingY = pxH * 0.05; // 5% vertical padding - tight to prevent overlap
         const finalX = Math.max(0, pxX - paddingX);
         const finalY = Math.max(0, pxY - paddingY);
         const finalW = Math.min(img.width - finalX, pxW + paddingX * 2);
@@ -136,9 +136,13 @@ export default function UnifiedSandboxPage() {
         const item = data.items[i];
         setProgressMsg(`[${item.category}] 부위 누끼 따는 중... (${i+1}/${total})`);
         
-        // Y-range only: 가로는 10% 마진의 전체 너비, 세로는 Gemini 응답값 사용
-        const xmin = 0.05;
-        const xmax = 0.95;
+        // 카테고리별 X 너비 차별화: 상의는 넓게, 하의는 좁게, 신발은 더 좁게
+        let xmin = 0.10;
+        let xmax = 0.90;
+        const cat = item.category.toLowerCase();
+        if (cat.includes('bottom')) { xmin = 0.15; xmax = 0.85; } // 바지는 좁게 (손 제외)
+        else if (cat.includes('shoe')) { xmin = 0.20; xmax = 0.80; } // 신발은 더 좁게
+        
         const ymin = item.y_start;
         const ymax = item.y_end;
         
@@ -403,18 +407,18 @@ export default function UnifiedSandboxPage() {
                  {!resultImages.length ? (
                    <p className="text-white/90 font-extrabold text-[12px] uppercase tracking-widest text-center leading-relaxed px-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] z-10">AI 추출기를 돌리면<br/>자동으로 조각나서 리스트에 담깁니다.</p>
                  ) : (
-                   <div className="relative w-full h-full flex flex-col gap-4 overflow-y-auto overflow-x-hidden pr-2 z-10 pb-20">
+                    <div className="relative w-full h-full flex flex-col gap-2 overflow-y-auto overflow-x-hidden pr-2 z-10 pb-20">
                       {resultImages.map((item) => (
-                         <div key={item.id} className="relative flex items-center gap-4 bg-white/70 backdrop-blur-xl border border-white p-3 rounded-2xl w-full shadow-lg">
-                            <div className="w-[100px] h-[100px] shrink-0 rounded-xl relative flex items-center justify-center p-1 bg-stone-100/50">
+                         <div key={item.id} className="relative flex items-center gap-3 bg-white/80 backdrop-blur-xl border border-white p-2 rounded-2xl w-full shadow-lg">
+                            <div className="w-[80px] h-[80px] shrink-0 rounded-xl relative flex items-center justify-center p-1 bg-stone-100/50">
                                <img src={item.image} alt="Crop" className={`max-w-full max-h-full object-contain ${stickerMode ? 'sticker-effect' : 'crop-effect'}`} style={{ filter: !stickerMode ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.2))' : undefined }} />
                             </div>
-                            <div className="flex flex-col flex-1 gap-2">
+                            <div className="flex flex-col flex-1 gap-1.5">
                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-bold bg-black text-white px-2 py-0.5 rounded shadow uppercase">{item.category} 인식됨</span>
-                                  <button onClick={() => handleDiscardItem(item.id)} className="text-[10px] text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition">버리기 🗑</button>
+                                  <span className="text-[9px] font-bold bg-black text-white px-2 py-0.5 rounded shadow uppercase">{item.category} 인식됨</span>
+                                  <button onClick={() => handleDiscardItem(item.id)} className="text-[9px] text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition">버리기 🗑</button>
                                </div>
-                               <select value={item.category} onChange={(e) => handleCategoryChange(item.id, e.target.value)} className="text-[11px] font-bold p-2 rounded-xl border border-stone-200 outline-none w-full bg-white shadow-sm text-stone-700">
+                               <select value={item.category} onChange={(e) => handleCategoryChange(item.id, e.target.value)} className="text-[10px] font-bold p-1.5 rounded-lg border border-stone-200 outline-none w-full bg-white shadow-sm text-stone-700">
                                  <option value="outer">Outer (아우터)</option>
                                  <option value="tops">Tops (상의)</option>
                                  <option value="bottoms">Bottoms (하의)</option>
