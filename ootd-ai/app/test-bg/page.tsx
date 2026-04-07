@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { removeBackground } from '@imgly/background-removal';
 import { Sparkles, UploadCloud, Home, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,7 +15,13 @@ interface ExtractedItem {
 }
 
 export default function UnifiedSandboxPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // 비로그인 유저 접근 차단
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/login');
+  }, [authLoading, user, router]);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [base64Original, setBase64Original] = useState<string | null>(null);
   
@@ -196,7 +203,7 @@ export default function UnifiedSandboxPage() {
 
       const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
 
-      const { error: dbError } = await supabase.from('clothes').insert({ category, name: `${category.toUpperCase()}`, image_url: publicUrl, user_id: user?.id || 'guest_user_123' });
+      const { error: dbError } = await supabase.from('clothes').insert({ category, name: `${category.toUpperCase()}`, image_url: publicUrl, user_id: user!.id });
       if (dbError) throw new Error('DB 저장 실패: ' + dbError.message);
 
       alert('단품 옷이 옷장에 안전하게 저장되었습니다! ☁️🎉');
@@ -230,7 +237,7 @@ export default function UnifiedSandboxPage() {
           category: item.category || 'tops',
           name: `${(item.category || 'tops').toUpperCase()}`,
           image_url: publicUrl,
-          user_id: user?.id || 'guest_user_123'
+          user_id: user!.id
         });
         if (dbError) throw new Error('DB 저장 실패: ' + dbError.message);
       }

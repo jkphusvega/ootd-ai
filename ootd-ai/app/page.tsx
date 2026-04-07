@@ -163,7 +163,7 @@ export default function Home() {
       if (uploadError) throw new Error('업로드 에러');
       const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
       const { error: dbError } = await supabase.from('clothes').insert({
-        category: 'ootd_feed', name: `${critique.score}점: ${critique.summary}`, image_url: publicUrl, user_id: user?.id || 'guest_user_123'
+        category: 'ootd_feed', name: `${critique.score}점: ${critique.summary}`, image_url: publicUrl, user_id: user!.id
       });
       if (dbError) throw new Error('DB 무결성 에러');
       alert('성공적으로 내 OOTD 갤러리에 저장되었습니다! 📸\n(마이옷장 -> OOTD Feeds 탭에서 확인하세요)');

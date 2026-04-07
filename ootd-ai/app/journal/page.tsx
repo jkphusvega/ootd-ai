@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sun, Calendar, Sparkles, Image as ImageIcon, Camera, X, Check, Cloud, CloudRain, CloudSnow, Loader2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -19,11 +20,17 @@ interface JournalEntry {
 
 export default function JournalPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<'idle' | 'analyzing' | 'done'>('idle');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 비로그인 유저 접근 차단
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/login');
+  }, [authLoading, user, router]);
 
   // Fetch journal entries from Supabase
   const fetchEntries = async () => {
@@ -73,7 +80,7 @@ export default function JournalPage() {
 
       // Save to journal_entries table
       const { error: dbError } = await supabase.from('journal_entries').insert({
-        user_id: user?.id || 'guest_user_123',
+        user_id: user!.id,
         image_url: publicUrl,
         temperature: temp,
         weather_condition: condition,
