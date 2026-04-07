@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sun, Calendar, Sparkles, Image as ImageIcon, Camera, X, Check, Cloud, CloudRain, CloudSnow, Loader2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../hooks/useAuth';
 
 interface JournalEntry {
   id: string;
@@ -17,6 +18,7 @@ interface JournalEntry {
 }
 
 export default function JournalPage() {
+  const { user, loading: authLoading } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<'idle' | 'analyzing' | 'done'>('idle');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -25,18 +27,23 @@ export default function JournalPage() {
 
   // Fetch journal entries from Supabase
   const fetchEntries = async () => {
+    if (!user) return;
     setIsLoading(true);
     const { data, error } = await supabase
       .from('journal_entries')
       .select('*')
-      .eq('user_id', 'guest_user_123')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (data && !error) setEntries(data);
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchEntries(); }, []);
+  useEffect(() => { 
+    if (!authLoading) {
+      fetchEntries(); 
+    }
+  }, [user, authLoading]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -66,7 +73,7 @@ export default function JournalPage() {
 
       // Save to journal_entries table
       const { error: dbError } = await supabase.from('journal_entries').insert({
-        user_id: 'guest_user_123',
+        user_id: user?.id || 'guest_user_123',
         image_url: publicUrl,
         temperature: temp,
         weather_condition: condition,

@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Sparkles, Home, Plus, Trash2, X } from 'lucide-react';
+import { Search, Sparkles, Home, Plus, Trash2, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ClothItem {
   id: string;
@@ -27,14 +28,16 @@ const WARDROBE_DATA: CategoryInfo[] = [
 ];
 
 export default function GalleryPage() {
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'wardrobe' | 'memories'>('wardrobe');
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<ClothItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchClothes = async () => {
+    if (!user) return;
     setIsLoading(true);
-    const { data, error } = await supabase.from('clothes').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('clothes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
     if (data && !error) {
       const mapped = data.map((row: any) => ({
         id: row.id, image: row.image_url, name: row.name, categoryId: row.category
@@ -44,7 +47,11 @@ export default function GalleryPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchClothes(); }, []);
+  useEffect(() => { 
+    if (!authLoading) {
+      fetchClothes(); 
+    }
+  }, [user, authLoading]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('정말로 옷장에서 삭제하시겠습니까?')) return;

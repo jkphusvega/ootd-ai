@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../hooks/useAuth';
 
 interface WeatherData {
   temperature: number;
@@ -25,6 +26,7 @@ interface CurationResult {
 }
 
 export default function CurationPage() {
+  const { user, loading: authLoading } = useAuth();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [curation, setCuration] = useState<CurationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,25 +59,26 @@ export default function CurationPage() {
   // Check wardrobe count
   useEffect(() => {
     const checkWardrobe = async () => {
+      if (!user) return;
       const { count } = await supabase
         .from('clothes')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', 'guest_user_123')
+        .eq('user_id', user.id)
         .neq('category', 'ootd_feed');
       setWardrobeCount(count || 0);
     };
-    checkWardrobe();
-  }, []);
+    if (!authLoading) checkWardrobe();
+  }, [user, authLoading]);
 
   const generateCuration = async () => {
+    if (!user) return;
     setIsLoading(true);
     setError(null);
     try {
-      const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .single();
 
       const res = await fetch('/api/curate-outfit', {

@@ -1,9 +1,12 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Zap, User, Grid, Settings2, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, Upload, ImagePlus, Sun, Cloud, CloudSnow } from 'lucide-react';
+import { Camera, Zap, User, Grid, Settings2, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, Upload, ImagePlus, Sun, Cloud, CloudSnow, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../hooks/useAuth';
+import { createClient as createSSRClient } from '../lib/supabase/client';
 
 interface WeatherData {
   temperature: number;
@@ -19,6 +22,8 @@ interface FashionCritique {
 }
 
 export default function Home() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
   const [showSplash, setShowSplash] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -44,6 +49,13 @@ export default function Home() {
     }
   }, []);
 
+  // Auth Redirect
+  useEffect(() => {
+    if (!authLoading && !showSplash && !user) {
+      router.push('/login');
+    }
+  }, [authLoading, showSplash, user, router]);
+
   // Fetch Weather
   useEffect(() => {
     const fetchWeather = async (lat = 37.5665, lon = 126.9780) => {
@@ -68,17 +80,17 @@ export default function Home() {
 
   // Fetch User Profile
   useEffect(() => {
-    const fetchProfile = async () => {
-      const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
+    const checkProfile = async () => {
+      if (!user) return;
       const { data } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .single();
       if (data) setUserProfile(data);
     };
-    fetchProfile();
-  }, []);
+    if (!authLoading) checkProfile();
+  }, [user, authLoading]);
 
   const processFile = async (file: File) => {
     // 🔒 보안: 5MB 이상 이미지 업로드 차단
@@ -144,12 +156,19 @@ export default function Home() {
       if (uploadError) throw new Error('업로드 에러');
       const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
       const { error: dbError } = await supabase.from('clothes').insert({
-        category: 'ootd_feed', name: `${critique.score}점: ${critique.summary}`, image_url: publicUrl, user_id: 'guest_user_123'
+        category: 'ootd_feed', name: `${critique.score}점: ${critique.summary}`, image_url: publicUrl, user_id: user?.id || 'guest_user_123'
       });
       if (dbError) throw new Error('DB 무결성 에러');
       alert('성공적으로 내 OOTD 갤러리에 저장되었습니다! 📸\n(마이옷장 -> OOTD Feeds 탭에서 확인하세요)');
       setScanState('success');
     } catch(e) { alert('서버 저장 실패!'); setScanState('success'); }
+  };
+
+  const handleLogout = async () => {
+    const supabaseSSR = createSSRClient();
+    await supabaseSSR.auth.signOut();
+    router.push('/login');
+    router.refresh();
   };
 
   const WeatherIcon = () => {
@@ -162,11 +181,17 @@ export default function Home() {
 
   const getGreeting = () => {
     const h = new Date().getHours();
-    if (h < 6) return '늦은 밤이네요 🌙';
-    if (h < 12) return '좋은 아침이에요 ☀️';
-    if (h < 18) return '좋은 오후에요 🌤';
-    return '좋은 저녁이에요 🌆';
+    const nickname = userProfile?.nickname || user?.user_metadata?.name || user?.user_metadata?.full_name || '';
+    const nameStr = nickname ? ` ${nickname}님` : '';
+    if (h < 6) return `늦은 밤이네요${nameStr} 🌙`;
+    if (h < 12) return `좋은 아침이에요${nameStr} ☀️`;
+    if (h < 18) return `좋은 오후에요${nameStr} 🌤`;
+    return `좋은 저녁이에요${nameStr} 🌆`;
   };
+
+  if (!authLoading && !showSplash && !user) {
+    return <div className="min-h-screen bg-white" />;
+  }
 
   return (
     <div className="relative min-h-screen w-full bg-white font-sans selection:bg-zinc-200">
@@ -197,7 +222,12 @@ export default function Home() {
           {/* Greeting + Weather Bar */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 mb-1">{getGreeting()}</h1>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900">{getGreeting()}</h1>
+                <button onClick={handleLogout} className="text-xs px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full font-bold transition flex items-center gap-1">
+                  <LogOut className="w-3 h-3"/> 로그아웃
+                </button>
+              </div>
               <p className="text-zinc-400 text-sm font-medium">오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요</p>
             </div>
             {weather && (
@@ -382,8 +412,12 @@ export default function Home() {
 
         {/* Top HUD */}
         <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-start z-20">
-          <button className="w-11 h-11 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0">
-            <User className="w-5 h-5" />
+          <button className="w-11 h-11 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0 overflow-hidden">
+            {userProfile?.profile_image || user?.user_metadata?.avatar_url ? (
+              <img src={userProfile?.profile_image || user?.user_metadata?.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-5 h-5" />
+            )}
           </button>
           <div className="flex flex-col items-center gap-1.5">
             <div className="px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-md border border-black/5 flex items-center gap-2.5 shadow-xl">
@@ -397,8 +431,8 @@ export default function Home() {
               </div>
             )}
           </div>
-          <button className="w-11 h-11 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0">
-            <Settings2 className="w-5 h-5" />
+          <button onClick={handleLogout} className="w-11 h-11 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-red-500 shadow-xl hover:bg-red-50 transition shrink-0">
+            <LogOut className="w-5 h-5 ml-1" />
           </button>
         </header>
 

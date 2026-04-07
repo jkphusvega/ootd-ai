@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Check, Sparkles, Ruler, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../hooks/useAuth';
 
 const MOODS = [
   { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
@@ -15,6 +16,7 @@ const MOODS = [
 ];
 
 export default function OnboardingPage() {
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [height, setHeight] = useState(175);
@@ -27,11 +29,11 @@ export default function OnboardingPage() {
   // 이미 온보딩을 완료한 사용자인지 확인
   useEffect(() => {
     const checkProfile = async () => {
-      const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
+      if (!user) return;
       const { data } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .single();
 
       if (data) {
@@ -40,8 +42,8 @@ export default function OnboardingPage() {
       }
       setIsChecking(false);
     };
-    checkProfile();
-  }, [router]);
+    if (!authLoading) checkProfile();
+  }, [user, authLoading, router]);
   
   const toggleMood = (id: string) => {
     setSelectedMoods(prev => 
@@ -57,12 +59,12 @@ export default function OnboardingPage() {
       // 온보딩 완료: Supabase에 저장
       setIsSaving(true);
       try {
-        const userId = localStorage.getItem('ootd_user_id') || 'guest_user_123';
+        if (!user) return;
         
         const { error } = await supabase
           .from('user_profiles')
           .upsert({
-            user_id: userId,
+            user_id: user.id,
             height,
             weight,
             fit_preference: fit,

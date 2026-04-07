@@ -1,22 +1,25 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../lib/supabase/server';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { weatherInfo, userProfile } = await request.json();
 
     // 사용자의 옷장에서 아이템 가져오기
     const { data: clothes, error } = await supabase
       .from('clothes')
       .select('*')
-      .eq('user_id', 'guest_user_123')
+      .eq('user_id', user.id)
       .neq('category', 'ootd_feed');
 
     if (error) throw error;
