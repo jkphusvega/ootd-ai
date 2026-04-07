@@ -19,6 +19,7 @@ export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [nickname, setNickname] = useState('');
   const [height, setHeight] = useState(175);
   const [weight, setWeight] = useState(70);
   const [fit, setFit] = useState('regular');
@@ -28,8 +29,13 @@ export default function OnboardingPage() {
 
   // 이미 온보딩을 완료한 사용자인지 확인
   useEffect(() => {
-    const checkProfile = async () => {
+    const checkProfileAndSetDefaults = async () => {
       if (!user) return;
+      
+      // Set default nickname from OAuth metadata if available
+      const defaultName = user.user_metadata?.name || user.user_metadata?.full_name || '';
+      if (defaultName) setNickname(defaultName);
+
       const { data } = await supabase
         .from('user_profiles')
         .select('*')
@@ -42,7 +48,7 @@ export default function OnboardingPage() {
       }
       setIsChecking(false);
     };
-    if (!authLoading) checkProfile();
+    if (!authLoading) checkProfileAndSetDefaults();
   }, [user, authLoading, router]);
   
   const toggleMood = (id: string) => {
@@ -54,6 +60,10 @@ export default function OnboardingPage() {
 
   const nextStep = async () => {
     if (step === 1) {
+      if (!nickname.trim()) {
+        alert('닉네임을 입력해주세요!');
+        return;
+      }
       setStep(2);
     } else {
       // 온보딩 완료: Supabase에 저장
@@ -65,6 +75,7 @@ export default function OnboardingPage() {
           .from('user_profiles')
           .upsert({
             user_id: user.id,
+            nickname: nickname.trim(),
             height,
             weight,
             fit_preference: fit,
@@ -123,11 +134,25 @@ export default function OnboardingPage() {
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
                   <Ruler className="w-6 h-6 text-black" />
                 </motion.div>
-                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">나의 체형 정보</h1>
-                <p className="text-zinc-500 text-sm leading-relaxed">보다 정확한 핏과 코디 추천을 위해<br/>딱 3가지만 알려주세요.</p>
+                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">기본 정보</h1>
+                <p className="text-zinc-500 text-sm leading-relaxed">보다 정확한 핏과 코디 추천을 위해<br/>몇 가지 정보만 알려주세요.</p>
               </div>
 
-              <div className="space-y-10">
+              <div className="space-y-10 pb-8">
+                {/* Nickname */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">닉네임 (Nickname)</span>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={nickname} 
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="사용하실 이름을 입력해주세요"
+                    className="w-full pb-3 text-2xl font-bold bg-transparent border-b-2 border-zinc-200 focus:border-black outline-none transition-colors placeholder:text-zinc-300"
+                  />
+                </div>
+
                 {/* Height */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
