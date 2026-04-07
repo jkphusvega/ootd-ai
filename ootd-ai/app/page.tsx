@@ -32,7 +32,7 @@ export default function Home() {
   const [hasCustomImage, setHasCustomImage] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [userProfile, setUserProfile] = useState<{height?: number; weight?: number; fit_preference?: string; style_moods?: string[]} | null>(null);
+  const [userProfile, setUserProfile] = useState<{nickname?: string; profile_image?: string; height?: number; weight?: number; fit_preference?: string; style_moods?: string[]} | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const desktopFileInputRef = useRef<HTMLInputElement>(null);
