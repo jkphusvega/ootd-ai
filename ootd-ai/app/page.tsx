@@ -82,15 +82,22 @@ export default function Home() {
   useEffect(() => {
     const checkProfile = async () => {
       if (!user) return;
-      const { data } = await supabase
+      
+      const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
         .single();
-      if (data) setUserProfile(data);
+        
+      if (data) {
+        setUserProfile(data);
+      } else {
+        // 프로필 데이터가 없으면 온보딩으로 이동
+        router.push('/onboarding');
+      }
     };
     if (!authLoading) checkProfile();
-  }, [user, authLoading]);
+  }, [user, authLoading, router]);
 
   const processFile = async (file: File) => {
     // 🔒 보안: 5MB 이상 이미지 업로드 차단
@@ -403,11 +410,11 @@ export default function Home() {
       {/* ════════════════════════════════════════════════
           MOBILE LAYOUT (lg 미만): Camera-First Style
           ════════════════════════════════════════════════ */}
-      <div className="lg:hidden relative h-screen w-full overflow-hidden">
-        {/* Camera Background */}
-        <div className="absolute inset-0 z-0 bg-zinc-100">
-          <img src={originalImage} alt="Camera Feed Background" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-transparent to-white/90 pointer-events-none" />
+      <div className="lg:hidden relative h-screen w-full overflow-hidden bg-[#F9F9F9]">
+        {/* Premium Minimalist Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,_#ffffff_0%,_#F2F2F7_100%)]" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
         </div>
 
         {/* Top HUD */}
