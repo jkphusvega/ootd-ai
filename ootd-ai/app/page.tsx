@@ -378,7 +378,7 @@ export default function Home() {
                       <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-stone-800">
                         <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
                       </button>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <button onClick={() => { setScanState('idle'); setCritique(null); setHasCustomImage(false); setOriginalImage("https://images.unsplash.com/photo-1485230895905-312046452294?q=80&w=800&auto=format&fit=crop"); }}
                           className="py-3.5 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-50">
                           다시 분석
@@ -386,6 +386,11 @@ export default function Home() {
                         <Link href="/wardrobe" className="block">
                           <button className="w-full h-full py-3.5 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-200">
                             옷장 가기
+                          </button>
+                        </Link>
+                        <Link href="/curation" className="block">
+                          <button className="w-full h-full py-3.5 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-purple-200 flex items-center justify-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5" /> 코디 추천
                           </button>
                         </Link>
                         <button onClick={() => {
@@ -514,13 +519,22 @@ export default function Home() {
                   <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
                     <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
                   </button>
-                  <div className="grid grid-cols-4 gap-2">
-                    <button onClick={() => setScanState('idle')} className="col-span-1 py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">다시입기</button>
-                    <Link href="/wardrobe" className="col-span-1 block"><button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">옷장 가기</button></Link>
-                    <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); window.location.href = '/test-bg'; } }}
-                      className="col-span-2 py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
-                      AI로 옷 추출하기 <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setScanState('idle')} className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">다시입기</button>
+                      <Link href="/wardrobe" className="block"><button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">옷장 가기</button></Link>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href="/curation" className="block">
+                        <button className="w-full h-full py-4 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1">
+                          <Sparkles className="w-3.5 h-3.5" /> 코디 추천
+                        </button>
+                      </Link>
+                      <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); window.location.href = '/test-bg'; } }}
+                        className="w-full py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
+                        AI 추출 <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
