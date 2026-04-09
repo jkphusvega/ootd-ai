@@ -1,0 +1,78 @@
+import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '../../../lib/supabase/server';
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { weatherInfo, userProfile } = await request.json();
+
+    // 사용자의 옷장 아이템 가져오기
+    const { data: clothes } = await supabase
+      .from('clothes')
+      .select('category, name')
+      .eq('user_id', user.id)
+      .neq('category', 'ootd_feed');
+
+    const wardrobeDescription = (clothes || []).map(item =>
+      `- ${item.category}: "${item.name}"`
+    ).join('\n');
+
+    let profileContext = '';
+    if (userProfile) {
+      profileContext = `User profile: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = `You are a personal fashion shopping advisor in Seoul, Korea.
+
+The user currently has these items in their wardrobe:
+${wardrobeDescription || 'No items yet.'}
+
+${profileContext}
+Current weather: ${weatherInfo?.temperature || 20}°C, ${weatherInfo?.condition || 'Clear'}.
+
+Analyze what's MISSING from their wardrobe — items that would complete their collection and create more outfit combinations. Consider:
+1. Category gaps (e.g. they have tops but few bottoms)
+2. Seasonal needs based on current weather
+3. Style preferences from their profile
+4. Versatile items that pair well with what they already own
+
+Suggest exactly 4 items they should consider buying. For each item, provide a realistic product description.
+
+Return JSON only:
+{
+  "analysis": "<2-3 sentences in Korean analyzing what their wardrobe is missing>",
+  "suggestions": [
+    {
+      "name": "<specific product name in Korean, e.g. '워싱 데님 와이드 팬츠'>",
+      "category": "<outer/tops/bottoms/shoes/socks>",
+      "reason": "<why this item would complement their wardrobe, 1-2 sentences in Korean>",
+      "priceRange": "<approximate price range in KRW, e.g. '39,000 ~ 59,000원'>",
+      "brandTip": "<1 sentence Korean tip about where to find similar items, mentioning real Korean fashion platforms like 무신사, 에이블리, 29CM, W컨셉>"
+    }
+  ]
+}
+
+IMPORTANT: Only return raw JSON. No markdown. Write everything in Korean.`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsedData = JSON.parse(jsonString);
+
+    return NextResponse.json(parsedData);
+  } catch (error: any) {
+    console.error('Shopping API Error:', error);
+    return NextResponse.json({ error: error.message || 'Shopping recommendation failed' }, { status: 500 });
+  }
+}
