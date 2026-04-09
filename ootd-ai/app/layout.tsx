@@ -29,6 +29,16 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#000000" />
+        
+        {/* iOS PWA: 홈 화면에서 앱처럼 실행 */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="OOTD AI" />
+        
         {/* Pretendard Variable Font */}
         <link
           rel="stylesheet"
