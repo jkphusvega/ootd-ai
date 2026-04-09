@@ -1,11 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight } from 'lucide-react';
+import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { createClient as createSSRClient } from '../../lib/supabase/client';
+import { useTheme } from '../../components/ThemeProvider';
 
 const MOODS = [
   { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
@@ -27,6 +28,7 @@ export default function SettingsPage() {
   const [fit, setFit] = useState('regular');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   // 비로그인 차단
   useEffect(() => {
@@ -224,6 +226,39 @@ export default function SettingsPage() {
                 </button>
               );
             })}
+          </div>
+        </motion.section>
+
+        {/* Dark Mode */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                theme === 'dark' ? 'bg-indigo-900' : 'bg-amber-100'
+              }`}>
+                {theme === 'dark' ? (
+                  <Moon className="w-5 h-5 text-indigo-300" />
+                ) : (
+                  <Sun className="w-5 h-5 text-amber-600" />
+                )}
+              </div>
+              <div>
+                <p className="font-bold text-sm text-zinc-800">다크 모드</p>
+                <p className="text-[10px] text-zinc-400">{theme === 'dark' ? '어두운 테마 사용 중' : '밝은 테마 사용 중'}</p>
+              </div>
+            </div>
+            <button onClick={toggleTheme}
+              className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
+                theme === 'dark' ? 'bg-indigo-600' : 'bg-zinc-300'
+              }`}>
+              <motion.div
+                className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-md"
+                animate={{ left: theme === 'dark' ? '30px' : '4px' }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            </button>
           </div>
         </motion.section>
 

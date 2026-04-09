@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navigation from "../components/Navigation";
+import { ThemeProvider } from "../components/ThemeProvider";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -27,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full antialiased">
+    <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <head>
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
@@ -48,11 +49,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-white text-zinc-900">
-        <Navigation />
-        {/* Main content area: offset by sidebar on desktop, pad bottom for mobile tab */}
-        <main className="lg:ml-[220px] pb-20 lg:pb-0 flex-1">
-          {children}
-        </main>
+        <ThemeProvider>
+          <Navigation />
+          <main className="lg:ml-[220px] pb-20 lg:pb-0 flex-1">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );
