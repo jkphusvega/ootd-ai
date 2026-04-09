@@ -1,0 +1,263 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../hooks/useAuth';
+import { createClient as createSSRClient } from '../../lib/supabase/client';
+
+const MOODS = [
+  { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
+  { id: 'street', label: '스트릿', emoji: '힙한' },
+  { id: 'casual', label: '캐주얼', emoji: '편안한' },
+  { id: 'gorpcore', label: '고프코어', emoji: '트렌디' },
+  { id: 'cityboy', label: '시티보이', emoji: '오버핏' },
+  { id: 'vintage', label: '빈티지', emoji: '레트로' },
+];
+
+export default function SettingsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [height, setHeight] = useState(175);
+  const [weight, setWeight] = useState(70);
+  const [fit, setFit] = useState('regular');
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // 비로그인 차단
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/login');
+  }, [authLoading, user, router]);
+
+  // 프로필 불러오기
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data) {
+        setNickname(data.nickname || '');
+        setHeight(data.height || 175);
+        setWeight(data.weight || 70);
+        setFit(data.fit_preference || 'regular');
+        setSelectedMoods(data.style_moods || []);
+      }
+      setIsLoading(false);
+    };
+    if (!authLoading) fetchProfile();
+  }, [user, authLoading]);
+
+  const toggleMood = (id: string) => {
+    setSelectedMoods(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) :
+      prev.length < 3 ? [...prev, id] : prev
+    );
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: user.id,
+          nickname: nickname.trim(),
+          height,
+          weight,
+          fit_preference: fit,
+          style_moods: selectedMoods,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error(err);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    const supabaseSSR = createSSRClient();
+    await supabaseSSR.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+      <div className="max-w-lg mx-auto px-6 pt-14 lg:pt-8">
+
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-extrabold tracking-tight text-black">설정</h1>
+          <p className="text-sm text-zinc-400 mt-1">프로필과 스타일 정보를 관리합니다</p>
+        </div>
+
+        {/* Profile Section */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          
+          <div className="flex items-center gap-2 mb-6">
+            <User className="w-4 h-4 text-zinc-400" />
+            <span className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400">프로필</span>
+          </div>
+
+          {/* Avatar + Email */}
+          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-100">
+            <div className="w-14 h-14 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200 flex items-center justify-center shrink-0">
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-6 h-6 text-zinc-400" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-zinc-800 truncate">{user?.email}</p>
+              <p className="text-[10px] text-zinc-400 tracking-wider uppercase mt-0.5">Google Account</p>
+            </div>
+          </div>
+
+          {/* Nickname */}
+          <div className="mb-6">
+            <label className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-2">닉네임</label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="w-full pb-2 text-lg font-bold bg-transparent border-b-2 border-zinc-200 focus:border-black outline-none transition-colors"
+            />
+          </div>
+        </motion.section>
+
+        {/* Body Info */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          
+          <div className="flex items-center gap-2 mb-6">
+            <Ruler className="w-4 h-4 text-zinc-400" />
+            <span className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400">체형 정보</span>
+          </div>
+
+          <div className="space-y-8">
+            {/* Height */}
+            <div>
+              <div className="flex justify-between items-end mb-3">
+                <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">키</span>
+                <span className="text-2xl font-black text-black">{height}<span className="text-sm text-zinc-400 ml-1">cm</span></span>
+              </div>
+              <input type="range" min="150" max="200" value={height}
+                onChange={(e) => setHeight(Number(e.target.value))}
+                className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
+            </div>
+
+            {/* Weight */}
+            <div>
+              <div className="flex justify-between items-end mb-3">
+                <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">몸무게</span>
+                <span className="text-2xl font-black text-black">{weight}<span className="text-sm text-zinc-400 ml-1">kg</span></span>
+              </div>
+              <input type="range" min="40" max="120" value={weight}
+                onChange={(e) => setWeight(Number(e.target.value))}
+                className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black" />
+            </div>
+
+            {/* Fit */}
+            <div>
+              <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-3">선호 핏</span>
+              <div className="flex gap-2">
+                {['Slim', 'Regular', 'Oversized'].map(f => (
+                  <button key={f} onClick={() => setFit(f.toLowerCase())}
+                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold tracking-widest uppercase transition-all ${
+                      fit === f.toLowerCase()
+                        ? 'bg-black text-white shadow-md'
+                        : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                    }`}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Style Mood */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          
+          <div className="flex items-center gap-2 mb-6">
+            <Sparkles className="w-4 h-4 text-zinc-400" />
+            <span className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400">스타일 DNA (최대 3개)</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {MOODS.map(mood => {
+              const isSelected = selectedMoods.includes(mood.id);
+              return (
+                <button key={mood.id} onClick={() => toggleMood(mood.id)}
+                  className={`py-3.5 rounded-xl text-center transition-all ${
+                    isSelected
+                      ? 'bg-black text-white shadow-md'
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                  }`}>
+                  <span className="block text-[10px] font-bold">{mood.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.section>
+
+        {/* Save Button */}
+        <motion.button
+          onClick={handleSave}
+          disabled={isSaving}
+          whileTap={{ scale: 0.98 }}
+          className={`w-full py-4 rounded-2xl font-extrabold tracking-widest text-[12px] uppercase shadow-xl transition-all flex items-center justify-center gap-2 mb-4 ${
+            saveSuccess
+              ? 'bg-emerald-500 text-white'
+              : 'bg-black text-white hover:bg-zinc-800'
+          }`}
+        >
+          {isSaving ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
+          ) : saveSuccess ? (
+            '✓ 저장 완료!'
+          ) : (
+            '변경사항 저장하기'
+          )}
+        </motion.button>
+
+        {/* Logout */}
+        <button onClick={handleLogout}
+          className="w-full py-4 bg-white border border-zinc-200 rounded-2xl text-red-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition mb-8">
+          <LogOut className="w-4 h-4" /> 로그아웃
+        </button>
+
+        {/* App Info */}
+        <div className="text-center pb-8">
+          <p className="text-[10px] text-zinc-300 font-bold tracking-widest uppercase">OOTD AI v1.0 — Powered by Gemini AI</p>
+        </div>
+      </div>
+    </div>
+  );
+}
