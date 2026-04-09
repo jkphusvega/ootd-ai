@@ -3,31 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --card: #ffffff;
-  --card-hover: #fafafa;
-  --surface: #f4f4f5;
-  --surface-2: #e4e4e7;
-  --border: #e4e4e7;
-  --border-subtle: #f4f4f5;
-  --text-primary: #09090b;
-  --text-secondary: #3f3f46;
-  --text-muted: #71717a;
-  --text-faint: #a1a1aa;
 }
 
 html.dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --card-hover: #1f1f23;
-  --surface: #27272a;
-  --surface-2: #3f3f46;
-  --border: #27272a;
-  --border-subtle: #1e1e22;
-  --text-primary: #fafafa;
-  --text-secondary: #d4d4d8;
-  --text-muted: #a1a1aa;
-  --text-faint: #71717a;
+  --background: #1a1a1e;
+  --foreground: #e4e4e7;
   color-scheme: dark;
 }
 
@@ -46,86 +26,73 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ==========================================================
-   DARK MODE — Element-Level Overrides (Antigravity Style)
-   Background: #09090b (pure dark)
-   Cards: #18181b (elevated dark gray)
-   Surface: #27272a (secondary)
-   ========================================================== */
+/* ================================================================
+   DARK MODE v3 — Antigravity Style (Dark Gray, NOT Pure Black)
+   
+   Palette:
+   ├─ Page BG:    #1a1a1e  (어두운 회색)
+   ├─ Card BG:    #242428  (약간 밝은 회색)
+   ├─ Surface:    #2e2e33  (서피스/입력)
+   ├─ Surface 2:  #3a3a40  (호버/강조)
+   ├─ Border:     #33333a  (테두리)
+   ├─ Text:       #e4e4e7  (밝은 텍스트)
+   └─ Text Muted: #8b8b95  (보조 텍스트)
+   ================================================================ */
 
-/* ── Global body & main backgrounds ── */
+/* ── Body & Root ── */
 html.dark body {
-  background-color: #09090b !important;
-  color: #fafafa !important;
+  background-color: #1a1a1e !important;
+  color: #e4e4e7 !important;
 }
 
-/* ── All div/section/main/aside/header/nav/article backgrounds ── */
+/* ── Page-level backgrounds ── */
+html.dark [class*="bg-[#FAFAFA]"],
+html.dark [class*="bg-[#FDFDFC]"],
+html.dark [class*="bg-[#f8f9fa]"],
+html.dark [class*="bg-[#F9F9F9]"],
+html.dark [class*="min-h-screen"][class*="bg-white"],
+html.dark main[class*="bg-white"] {
+  background-color: #1a1a1e !important;
+}
+
+/* ── Card backgrounds (white → elevated gray) ── */
 html.dark div[class*="bg-white"],
 html.dark section[class*="bg-white"],
-html.dark main[class*="bg-white"],
-html.dark aside[class*="bg-white"],
-html.dark header[class*="bg-white"],
-html.dark nav[class*="bg-white"],
-html.dark article[class*="bg-white"] {
-  background-color: #18181b !important;
+html.dark article[class*="bg-white"],
+html.dark header[class*="bg-white"] {
+  background-color: #242428 !important;
 }
 
-html.dark div[class*="bg-[#FAFAFA]"],
-html.dark div[class*="bg-[#FDFDFC]"],
-html.dark div[class*="bg-[#f8f9fa]"],
-html.dark div[class*="bg-[#F9F9F9]"] {
-  background-color: #09090b !important;
+/* ── Zinc background scale ── */
+html.dark [class*="bg-zinc-50"] {
+  background-color: #222226 !important;
+}
+html.dark [class*="bg-zinc-100"] {
+  background-color: #2a2a2f !important;
+}
+html.dark [class*="bg-zinc-200"] {
+  background-color: #3a3a40 !important;
 }
 
-html.dark div[class*="bg-zinc-50"],
-html.dark section[class*="bg-zinc-50"] {
-  background-color: #1c1c1f !important;
+/* ── Stone backgrounds ── */
+html.dark [class*="bg-stone-900"] {
+  background-color: #e4e4e7 !important;
+  color: #1a1a1e !important;
 }
 
-html.dark div[class*="bg-zinc-100"],
-html.dark section[class*="bg-zinc-100"],
-html.dark button[class*="bg-zinc-100"] {
-  background-color: #27272a !important;
+/* ─────────────────────────────────────────
+   TEXT — 반드시 밝게! (제목 흰색 문제 해결)
+   ───────────────────────────────────────── */
+html.dark h1, html.dark h2, html.dark h3, html.dark h4 {
+  color: #f0f0f2 !important;
 }
 
-html.dark div[class*="bg-zinc-200"],
-html.dark button[class*="bg-zinc-200"] {
-  background-color: #3f3f46 !important;
+html.dark [class*="text-black"] {
+  color: #f0f0f2 !important;
 }
 
-/* ── Glass / Backdrop backgrounds ── */
-html.dark [class*="bg-white\\/"] {
-  background-color: rgba(24, 24, 27, 0.88) !important;
-}
-
-html.dark [class*="backdrop-blur"] {
-  --tw-backdrop-blur: blur(20px);
-}
-
-/* ── Gradient overrides ── */
-html.dark [class*="from-white"] {
-  --tw-gradient-from: #09090b !important;
-}
-html.dark [class*="via-\\[#f8f9fa\\]"] {
-  --tw-gradient-stops: var(--tw-gradient-from), #09090b, var(--tw-gradient-to) !important;
-}
-html.dark [class*="to-zinc-100"] {
-  --tw-gradient-to: #18181b !important;
-}
-html.dark [class*="from-white\\/"] {
-  --tw-gradient-from: rgba(9, 9, 11, 0.8) !important;
-}
-html.dark [class*="from-black\\/"] {
-  --tw-gradient-from: rgba(0, 0, 0, 0.7) !important;
-}
-
-/* ── Text color overrides ── */
-html.dark [class*="text-black"]:not([class*="bg-black"]):not(button[class*="bg-black"] *) {
-  color: #fafafa !important;
-}
-
-html.dark [class*="text-zinc-900"]:not([class*="bg-zinc-900"] *) {
-  color: #fafafa !important;
+html.dark [class*="text-zinc-900"] {
+  color: #f0f0f2 !important;
 }
 html.dark [class*="text-zinc-800"] {
   color: #e4e4e7 !important;
@@ -137,29 +104,45 @@ html.dark [class*="text-zinc-600"] {
   color: #a1a1aa !important;
 }
 html.dark [class*="text-zinc-500"] {
-  color: #71717a !important;
+  color: #8b8b95 !important;
 }
 html.dark [class*="text-zinc-400"] {
-  color: #52525b !important;
+  color: #6b6b75 !important;
 }
 html.dark [class*="text-zinc-300"] {
-  color: #3f3f46 !important;
-}
-html.dark [class*="text-stone-900"] {
-  color: #fafaf9 !important;
-}
-html.dark [class*="text-stone-800"] {
-  color: #e7e5e4 !important;
+  color: #52525b !important;
 }
 
-/* ── Border overrides ── */
+html.dark [class*="text-stone-900"] {
+  color: #f0f0f2 !important;
+}
+html.dark [class*="text-stone-800"] {
+  color: #e4e4e7 !important;
+}
+
+/* Keep white text on dark buttons readable */
+html.dark button[class*="bg-black"] [class*="text-white"],
+html.dark button[class*="bg-black"][class*="text-white"],
+html.dark [class*="bg-zinc-900"][class*="text-white"],
+html.dark [class*="bg-black"] {
+  color: #ffffff !important;
+}
+html.dark button[class*="bg-black"] {
+  background-color: #f0f0f2 !important;
+  color: #1a1a1e !important;
+}
+
+/* ── Borders ── */
 html.dark [class*="border-zinc-200"],
 html.dark [class*="border-stone-200"] {
-  border-color: #27272a !important;
+  border-color: #33333a !important;
 }
 html.dark [class*="border-zinc-100"],
 html.dark [class*="border-stone-100"] {
-  border-color: #1e1e22 !important;
+  border-color: #2a2a2f !important;
+}
+html.dark [class*="border-zinc-200\\/"] {
+  border-color: rgba(51, 51, 58, 0.6) !important;
 }
 html.dark [class*="border-black\\/"] {
   border-color: rgba(255, 255, 255, 0.06) !important;
@@ -168,155 +151,143 @@ html.dark [class*="border-white\\/"] {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 html.dark [class*="border-dashed"] {
-  border-color: #3f3f46 !important;
+  border-color: #3a3a40 !important;
 }
 
-/* ── Dividers (bg used as hr) ── */
-html.dark div[class*="bg-zinc-100"][class*="h-px"],
-html.dark div[class*="bg-zinc-100"][class*="h-\\[1px\\]"] {
-  background-color: #27272a !important;
+/* Divider lines */
+html.dark div[class*="h-px"],
+html.dark div[class*="h-\\[1px\\]"] {
+  background-color: #33333a !important;
 }
 
-/* ── Buttons: Keep bg-black buttons as-is (they work in dark mode) ── */
-/* Override non-black buttons */
+/* ── Glass / Backdrop ── */
+html.dark [class*="bg-white\\/"] {
+  background-color: rgba(36, 36, 40, 0.9) !important;
+}
+
+html.dark aside[class*="bg-white\\/"] {
+  background-color: rgba(26, 26, 30, 0.95) !important;
+  border-color: #2a2a2f !important;
+}
+
+html.dark nav[class*="bg-white\\/"] {
+  background-color: rgba(26, 26, 30, 0.95) !important;
+}
+
+html.dark [class*="bg-white\\/80"][class*="backdrop-blur"] {
+  background-color: rgba(36, 36, 40, 0.85) !important;
+}
+
+/* ── Gradients ── */
+html.dark [class*="from-white"] {
+  --tw-gradient-from: #1a1a1e !important;
+}
+html.dark [class*="via-\\[#f8f9fa\\]"] {
+  --tw-gradient-stops: var(--tw-gradient-from), #1a1a1e, var(--tw-gradient-to) !important;
+}
+html.dark [class*="to-zinc-100"] {
+  --tw-gradient-to: #242428 !important;
+}
+html.dark [class*="from-white\\/"] {
+  --tw-gradient-from: rgba(26, 26, 30, 0.85) !important;
+}
+
+/* ── Buttons ── */
 html.dark button[class*="bg-white"],
 html.dark a[class*="bg-white"] {
-  background-color: #27272a !important;
+  background-color: #2e2e33 !important;
   color: #e4e4e7 !important;
 }
 html.dark button[class*="bg-zinc-100"],
 html.dark a[class*="bg-zinc-100"] {
-  background-color: #27272a !important;
+  background-color: #2e2e33 !important;
 }
 
-html.dark button[class*="bg-stone-900"],
-html.dark button[class*="bg-zinc-900"] {
-  background-color: #fafafa !important;
-  color: #09090b !important;
+/* Hover */
+html.dark button:hover[class*="hover\\:bg-zinc-50"],
+html.dark a:hover[class*="hover\\:bg-zinc-50"] {
+  background-color: #2a2a2f !important;
 }
-
-/* ── Hover states ── */
-html.dark button:hover[class*="hover\\:bg-zinc-50"] {
-  background-color: #1e1e22 !important;
+html.dark button:hover[class*="hover\\:bg-zinc-100"],
+html.dark a:hover[class*="hover\\:bg-zinc-100"] {
+  background-color: #2e2e33 !important;
 }
-html.dark button:hover[class*="hover\\:bg-zinc-100"] {
-  background-color: #27272a !important;
+html.dark button:hover[class*="hover\\:bg-zinc-200"],
+html.dark a:hover[class*="hover\\:bg-zinc-200"] {
+  background-color: #3a3a40 !important;
 }
-html.dark button:hover[class*="hover\\:bg-zinc-200"] {
-  background-color: #3f3f46 !important;
+html.dark button:hover[class*="hover\\:bg-zinc-800"],
+html.dark a:hover[class*="hover\\:bg-zinc-800"] {
+  background-color: #e4e4e7 !important;
 }
 html.dark button:hover[class*="hover\\:bg-red-50"] {
-  background-color: #2d0a0a !important;
+  background-color: #2d1515 !important;
 }
 
-/* ── Form Inputs ── */
+/* ── Forms ── */
 html.dark input,
 html.dark select,
 html.dark textarea {
-  background-color: #1c1c1f !important;
-  color: #fafafa !important;
-  border-color: #3f3f46 !important;
+  background-color: #222226 !important;
+  color: #e4e4e7 !important;
+  border-color: #3a3a40 !important;
 }
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #52525b !important;
+  color: #6b6b75 !important;
 }
 html.dark input[type="range"] {
-  accent-color: #fafafa !important;
-  background-color: #3f3f46 !important;
+  accent-color: #e4e4e7 !important;
+  background-color: #3a3a40 !important;
 }
 
-/* ── Shadow adjustments ── */
-html.dark [class*="shadow-"] {
-  --tw-shadow-color: rgba(0, 0, 0, 0.5) !important;
-  --tw-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+/* ── Shadows (subtle in dark mode) ── */
+html.dark [class*="shadow-sm"] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+html.dark [class*="shadow-md"] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+html.dark [class*="shadow-lg"] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
 }
 html.dark [class*="shadow-xl"] {
-  --tw-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
 }
 html.dark [class*="shadow-2xl"] {
-  --tw-shadow: 0 8px 40px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* ── Purple (Curation button) ── */
-html.dark [class*="bg-purple-100"] {
-  background-color: #2d1b4e !important;
-}
-html.dark [class*="border-purple-200"] {
-  border-color: #3b2560 !important;
-}
-html.dark [class*="text-purple-900"] {
-  color: #c4b5fd !important;
-}
+/* ── Color accents ── */
+/* Purple */
+html.dark [class*="bg-purple-100"] { background-color: #2d1b4e !important; }
+html.dark [class*="border-purple-200"] { border-color: #3b2560 !important; }
+html.dark [class*="text-purple-900"] { color: #c4b5fd !important; }
 
-/* ── Emerald (Success states) ── */
-html.dark [class*="bg-emerald-50"] {
-  background-color: #052e16 !important;
-}
-html.dark [class*="bg-emerald-100"] {
-  background-color: #064e3b !important;
-}
-html.dark [class*="bg-emerald-500"] {
-  background-color: #10b981 !important;
-}
-html.dark [class*="text-emerald-500"] {
-  color: #34d399 !important;
-}
-html.dark [class*="text-emerald-600"] {
-  color: #6ee7b7 !important;
-}
-html.dark [class*="text-emerald-700"] {
-  color: #a7f3d0 !important;
-}
+/* Emerald */
+html.dark [class*="bg-emerald-50"] { background-color: #0a2919 !important; }
+html.dark [class*="bg-emerald-100"] { background-color: #0d3320 !important; }
+html.dark [class*="bg-emerald-500"] { background-color: #10b981 !important; }
+html.dark [class*="text-emerald-500"] { color: #34d399 !important; }
+html.dark [class*="text-emerald-600"] { color: #6ee7b7 !important; }
+html.dark [class*="text-emerald-700"] { color: #a7f3d0 !important; }
 
-/* ── Amber/Yellow warning ── */
-html.dark [class*="bg-amber-100"] {
-  background-color: #451a03 !important;
-}
-html.dark [class*="text-amber-500"] {
-  color: #fbbf24 !important;
-}
-html.dark [class*="text-amber-600"] {
-  color: #f59e0b !important;
-}
+/* Amber */
+html.dark [class*="bg-amber-100"] { background-color: #352008 !important; }
+html.dark [class*="text-amber-500"] { color: #fbbf24 !important; }
+html.dark [class*="text-amber-600"] { color: #f59e0b !important; }
 
-/* ── Red states ── */
-html.dark [class*="text-red-400"] {
-  color: #f87171 !important;
-}
-html.dark [class*="text-red-500"] {
-  color: #ef4444 !important;
-}
+/* Red */
+html.dark [class*="text-red-400"] { color: #f87171 !important; }
+html.dark [class*="text-red-500"] { color: #ef4444 !important; }
 
-/* ── Indigo (dark mode toggle) ── */
-html.dark [class*="bg-indigo-900"] {
-  background-color: #1e1b4b !important;
-}
+/* Indigo (dark mode toggle) */
+html.dark [class*="bg-indigo-900"] { background-color: #252348 !important; }
+html.dark [class*="text-indigo-300"] { color: #a5b4fc !important; }
 
-/* ── Specific page overrides ── */
-/* Home page mobile section */
-html.dark div[class*="h-screen"][class*="bg-\\[#F9F9F9\\]"] {
-  background-color: #09090b !important;
-}
-
-/* Navigation sidebar */
-html.dark aside[class*="bg-white\\/80"] {
-  background-color: rgba(18, 18, 20, 0.92) !important;
-  border-color: #1e1e22 !important;
-}
-
-/* Navigation bottom tab bar */
-html.dark nav[class*="bg-white\\/85"] {
-  background-color: rgba(18, 18, 20, 0.92) !important;
-}
-html.dark [class*="border-zinc-200\\/"] {
-  border-color: rgba(39, 39, 42, 0.6) !important;
-}
-
-/* Score/badge circles on photos */
-html.dark [class*="bg-white\\/80"][class*="backdrop-blur"] {
-  background-color: rgba(24, 24, 27, 0.8) !important;
-  color: #fafafa !important;
+/* ── Home page mobile ── */
+html.dark div[class*="h-screen"][class*="overflow-hidden"] {
+  background-color: #1a1a1e !important;
 }
 
 /* ============ END DARK MODE ============ */
@@ -327,35 +298,17 @@ html.dark [class*="bg-white\\/80"][class*="backdrop-blur"] {
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
-}
-html.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-}
-html.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+html.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
+html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
 
 /* Skeleton loading animation */
 @keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
 }
 .skeleton {
   animation: skeleton-pulse 1.8s ease-in-out infinite;
@@ -363,6 +316,6 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background-size: 200% 100%;
 }
 html.dark .skeleton {
-  background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+  background: linear-gradient(90deg, #2a2a2f 25%, #3a3a40 50%, #2a2a2f 75%);
   background-size: 200% 100%;
 }
