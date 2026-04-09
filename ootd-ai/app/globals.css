@@ -3,11 +3,31 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card: #ffffff;
+  --card-hover: #fafafa;
+  --surface: #f4f4f5;
+  --surface-2: #e4e4e7;
+  --border: #e4e4e7;
+  --border-subtle: #f4f4f5;
+  --text-primary: #09090b;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --text-faint: #a1a1aa;
 }
 
 html.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-hover: #1f1f23;
+  --surface: #27272a;
+  --surface-2: #3f3f46;
+  --border: #27272a;
+  --border-subtle: #1e1e22;
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d8;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
   color-scheme: dark;
 }
 
@@ -26,76 +46,280 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ====== DARK MODE GLOBAL OVERRIDES ====== */
-/* Backgrounds */
-html.dark .bg-white { background-color: #18181b !important; }
-html.dark .bg-\[#FAFAFA\] { background-color: #0f0f12 !important; }
-html.dark .bg-\[#FDFDFC\] { background-color: #0f0f12 !important; }
-html.dark .bg-\[#f8f9fa\] { background-color: #0f0f12 !important; }
-html.dark .bg-\[#F9F9F9\] { background-color: #0f0f12 !important; }
-html.dark .bg-zinc-50 { background-color: #1e1e22 !important; }
-html.dark .bg-zinc-100 { background-color: #252529 !important; }
-html.dark .bg-zinc-200 { background-color: #2e2e33 !important; }
+/* ==========================================================
+   DARK MODE — Element-Level Overrides (Antigravity Style)
+   Background: #09090b (pure dark)
+   Cards: #18181b (elevated dark gray)
+   Surface: #27272a (secondary)
+   ========================================================== */
 
-/* Text */
-html.dark .text-zinc-900 { color: #f4f4f5 !important; }
-html.dark .text-zinc-800 { color: #e4e4e7 !important; }
-html.dark .text-zinc-700 { color: #d4d4d8 !important; }
-html.dark .text-zinc-600 { color: #a1a1aa !important; }
-html.dark .text-zinc-500 { color: #71717a !important; }
-html.dark .text-black { color: #f4f4f5 !important; }
-html.dark .text-stone-900 { color: #f5f5f4 !important; }
-html.dark .text-stone-800 { color: #e7e5e4 !important; }
-
-/* Borders */
-html.dark .border-zinc-200 { border-color: #2e2e33 !important; }
-html.dark .border-zinc-100 { border-color: #252529 !important; }
-html.dark .border-stone-200 { border-color: #2e2e33 !important; }
-html.dark .border-black\/5 { border-color: rgba(255,255,255,0.08) !important; }
-
-/* Backdrop & Glass */
-html.dark .bg-white\/80 { background-color: rgba(24,24,27,0.85) !important; }
-html.dark .bg-white\/85 { background-color: rgba(24,24,27,0.9) !important; }
-html.dark .bg-white\/90 { background-color: rgba(24,24,27,0.92) !important; }
-html.dark .bg-white\/60 { background-color: rgba(24,24,27,0.7) !important; }
-html.dark .bg-white\/40 { background-color: rgba(24,24,27,0.5) !important; }
-
-/* Hover states */
-html.dark .hover\:bg-zinc-50:hover { background-color: #252529 !important; }
-html.dark .hover\:bg-zinc-100:hover { background-color: #2e2e33 !important; }
-html.dark .hover\:bg-zinc-200:hover { background-color: #3f3f46 !important; }
-html.dark .hover\:bg-white\/80:hover { background-color: rgba(24,24,27,0.85) !important; }
-
-/* Gradients */
-html.dark .from-white { --tw-gradient-from: #0a0a0a !important; }
-html.dark .via-white\/80 { --tw-gradient-via: rgba(10,10,10,0.8) !important; }
-html.dark .to-transparent { --tw-gradient-to: transparent !important; }
-
-/* Forms */
-html.dark input, html.dark select, html.dark textarea {
-  background-color: #1e1e22;
-  color: #f4f4f5;
-  border-color: #3f3f46;
-}
-html.dark input::placeholder { color: #52525b; }
-
-/* Shadows */
-html.dark .shadow-sm, html.dark .shadow-md, html.dark .shadow-lg, html.dark .shadow-xl {
-  --tw-shadow-color: rgba(0,0,0,0.4);
+/* ── Global body & main backgrounds ── */
+html.dark body {
+  background-color: #09090b !important;
+  color: #fafafa !important;
 }
 
-/* Purple curation button */
-html.dark .bg-purple-100 { background-color: #2d1b4e !important; }
-html.dark .border-purple-200 { border-color: #3b2560 !important; }
-html.dark .text-purple-900 { color: #c4b5fd !important; }
+/* ── All div/section/main/aside/header/nav/article backgrounds ── */
+html.dark div[class*="bg-white"],
+html.dark section[class*="bg-white"],
+html.dark main[class*="bg-white"],
+html.dark aside[class*="bg-white"],
+html.dark header[class*="bg-white"],
+html.dark nav[class*="bg-white"],
+html.dark article[class*="bg-white"] {
+  background-color: #18181b !important;
+}
 
-/* Emerald */
-html.dark .bg-emerald-50 { background-color: #052e16 !important; }
-html.dark .bg-emerald-100 { background-color: #064e3b !important; }
-html.dark .text-emerald-600 { color: #34d399 !important; }
-html.dark .text-emerald-700 { color: #6ee7b7 !important; }
+html.dark div[class*="bg-[#FAFAFA]"],
+html.dark div[class*="bg-[#FDFDFC]"],
+html.dark div[class*="bg-[#f8f9fa]"],
+html.dark div[class*="bg-[#F9F9F9]"] {
+  background-color: #09090b !important;
+}
 
-/* ====== END DARK MODE ====== */
+html.dark div[class*="bg-zinc-50"],
+html.dark section[class*="bg-zinc-50"] {
+  background-color: #1c1c1f !important;
+}
+
+html.dark div[class*="bg-zinc-100"],
+html.dark section[class*="bg-zinc-100"],
+html.dark button[class*="bg-zinc-100"] {
+  background-color: #27272a !important;
+}
+
+html.dark div[class*="bg-zinc-200"],
+html.dark button[class*="bg-zinc-200"] {
+  background-color: #3f3f46 !important;
+}
+
+/* ── Glass / Backdrop backgrounds ── */
+html.dark [class*="bg-white\\/"] {
+  background-color: rgba(24, 24, 27, 0.88) !important;
+}
+
+html.dark [class*="backdrop-blur"] {
+  --tw-backdrop-blur: blur(20px);
+}
+
+/* ── Gradient overrides ── */
+html.dark [class*="from-white"] {
+  --tw-gradient-from: #09090b !important;
+}
+html.dark [class*="via-\\[#f8f9fa\\]"] {
+  --tw-gradient-stops: var(--tw-gradient-from), #09090b, var(--tw-gradient-to) !important;
+}
+html.dark [class*="to-zinc-100"] {
+  --tw-gradient-to: #18181b !important;
+}
+html.dark [class*="from-white\\/"] {
+  --tw-gradient-from: rgba(9, 9, 11, 0.8) !important;
+}
+html.dark [class*="from-black\\/"] {
+  --tw-gradient-from: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ── Text color overrides ── */
+html.dark [class*="text-black"]:not([class*="bg-black"]):not(button[class*="bg-black"] *) {
+  color: #fafafa !important;
+}
+
+html.dark [class*="text-zinc-900"]:not([class*="bg-zinc-900"] *) {
+  color: #fafafa !important;
+}
+html.dark [class*="text-zinc-800"] {
+  color: #e4e4e7 !important;
+}
+html.dark [class*="text-zinc-700"] {
+  color: #d4d4d8 !important;
+}
+html.dark [class*="text-zinc-600"] {
+  color: #a1a1aa !important;
+}
+html.dark [class*="text-zinc-500"] {
+  color: #71717a !important;
+}
+html.dark [class*="text-zinc-400"] {
+  color: #52525b !important;
+}
+html.dark [class*="text-zinc-300"] {
+  color: #3f3f46 !important;
+}
+html.dark [class*="text-stone-900"] {
+  color: #fafaf9 !important;
+}
+html.dark [class*="text-stone-800"] {
+  color: #e7e5e4 !important;
+}
+
+/* ── Border overrides ── */
+html.dark [class*="border-zinc-200"],
+html.dark [class*="border-stone-200"] {
+  border-color: #27272a !important;
+}
+html.dark [class*="border-zinc-100"],
+html.dark [class*="border-stone-100"] {
+  border-color: #1e1e22 !important;
+}
+html.dark [class*="border-black\\/"] {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+html.dark [class*="border-white\\/"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html.dark [class*="border-dashed"] {
+  border-color: #3f3f46 !important;
+}
+
+/* ── Dividers (bg used as hr) ── */
+html.dark div[class*="bg-zinc-100"][class*="h-px"],
+html.dark div[class*="bg-zinc-100"][class*="h-\\[1px\\]"] {
+  background-color: #27272a !important;
+}
+
+/* ── Buttons: Keep bg-black buttons as-is (they work in dark mode) ── */
+/* Override non-black buttons */
+html.dark button[class*="bg-white"],
+html.dark a[class*="bg-white"] {
+  background-color: #27272a !important;
+  color: #e4e4e7 !important;
+}
+html.dark button[class*="bg-zinc-100"],
+html.dark a[class*="bg-zinc-100"] {
+  background-color: #27272a !important;
+}
+
+html.dark button[class*="bg-stone-900"],
+html.dark button[class*="bg-zinc-900"] {
+  background-color: #fafafa !important;
+  color: #09090b !important;
+}
+
+/* ── Hover states ── */
+html.dark button:hover[class*="hover\\:bg-zinc-50"] {
+  background-color: #1e1e22 !important;
+}
+html.dark button:hover[class*="hover\\:bg-zinc-100"] {
+  background-color: #27272a !important;
+}
+html.dark button:hover[class*="hover\\:bg-zinc-200"] {
+  background-color: #3f3f46 !important;
+}
+html.dark button:hover[class*="hover\\:bg-red-50"] {
+  background-color: #2d0a0a !important;
+}
+
+/* ── Form Inputs ── */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1c1c1f !important;
+  color: #fafafa !important;
+  border-color: #3f3f46 !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #52525b !important;
+}
+html.dark input[type="range"] {
+  accent-color: #fafafa !important;
+  background-color: #3f3f46 !important;
+}
+
+/* ── Shadow adjustments ── */
+html.dark [class*="shadow-"] {
+  --tw-shadow-color: rgba(0, 0, 0, 0.5) !important;
+  --tw-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+html.dark [class*="shadow-xl"] {
+  --tw-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+html.dark [class*="shadow-2xl"] {
+  --tw-shadow: 0 8px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ── Purple (Curation button) ── */
+html.dark [class*="bg-purple-100"] {
+  background-color: #2d1b4e !important;
+}
+html.dark [class*="border-purple-200"] {
+  border-color: #3b2560 !important;
+}
+html.dark [class*="text-purple-900"] {
+  color: #c4b5fd !important;
+}
+
+/* ── Emerald (Success states) ── */
+html.dark [class*="bg-emerald-50"] {
+  background-color: #052e16 !important;
+}
+html.dark [class*="bg-emerald-100"] {
+  background-color: #064e3b !important;
+}
+html.dark [class*="bg-emerald-500"] {
+  background-color: #10b981 !important;
+}
+html.dark [class*="text-emerald-500"] {
+  color: #34d399 !important;
+}
+html.dark [class*="text-emerald-600"] {
+  color: #6ee7b7 !important;
+}
+html.dark [class*="text-emerald-700"] {
+  color: #a7f3d0 !important;
+}
+
+/* ── Amber/Yellow warning ── */
+html.dark [class*="bg-amber-100"] {
+  background-color: #451a03 !important;
+}
+html.dark [class*="text-amber-500"] {
+  color: #fbbf24 !important;
+}
+html.dark [class*="text-amber-600"] {
+  color: #f59e0b !important;
+}
+
+/* ── Red states ── */
+html.dark [class*="text-red-400"] {
+  color: #f87171 !important;
+}
+html.dark [class*="text-red-500"] {
+  color: #ef4444 !important;
+}
+
+/* ── Indigo (dark mode toggle) ── */
+html.dark [class*="bg-indigo-900"] {
+  background-color: #1e1b4b !important;
+}
+
+/* ── Specific page overrides ── */
+/* Home page mobile section */
+html.dark div[class*="h-screen"][class*="bg-\\[#F9F9F9\\]"] {
+  background-color: #09090b !important;
+}
+
+/* Navigation sidebar */
+html.dark aside[class*="bg-white\\/80"] {
+  background-color: rgba(18, 18, 20, 0.92) !important;
+  border-color: #1e1e22 !important;
+}
+
+/* Navigation bottom tab bar */
+html.dark nav[class*="bg-white\\/85"] {
+  background-color: rgba(18, 18, 20, 0.92) !important;
+}
+html.dark [class*="border-zinc-200\\/"] {
+  border-color: rgba(39, 39, 42, 0.6) !important;
+}
+
+/* Score/badge circles on photos */
+html.dark [class*="bg-white\\/80"][class*="backdrop-blur"] {
+  background-color: rgba(24, 24, 27, 0.8) !important;
+  color: #fafafa !important;
+}
+
+/* ============ END DARK MODE ============ */
 
 /* iOS Safe Area for bottom tab */
 .safe-area-bottom {
@@ -117,7 +341,10 @@ html.dark .text-emerald-700 { color: #6ee7b7 !important; }
   background: rgba(0, 0, 0, 0.25);
 }
 html.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Skeleton loading animation */
@@ -139,4 +366,3 @@ html.dark .skeleton {
   background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
   background-size: 200% 100%;
 }
-
