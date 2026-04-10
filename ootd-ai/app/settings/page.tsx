@@ -1,11 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
-import { createClient as createSSRClient } from '../../lib/supabase/client';
 import { useTheme } from '../../components/ThemeProvider';
 
 const MOODS = [
@@ -19,6 +18,7 @@ const MOODS = [
 
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,27 +35,36 @@ export default function SettingsPage() {
     if (!authLoading && !user) router.push('/login');
   }, [authLoading, user, router]);
 
-  // 프로필 불러오기
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) {
-        setNickname(data.nickname || '');
-        setHeight(data.height || 175);
-        setWeight(data.weight || 70);
-        setFit(data.fit_preference || 'regular');
-        setSelectedMoods(data.style_moods || []);
+      if (authLoading) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data) {
+          setNickname(data.nickname || '');
+          setHeight(data.height || 175);
+          setWeight(data.weight || 70);
+          setFit(data.fit_preference || 'regular');
+          setSelectedMoods(data.style_moods || []);
+        }
+      } catch (err) {
+        console.error('Fetch profile error:', err);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    if (!authLoading) fetchProfile();
-  }, [user, authLoading]);
+    fetchProfile();
+  }, [user, authLoading, supabase]);
 
   const toggleMood = (id: string) => {
     setSelectedMoods(prev =>
@@ -92,8 +101,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
-    const supabaseSSR = createSSRClient();
-    await supabaseSSR.auth.signOut();
+    await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };

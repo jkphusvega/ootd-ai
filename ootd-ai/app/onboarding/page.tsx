@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Check, Sparkles, Ruler, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 
 const MOODS = [
@@ -17,6 +17,7 @@ const MOODS = [
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [nickname, setNickname] = useState('');
@@ -27,29 +28,40 @@ export default function OnboardingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
-  // 이미 온보딩을 완료한 사용자인지 확인
   useEffect(() => {
     const checkProfileAndSetDefaults = async () => {
-      if (!user) return;
+      if (authLoading) return;
       
-      // Set default nickname from OAuth metadata if available
-      const defaultName = user.user_metadata?.name || user.user_metadata?.full_name || '';
-      if (defaultName) setNickname(defaultName);
-
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) {
-        // 이미 프로필이 있으면 홈으로
-        router.push('/');
+      if (!user) {
+        setIsChecking(false);
+        router.push('/login');
+        return;
       }
-      setIsChecking(false);
+      
+      try {
+        // Set default nickname from OAuth metadata if available
+        const defaultName = user.user_metadata?.name || user.user_metadata?.full_name || '';
+        if (defaultName) setNickname(defaultName);
+
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data) {
+          // 이미 프로필이 있으면 홈으로
+          router.push('/');
+          return; // Avoid setting loading to false if we are redirecting
+        }
+      } catch (err) {
+        console.error('Profile check error:', err);
+      } finally {
+        setIsChecking(false);
+      }
     };
-    if (!authLoading) checkProfileAndSetDefaults();
-  }, [user, authLoading, router]);
+    checkProfileAndSetDefaults();
+  }, [user, authLoading, router, supabase]);
   
   const toggleMood = (id: string) => {
     setSelectedMoods(prev => 
@@ -88,9 +100,10 @@ export default function OnboardingPage() {
         // 온보딩 완료 표시
         localStorage.setItem('ootd_onboarded', 'true');
         router.push('/');
-      } catch (err) {
+      } catch (err: any) {
         console.error('프로필 저장 실패:', err);
-        alert('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+        const errMsg = err.message || JSON.stringify(err);
+        alert(`프로필 저장 중 오류가 발생했습니다.\n\n원인: ${errMsg}\n\n(참고: Supabase의 RLS(Row Level Security) 정책에서 새 유저의 INSERT가 허용되어 있는지 확인해주세요.)`);
       } finally {
         setIsSaving(false);
       }

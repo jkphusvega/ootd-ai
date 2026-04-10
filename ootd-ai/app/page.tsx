@@ -1,12 +1,11 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Zap, User, Grid, Settings2, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, Upload, ImagePlus, Sun, Cloud, CloudSnow, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabaseClient';
+import { createClient } from '../lib/supabase/client';
 import { useAuth } from '../hooks/useAuth';
-import { createClient as createSSRClient } from '../lib/supabase/client';
 
 interface WeatherData {
   temperature: number;
@@ -23,6 +22,7 @@ interface FashionCritique {
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
   const [showSplash, setShowSplash] = useState(false);
@@ -172,8 +172,7 @@ export default function Home() {
   };
 
   const handleLogout = async () => {
-    const supabaseSSR = createSSRClient();
-    await supabaseSSR.auth.signOut();
+    await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };
