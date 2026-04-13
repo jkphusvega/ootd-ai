@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useWeather } from '../../hooks/useWeather';
+import { useToast } from '../../components/ToastProvider';
 
 interface JournalEntry {
   id: string;
@@ -21,11 +23,14 @@ interface JournalEntry {
 export default function JournalPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const weather = useWeather();
+  const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<'idle' | 'analyzing' | 'done'>('idle');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // 비로그인 유저 접근 차단
   useEffect(() => {
@@ -66,17 +71,8 @@ export default function JournalPage() {
 
       const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
 
-      // Get current weather (simple fetch)
-      let temp = '20°', condition = 'Clear';
-      try {
-        const wRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code');
-        const wData = await wRes.json();
-        temp = `${Math.round(wData.current.temperature_2m)}°`;
-        const code = wData.current.weather_code;
-        if (code >= 60 && code <= 67) condition = 'Rain';
-        else if (code >= 1 && code <= 3) condition = 'Cloudy';
-        else if (code >= 70) condition = 'Snow';
-      } catch {}
+      const temp = weather ? `${Math.round(weather.temperature)}°` : '20°';
+      const condition = weather?.condition ?? 'Clear';
 
       // Save to journal_entries table
       const { error: dbError } = await supabase.from('journal_entries').insert({
@@ -94,7 +90,7 @@ export default function JournalPage() {
       fetchEntries();
     } catch (err) {
       console.error('Journal upload error:', err);
-      alert('저널 업로드 중 오류가 발생했습니다.');
+      toast('저널 업로드 중 오류가 발생했습니다.', 'error');
       setUploadState('idle');
     }
   };
@@ -132,6 +128,7 @@ export default function JournalPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFC] text-zinc-900 font-sans selection:bg-zinc-200 pb-28 lg:pb-8">
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+      <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleFileUpload} />
 
       {/* Header */}
       <header className="px-6 pt-14 lg:pt-8 pb-4 sticky top-0 bg-[#FDFDFC]/90 backdrop-blur-xl z-30">
@@ -278,7 +275,7 @@ export default function JournalPage() {
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-4 w-full">
-                    <button onClick={() => fileInputRef.current?.click()} className="group flex flex-col items-center justify-center gap-4 bg-white border border-zinc-200 aspect-square rounded-[2rem] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
+                    <button onClick={() => cameraInputRef.current?.click()} className="group flex flex-col items-center justify-center gap-4 bg-white border border-zinc-200 aspect-square rounded-[2rem] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                       <div className="p-5 bg-zinc-50 rounded-full group-hover:scale-110 transition-transform">
                         <Camera className="w-7 h-7 text-zinc-700" strokeWidth={1.5} />
                       </div>

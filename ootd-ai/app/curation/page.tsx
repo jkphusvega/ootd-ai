@@ -4,11 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
-
-interface WeatherData {
-  temperature: number;
-  condition: string;
-}
+import { useWeather } from '../../hooks/useWeather';
 
 interface CurationItem {
   category: string;
@@ -27,34 +23,12 @@ interface CurationResult {
 
 export default function CurationPage() {
   const { user, loading: authLoading } = useAuth();
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const weather = useWeather();
   const [curation, setCuration] = useState<CurationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wardrobeCount, setWardrobeCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Fetch weather
-  useEffect(() => {
-    const fetchWeather = async (lat = 37.5665, lon = 126.9780) => {
-      try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
-        const data = await res.json();
-        const code = data.current.weather_code;
-        let cond = 'Clear';
-        if (code >= 60 && code <= 67) cond = 'Rain';
-        else if (code >= 1 && code <= 3) cond = 'Cloudy';
-        else if (code >= 70) cond = 'Snow';
-        setWeather({ temperature: data.current.temperature_2m, condition: cond });
-      } catch {}
-    };
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => fetchWeather()
-      );
-    } else fetchWeather();
-  }, []);
 
   // Check wardrobe count
   useEffect(() => {

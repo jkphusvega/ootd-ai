@@ -33,13 +33,14 @@ export default function GalleryPage() {
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<ClothItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchClothes = async () => {
     if (!user) return;
     setIsLoading(true);
     const { data, error } = await supabase.from('clothes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
     if (data && !error) {
-      const mapped = data.map((row: any) => ({
+      const mapped = data.map((row: { id: string; image_url: string; name: string; category: string }) => ({
         id: row.id, image: row.image_url, name: row.name, categoryId: row.category
       }));
       setLocalItems(mapped);
@@ -47,17 +48,32 @@ export default function GalleryPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     if (!authLoading) {
-      fetchClothes(); 
+      fetchClothes();
     }
   }, [user, authLoading]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말로 옷장에서 삭제하시겠습니까?')) return;
+    const item = localItems.find(i => i.id === id);
     setLocalItems(prev => prev.filter(i => i.id !== id));
+    setPendingDeleteId(null);
+
     const { error } = await supabase.from('clothes').delete().eq('id', id);
-    if (error) { alert('삭제 중 오류가 발생했습니다.'); fetchClothes(); }
+    if (error) {
+      fetchClothes();
+      return;
+    }
+
+    // Remove the image from storage to prevent orphaned files
+    if (item?.image) {
+      const storagePrefix = '/storage/v1/object/public/clothes/';
+      const idx = item.image.indexOf(storagePrefix);
+      if (idx !== -1) {
+        const fileName = item.image.slice(idx + storagePrefix.length);
+        await supabase.storage.from('clothes').remove([fileName]);
+      }
+    }
   };
 
   const getMergedCategories = () => {
@@ -153,7 +169,11 @@ export default function GalleryPage() {
                     {/* ── MOBILE: Horizontal Scroll ── */}
                     <div className="lg:hidden flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none' }}>
                       {category.items.map((item) => (
-                        <MobileClothCard key={item.id} item={item} editMode={editMode} onDelete={handleDelete} />
+                        <MobileClothCard key={item.id} item={item} editMode={editMode}
+                          pendingDeleteId={pendingDeleteId}
+                          onRequestDelete={setPendingDeleteId}
+                          onConfirmDelete={handleDelete}
+                          onCancelDelete={() => setPendingDeleteId(null)} />
                       ))}
                       <AddNewCard />
                     </div>
@@ -161,9 +181,13 @@ export default function GalleryPage() {
                     {/* ── DESKTOP: Grid Layout ── */}
                     <div className="hidden lg:grid grid-cols-4 xl:grid-cols-5 gap-6 px-6 pt-8 pb-6 relative z-10">
                       {category.items.map((item) => (
-                        <DesktopClothCard key={item.id} item={item} editMode={editMode} onDelete={handleDelete} />
+                        <DesktopClothCard key={item.id} item={item} editMode={editMode}
+                          pendingDeleteId={pendingDeleteId}
+                          onRequestDelete={setPendingDeleteId}
+                          onConfirmDelete={handleDelete}
+                          onCancelDelete={() => setPendingDeleteId(null)} />
                       ))}
-                      <Link href="/test-bg">
+                      <Link href="/add-clothes">
                         <div className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
                           <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
                             <Plus className="w-6 h-6 text-white/50" />
@@ -187,9 +211,16 @@ export default function GalleryPage() {
                 <div key={memory.id} className="bg-white rounded-[2rem] overflow-hidden border border-stone-200 shadow-[0_15px_40px_rgba(0,0,0,0.1)] relative group">
                   <div className="aspect-[4/5] overflow-hidden relative">
                     <img src={memory.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
-                    <button onClick={() => handleDelete(memory.id)} className="absolute top-4 right-4 bg-black/60 backdrop-blur text-white p-2.5 rounded-full shadow-md z-20 hover:scale-110 active:scale-95">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {pendingDeleteId === memory.id ? (
+                      <div className="absolute top-4 right-4 z-20 flex gap-1">
+                        <button onClick={() => handleDelete(memory.id)} className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg hover:bg-red-600 transition">삭제</button>
+                        <button onClick={() => setPendingDeleteId(null)} className="bg-white text-zinc-700 text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg hover:bg-zinc-100 transition">취소</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setPendingDeleteId(memory.id)} className="absolute top-4 right-4 bg-black/60 backdrop-blur text-white p-2.5 rounded-full shadow-md z-20 hover:scale-110 active:scale-95">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="p-5 pb-6 relative z-10 bg-[#fdfdfd] border-t border-stone-100 flex flex-col gap-3">
                     <p className="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-bold">OOTD AI Insight</p>
@@ -216,7 +247,7 @@ export default function GalleryPage() {
 
       {/* FAB */}
       <div className="fixed bottom-24 lg:bottom-8 right-6 z-50">
-        <Link href="/test-bg">
+        <Link href="/add-clothes">
           <button className="w-14 h-14 bg-stone-900 rounded-full flex items-center justify-center text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-all outline-none pb-0.5 border border-stone-700">
             <Plus className="w-7 h-7" strokeWidth={2.5} />
           </button>
@@ -228,14 +259,34 @@ export default function GalleryPage() {
 
 /* ───── Sub Components ───── */
 
-function MobileClothCard({ item, editMode, onDelete }: { item: ClothItem; editMode: boolean; onDelete: (id: string) => void }) {
+function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete }: {
+  item: ClothItem;
+  editMode: boolean;
+  pendingDeleteId: string | null;
+  onRequestDelete: (id: string) => void;
+  onConfirmDelete: (id: string) => void;
+  onCancelDelete: () => void;
+}) {
+  const isPending = pendingDeleteId === item.id;
   return (
     <div className="snap-center shrink-0 w-[150px] cursor-pointer group flex flex-col items-center relative">
-      {editMode && (
-        <button onClick={() => onDelete(item.id)}
+      {editMode && !isPending && (
+        <button onClick={() => onRequestDelete(item.id)}
           className="absolute -top-2 -right-1 z-50 bg-red-500 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(239,68,68,0.5)] border-[3px] border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform">
           <X className="w-5 h-5" strokeWidth={3} />
         </button>
+      )}
+      {isPending && (
+        <div className="absolute -top-3 -right-3 z-50 flex gap-1">
+          <button onClick={() => onConfirmDelete(item.id)}
+            className="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-red-600 transition">
+            삭제
+          </button>
+          <button onClick={onCancelDelete}
+            className="bg-white text-zinc-700 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-zinc-100 transition">
+            취소
+          </button>
+        </div>
       )}
       <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3">
         <div className="text-white/30 -mb-5 relative z-20 drop-shadow-[0_4px_2px_rgba(0,0,0,0.3)]">
@@ -254,14 +305,34 @@ function MobileClothCard({ item, editMode, onDelete }: { item: ClothItem; editMo
   );
 }
 
-function DesktopClothCard({ item, editMode, onDelete }: { item: ClothItem; editMode: boolean; onDelete: (id: string) => void }) {
+function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete }: {
+  item: ClothItem;
+  editMode: boolean;
+  pendingDeleteId: string | null;
+  onRequestDelete: (id: string) => void;
+  onConfirmDelete: (id: string) => void;
+  onCancelDelete: () => void;
+}) {
+  const isPending = pendingDeleteId === item.id;
   return (
     <div className="relative group cursor-pointer">
-      {editMode && (
-        <button onClick={() => onDelete(item.id)}
+      {editMode && !isPending && (
+        <button onClick={() => onRequestDelete(item.id)}
           className="absolute -top-2 -right-2 z-50 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform">
           <X className="w-4 h-4" strokeWidth={3} />
         </button>
+      )}
+      {isPending && (
+        <div className="absolute -top-3 -right-3 z-50 flex gap-1">
+          <button onClick={() => onConfirmDelete(item.id)}
+            className="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-red-600 transition">
+            삭제
+          </button>
+          <button onClick={onCancelDelete}
+            className="bg-white text-zinc-700 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-zinc-100 transition">
+            취소
+          </button>
+        </div>
       )}
       <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:bg-white/20 group-hover:shadow-xl group-hover:-translate-y-1">
         <img src={item.image} alt={item.name} className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
@@ -275,7 +346,7 @@ function DesktopClothCard({ item, editMode, onDelete }: { item: ClothItem; editM
 
 function AddNewCard() {
   return (
-    <Link href="/test-bg">
+    <Link href="/add-clothes">
       <div className="snap-center shrink-0 w-[140px] h-[160px] mt-[20px] flex flex-col items-center justify-start cursor-pointer group transition">
         <div className="text-white/10 mb-4 group-hover:text-white/30 transition-colors">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

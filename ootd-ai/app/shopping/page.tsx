@@ -5,6 +5,8 @@ import { ShoppingBag, Sparkles, RefreshCw, Loader2, Tag, MapPin, ExternalLink } 
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useWeather } from '../../hooks/useWeather';
+import { useToast } from '../../components/ToastProvider';
 
 interface ShoppingSuggestion {
   name: string;
@@ -19,44 +21,18 @@ interface ShoppingResult {
   suggestions: ShoppingSuggestion[];
 }
 
-interface WeatherData {
-  temperature: number;
-  condition: string;
-}
-
 export default function ShoppingPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [result, setResult] = useState<ShoppingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const weather = useWeather();
+  const { toast } = useToast();
   const [wardrobeCount, setWardrobeCount] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
   }, [authLoading, user, router]);
-
-  useEffect(() => {
-    // Weather
-    const fetchWeather = async (lat = 37.5665, lon = 126.9780) => {
-      try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
-        const data = await res.json();
-        const code = data.current.weather_code;
-        let cond = 'Clear';
-        if (code >= 60 && code <= 67) cond = 'Rain';
-        else if (code >= 1 && code <= 3) cond = 'Cloudy';
-        else if (code >= 70) cond = 'Snow';
-        setWeather({ temperature: data.current.temperature_2m, condition: cond });
-      } catch {}
-    };
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => fetchWeather()
-      );
-    } else fetchWeather();
-  }, []);
 
   useEffect(() => {
     const checkWardrobe = async () => {
@@ -93,10 +69,10 @@ export default function ShoppingPage() {
       if (res.ok) {
         setResult(data);
       } else {
-        alert(data.error || 'AI 추천 오류');
+        toast(data.error || 'AI 추천 오류', 'error');
       }
     } catch {
-      alert('네트워크 오류가 발생했습니다.');
+      toast('네트워크 오류가 발생했습니다.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +84,14 @@ export default function ShoppingPage() {
     if (cat.includes('bottom')) return '👖';
     if (cat.includes('shoe')) return '👟';
     return '🧦';
+  };
+
+  const getSearchUrls = (name: string) => {
+    const q = encodeURIComponent(name);
+    return {
+      musinsa: `https://www.musinsa.com/search/musinsa/goods?q=${q}`,
+      cm29: `https://www.29cm.co.kr/search?query=${q}`,
+    };
   };
 
   return (
@@ -202,6 +186,16 @@ export default function ShoppingPage() {
                             <Tag className="w-3 h-3 text-emerald-600" />
                             <span className="text-[10px] font-bold text-emerald-700">{item.priceRange}</span>
                           </div>
+                          <a href={getSearchUrls(item.name).musinsa} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-zinc-900 rounded-lg hover:bg-zinc-700 transition">
+                            <ExternalLink className="w-3 h-3 text-white" />
+                            <span className="text-[10px] font-bold text-white">무신사</span>
+                          </a>
+                          <a href={getSearchUrls(item.name).cm29} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition">
+                            <ExternalLink className="w-3 h-3 text-zinc-600" />
+                            <span className="text-[10px] font-bold text-zinc-700">29CM</span>
+                          </a>
                         </div>
 
                         <div className="flex items-start gap-1.5 mt-3 px-3 py-2 bg-zinc-50 rounded-xl">

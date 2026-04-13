@@ -6,11 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
 import { useAuth } from '../hooks/useAuth';
-
-interface WeatherData {
-  temperature: number;
-  condition: string;
-}
+import { useWeather } from '../hooks/useWeather';
+import { useToast } from '../components/ToastProvider';
 
 interface FashionCritique {
   score: number;
@@ -26,7 +23,8 @@ export default function Home() {
   const router = useRouter();
   const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
   const [showSplash, setShowSplash] = useState(false);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const weather = useWeather();
+  const { toast } = useToast();
   const [critique, setCritique] = useState<FashionCritique | null>(null);
   const [originalImage, setOriginalImage] = useState<string>("https://images.unsplash.com/photo-1485230895905-312046452294?q=80&w=800&auto=format&fit=crop");
   const [hasCustomImage, setHasCustomImage] = useState(false);
@@ -56,28 +54,6 @@ export default function Home() {
     }
   }, [authLoading, showSplash, user, router]);
 
-  // Fetch Weather
-  useEffect(() => {
-    const fetchWeather = async (lat = 37.5665, lon = 126.9780) => {
-      try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
-        const data = await res.json();
-        const code = data.current.weather_code;
-        let cond = 'Clear';
-        if (code >= 60 && code <= 67) cond = 'Rain';
-        else if (code >= 1 && code <= 3) cond = 'Cloudy';
-        else if (code >= 70) cond = 'Snow';
-        setWeather({ temperature: data.current.temperature_2m, condition: cond });
-      } catch (err) { console.error("Weather API Error:", err); }
-    };
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => fetchWeather()
-      );
-    } else { fetchWeather(); }
-  }, []);
-
   // Fetch User Profile
   useEffect(() => {
     const checkProfile = async () => {
@@ -102,7 +78,7 @@ export default function Home() {
   const processFile = async (file: File) => {
     // 🔒 보안: 5MB 이상 이미지 업로드 차단
     if (file.size > 5 * 1024 * 1024) {
-      alert('📸 사진 용량이 너무 큽니다!\n5MB 이하의 사진을 사용해주세요.');
+      toast('사진 용량이 너무 큽니다!\n5MB 이하의 사진을 사용해주세요.', 'error');
       return;
     }
     const objectUrl = URL.createObjectURL(file);
@@ -130,8 +106,8 @@ export default function Home() {
       });
       const data = await res.json();
       if (res.ok) { setCritique(data); setScanState('success'); }
-      else { alert('에러가 발생했습니다: ' + (data.error || 'AI 분석 오류')); setScanState('idle'); }
-    } catch (err) { alert('네트워크 오류가 발생했습니다.'); setScanState('idle'); }
+      else { toast('에러가 발생했습니다: ' + (data.error || 'AI 분석 오류'), 'error'); setScanState('idle'); }
+    } catch (err) { toast('네트워크 오류가 발생했습니다.', 'error'); setScanState('idle'); }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,9 +142,9 @@ export default function Home() {
         category: 'ootd_feed', name: `${critique.score}점: ${critique.summary}`, image_url: publicUrl, user_id: user!.id
       });
       if (dbError) throw new Error('DB 무결성 에러');
-      alert('성공적으로 내 OOTD 갤러리에 저장되었습니다! 📸\n(마이옷장 -> OOTD Feeds 탭에서 확인하세요)');
+      toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
       setScanState('success');
-    } catch(e) { alert('서버 저장 실패!'); setScanState('success'); }
+    } catch(e) { toast('서버 저장에 실패했습니다.', 'error'); setScanState('success'); }
   };
 
   const handleLogout = async () => {
@@ -396,7 +372,7 @@ export default function Home() {
                           if (base64Image) {
                             sessionStorage.setItem('ootd_transfer_image', base64Image);
                             sessionStorage.setItem('ootd_auto_start', 'true');
-                            window.location.href = '/test-bg';
+                            router.push('/add-clothes');
                           }
                         }} className="py-3.5 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5 hover:bg-zinc-800">
                           AI 추출 <ChevronRight className="w-3.5 h-3.5" />
@@ -529,7 +505,7 @@ export default function Home() {
                           <Sparkles className="w-3.5 h-3.5" /> 코디 추천
                         </button>
                       </Link>
-                      <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); window.location.href = '/test-bg'; } }}
+                      <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
                         className="w-full py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
                         AI 추출 <ChevronRight className="w-3.5 h-3.5" />
                       </button>

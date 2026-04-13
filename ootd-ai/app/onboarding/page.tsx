@@ -5,6 +5,7 @@ import { ArrowRight, Check, Sparkles, Ruler, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../components/ToastProvider';
 
 const MOODS = [
   { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
@@ -19,6 +20,7 @@ export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [nickname, setNickname] = useState('');
   const [height, setHeight] = useState(175);
@@ -73,7 +75,7 @@ export default function OnboardingPage() {
   const nextStep = async () => {
     if (step === 1) {
       if (!nickname.trim()) {
-        alert('닉네임을 입력해주세요!');
+        toast('닉네임을 입력해주세요!', 'info');
         return;
       }
       setStep(2);
@@ -102,8 +104,7 @@ export default function OnboardingPage() {
         router.push('/');
       } catch (err: any) {
         console.error('프로필 저장 실패:', err);
-        const errMsg = err.message || JSON.stringify(err);
-        alert(`프로필 저장 중 오류가 발생했습니다.\n\n원인: ${errMsg}\n\n(참고: Supabase의 RLS(Row Level Security) 정책에서 새 유저의 INSERT가 허용되어 있는지 확인해주세요.)`);
+        toast('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
       } finally {
         setIsSaving(false);
       }

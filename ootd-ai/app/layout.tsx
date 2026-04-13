@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navigation from "../components/Navigation";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { ToastProvider } from "../components/ToastProvider";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -50,10 +51,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-white text-zinc-900">
         <ThemeProvider>
-          <Navigation />
-          <main className="lg:ml-[220px] pb-20 lg:pb-0 flex-1">
-            {children}
-          </main>
+          <ToastProvider>
+            <Navigation />
+            <main className="lg:ml-[220px] pb-20 lg:pb-0 flex-1">
+              {children}
+            </main>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -5,10 +5,12 @@ import { Share2, Copy, Check, ExternalLink, Loader2, Lock, Globe } from 'lucide-
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../components/ToastProvider';
 
 export default function SharePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [isPublic, setIsPublic] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -72,7 +74,7 @@ export default function SharePage() {
       setShareId(newShareId);
       setIsPublic(!isPublic);
     } else {
-      alert('설정 변경에 실패했습니다.');
+      toast('설정 변경에 실패했습니다.', 'error');
     }
     setIsSaving(false);
   };

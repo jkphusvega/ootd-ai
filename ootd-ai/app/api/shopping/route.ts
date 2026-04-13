@@ -67,12 +67,15 @@ IMPORTANT: Only return raw JSON. No markdown. Write everything in Korean.`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsedData = JSON.parse(jsonString);
+    const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
+    const parsedData = JSON.parse(jsonMatch[0]);
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Shopping API Error:', error);
-    return NextResponse.json({ error: error.message || 'Shopping recommendation failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Shopping recommendation failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

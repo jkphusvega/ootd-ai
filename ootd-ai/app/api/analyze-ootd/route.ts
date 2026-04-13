@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '../../../lib/supabase/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) console.error('❌ GEMINI_API_KEY is not set');
+
+const genAI = new GoogleGenerativeAI(apiKey || '');
 
 export async function POST(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!apiKey) return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+
   try {
     const body = await request.json();
     const { imageBase64, weatherInfo, userProfile } = body;
@@ -56,8 +66,10 @@ Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and profe
     const result = await model.generateContent([prompt, imagePart]);
     const responseText = result.response.text();
     
-    const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsedData = JSON.parse(jsonString);
+    const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
+    const parsedData = JSON.parse(jsonMatch[0]);
 
     return NextResponse.json(parsedData);
   } catch (error: unknown) {

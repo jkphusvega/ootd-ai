@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../components/ThemeProvider';
+import { useToast } from '../../components/ToastProvider';
 
 const MOODS = [
   { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { toast } = useToast();
 
   // 비로그인 차단
   useEffect(() => {
@@ -94,7 +96,7 @@ export default function SettingsPage() {
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
       console.error(err);
-      alert('저장 중 오류가 발생했습니다.');
+      toast('저장 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsSaving(false);
     }
