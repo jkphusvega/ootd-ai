@@ -41,9 +41,9 @@ export default function Navigation() {
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/80 backdrop-blur-xl border-r border-zinc-200/80 flex-col z-50">
         {/* Logo */}
         <div className="px-6 pt-8 pb-3">
-          <Link href="/" className="flex flex-col items-start relative">
-            <img src="/logo.png" alt="OOTD Logo" className="w-[140px] h-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen contrast-125 brightness-110 transform scale-[1.15] origin-left -mb-4 -mt-2" />
-            <p className="text-[10px] font-extrabold tracking-[0.15em] text-zinc-400 uppercase ml-1 relative z-10">AI Stylist</p>
+          <Link href="/" className="flex flex-col items-start gap-1">
+            <img src="/logo.png" alt="OOTD Logo" className="w-[100px] h-auto object-contain dark:invert" />
+            <p className="text-[10px] font-extrabold tracking-[0.15em] text-zinc-400 uppercase ml-1">AI Stylist</p>
           </Link>
         </div>
 
