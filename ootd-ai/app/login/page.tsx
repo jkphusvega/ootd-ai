@@ -58,8 +58,8 @@ export default function LoginPage() {
         className="w-full max-w-sm relative z-10"
       >
         <div className="text-center mb-10 flex flex-col items-center">
-          <Link href="/" className="flex justify-center mb-4">
-            <img src="/logo.png" alt="OOTD Logo" className="w-32 md:w-36 h-auto object-contain dark:invert" />
+          <Link href="/" className="flex justify-center mb-2">
+            <img src="/logo.png" alt="OOTD Logo" className="w-52 md:w-60 h-auto object-contain dark:invert" />
           </Link>
           <p className="text-sm font-extrabold text-zinc-500 tracking-widest uppercase">당신만의 퍼스널 AI 옷장</p>
         </div>
