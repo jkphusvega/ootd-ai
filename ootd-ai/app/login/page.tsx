@@ -57,11 +57,9 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-sm relative z-10"
       >
-        <div className="text-center mb-10">
-          <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-black tracking-tight text-black mb-2 flex items-center justify-center gap-2">
-              <span className="bg-black text-white px-3 py-1 rounded-xl">OOTD</span> AI
-            </h1>
+        <div className="text-center mb-10 flex flex-col items-center">
+          <Link href="/" className="inline-block flex justify-center mb-4">
+            <img src="/logo.png" alt="OOTD Logo" className="w-32 md:w-40 h-auto object-contain dark:invert mix-blend-multiply dark:mix-blend-normal" />
           </Link>
           <p className="text-sm font-semibold text-zinc-500 tracking-widest uppercase">당신만의 퍼스널 AI 옷장</p>
         </div>
