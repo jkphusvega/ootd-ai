@@ -11,7 +11,7 @@ const DESKTOP_NAV = [
   { href: '/journal', label: '저널', icon: BookOpen },
   { href: '/calendar', label: '캘린더', icon: CalendarDays },
   { href: '/stats', label: '통계', icon: BarChart3 },
-  { href: '/test-bg', label: 'AI 추출', icon: Scissors },
+  { href: '/test-bg', label: 'AI 스캔', icon: Scissors },
   { href: '/shopping', label: 'AI 쇼핑', icon: ShoppingBag },
   { href: '/share', label: '옷장 공유', icon: Share2 },
   { href: '/settings', label: '설정', icon: Settings },

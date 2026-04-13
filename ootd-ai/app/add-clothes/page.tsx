@@ -322,7 +322,7 @@ export default function UnifiedSandboxPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <Link href="/"><button className="w-10 h-10 shrink-0 bg-white border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition active:scale-95 shadow-sm"><Home className="w-4 h-4" /></button></Link>
-              <h1 className="text-2xl md:text-2xl font-extrabold tracking-tight text-black leading-tight">✨ 혼합 듀얼 다이컷 스캐너</h1>
+              <h1 className="text-2xl md:text-2xl font-extrabold tracking-tight text-black leading-tight">✨ AI 옷 스캐너</h1>
             </div>
             <p className="text-zinc-500 tracking-wide text-[11px] md:text-[13px] mt-2 leading-relaxed">
               정면 전신샷은 <strong className="text-black">버튼 하나로 AI가 전체를 쪼개주고(Multi)</strong>,<br/>측면/앉은 자세나 단품 옷 사진은 <strong className="text-black">자체 단일 추출(Single)</strong>로 깔끔하게 배경만 날려줍니다!
