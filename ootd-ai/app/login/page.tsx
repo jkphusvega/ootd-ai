@@ -57,11 +57,11 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-sm relative z-10"
       >
-        <div className="text-center mb-10 flex flex-col items-center gap-0">
-          <Link href="/" className="flex justify-center mb-0">
-            <img src="/logo.png" alt="OOTD Logo" className="w-56 md:w-64 h-auto object-contain dark:invert" />
+        <div className="text-center mb-8 flex flex-col items-center gap-3">
+          <Link href="/" className="flex justify-center">
+            <img src="/logo.png" alt="OOTD Logo" className="w-48 md:w-56 h-auto object-contain dark:invert" />
           </Link>
-          <p className="text-sm font-extrabold text-zinc-500 tracking-widest uppercase -mt-1">당신만의 퍼스널 AI 옷장</p>
+          <p className="text-sm font-extrabold text-zinc-500 tracking-widest uppercase">당신만의 퍼스널 AI 옷장</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl border border-zinc-200/60 p-8 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
