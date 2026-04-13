@@ -40,10 +40,10 @@ export default function Navigation() {
       {/* ============ DESKTOP: Left Sidebar (lg 이상) ============ */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/80 backdrop-blur-xl border-r border-zinc-200/80 flex-col z-50">
         {/* Logo */}
-        <div className="px-6 pt-8 pb-6">
-          <Link href="/" className="flex flex-col gap-1.5">
-            <img src="/logo.png" alt="OOTD Logo" className="w-[110px] h-auto object-contain dark:invert mix-blend-multiply dark:mix-blend-normal" />
-            <p className="text-[9px] font-bold tracking-[0.15em] text-zinc-400 uppercase ml-1">AI Stylist</p>
+        <div className="px-6 pt-8 pb-3">
+          <Link href="/" className="flex flex-col items-start relative">
+            <img src="/logo.png" alt="OOTD Logo" className="w-[140px] h-auto object-contain dark:invert mix-blend-multiply dark:mix-blend-normal transform scale-[1.15] origin-left -mb-4 -mt-2" />
+            <p className="text-[10px] font-extrabold tracking-[0.15em] text-zinc-400 uppercase ml-1 relative z-10">AI Stylist</p>
           </Link>
         </div>
 
