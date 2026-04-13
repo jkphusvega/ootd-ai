@@ -42,7 +42,7 @@ export default function Navigation() {
         {/* Logo */}
         <div className="px-6 pt-8 pb-3">
           <Link href="/" className="flex flex-col items-start relative">
-            <img src="/logo.png" alt="OOTD Logo" className="w-[140px] h-auto object-contain dark:invert mix-blend-multiply dark:mix-blend-normal transform scale-[1.15] origin-left -mb-4 -mt-2" />
+            <img src="/logo.png" alt="OOTD Logo" className="w-[140px] h-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen contrast-125 brightness-110 transform scale-[1.15] origin-left -mb-4 -mt-2" />
             <p className="text-[10px] font-extrabold tracking-[0.15em] text-zinc-400 uppercase ml-1 relative z-10">AI Stylist</p>
           </Link>
         </div>
