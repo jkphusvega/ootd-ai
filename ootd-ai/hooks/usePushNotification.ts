@@ -48,7 +48,7 @@ export function usePushNotification(userId: string | undefined) {
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: keyBytes,
+        applicationServerKey: keyBytes.buffer as ArrayBuffer,
       });
 
       await fetch('/api/push/subscribe', {
