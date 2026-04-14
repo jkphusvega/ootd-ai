@@ -148,21 +148,21 @@ export default function UnifiedSandboxPage() {
         setProgressMsg(`[${item.category}] 부위 누끼 따는 중... (${i+1}/${total})`);
         
         // 카테고리별 X 너비 차별화: 상의는 넓게, 하의는 좁게, 신발은 더 좁게
-        let xmin = 0.10;
-        let xmax = 0.90;
+        let xmin = 0.05;
+        let xmax = 0.95;
         const cat = item.category.toLowerCase();
-        if (cat.includes('bottom')) { xmin = 0.15; xmax = 0.85; }
-        else if (cat.includes('shoe')) { xmin = 0.20; xmax = 0.80; }
+        if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
+        else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
         
-        // 🔒 강제 보정: Gemini가 y_start를 너무 높게 잡아 얼굴/목이 포함되는 것을 방지
+        // Gemini의 좌표를 최대한 존중하되, 얼굴 포함만 최소한으로 방지
         let ymin = item.y_start;
         let ymax = item.y_end;
         if (cat.includes('top') || cat.includes('outer')) {
-          ymin = Math.max(ymin, 0.28); // 상의는 절대 이미지 상단 28% 위로 올라가지 않음
+          ymin = Math.max(ymin, 0.12); // 얼굴 포함 최소 방지 (넉넉하게)
         } else if (cat.includes('bottom')) {
-          ymin = Math.max(ymin, 0.45); // 하의는 절대 45% 위로 올라가지 않음
+          ymin = Math.max(ymin, 0.35); // 하의 최소 시작점
         } else if (cat.includes('shoe')) {
-          ymin = Math.max(ymin, 0.85); // 신발은 절대 85% 위로 올라가지 않음
+          ymin = Math.max(ymin, 0.80); // 신발 최소 시작점
         }
         
         const croppedBlob = await getSegmentedBlob(targetOriginal, xmin, ymin, xmax, ymax);

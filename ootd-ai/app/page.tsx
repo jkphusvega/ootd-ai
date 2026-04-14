@@ -132,19 +132,32 @@ export default function Home() {
     if (!base64Image || !critique) return;
     setScanState('scanning');
     try {
-      const fetchResponse = await fetch(base64Image);
-      const blob = await fetchResponse.blob();
+      // base64 → Blob 변환 (모바일 Safari에서 fetch(dataURL)이 실패하는 문제 우회)
+      const base64Data = base64Image.split(',')[1];
+      const mimeMatch = base64Image.match(/data:(.*?);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/webp';
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+
       const fileName = `ootd_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
-      const { error: uploadError } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
-      if (uploadError) throw new Error('업로드 에러');
+      const { error: uploadError } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: mimeType });
+      if (uploadError) throw new Error('업로드 에러: ' + uploadError.message);
       const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
       const { error: dbError } = await supabase.from('clothes').insert({
         category: 'ootd_feed', name: `${critique.score}점: ${critique.summary}`, image_url: publicUrl, user_id: user!.id
       });
-      if (dbError) throw new Error('DB 무결성 에러');
+      if (dbError) throw new Error('DB 에러: ' + dbError.message);
       toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
       setScanState('success');
-    } catch(e) { toast('서버 저장에 실패했습니다.', 'error'); setScanState('success'); }
+    } catch(e: any) {
+      console.error('OOTD Save Error:', e);
+      toast('저장 실패: ' + (e.message || '알 수 없는 오류'), 'error');
+      setScanState('success');
+    }
   };
 
   const handleLogout = async () => {
