@@ -91,6 +91,18 @@ IMPORTANT: Only return raw JSON. No markdown. Write title, description, and reas
     if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
     const parsedData = JSON.parse(jsonMatch[0]);
 
+    // Push notification — fire and forget, don't block response
+    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL('/api/push/send', request.url).toString() : '/api/push/send'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        title: '오늘의 코디 추천 ✨',
+        body: parsedData.title || '새로운 코디 추천이 준비됐어요!',
+        url: '/curation',
+      }),
+    }).catch(() => {}); // ignore push errors
+
     return NextResponse.json(parsedData);
   } catch (error: unknown) {
     console.error('Curation API Error:', error);

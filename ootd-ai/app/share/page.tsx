@@ -63,12 +63,12 @@ export default function SharePage() {
 
     const { error } = await supabase
       .from('user_profiles')
-      .update({
+      .upsert({
+        user_id: user.id,
         share_id: newShareId,
         is_public: !isPublic,
         updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
+      }, { onConflict: 'user_id' });
 
     if (!error) {
       setShareId(newShareId);
