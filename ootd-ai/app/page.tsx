@@ -8,6 +8,7 @@ import { createClient } from '../lib/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useWeather } from '../hooks/useWeather';
 import { useToast } from '../components/ToastProvider';
+import LandingContent from '../components/LandingContent';
 
 interface FashionCritique {
   score: number;
@@ -78,12 +79,7 @@ export default function Home() {
     }
   }, []);
 
-  // Auth Redirect
-  useEffect(() => {
-    if (!authLoading && !showSplash && !user) {
-      router.push('/login');
-    }
-  }, [authLoading, showSplash, user, router]);
+  // Auth Redirect (removed — non-auth users see landing below)
 
   // Fetch User Profile
   useEffect(() => {
@@ -282,7 +278,12 @@ export default function Home() {
     return `좋은 저녁이에요${nameStr} 🌆`;
   };
 
-  if (authLoading || (!showSplash && !user)) {
+  // Non-authenticated users see the landing page
+  if (!authLoading && !user && !showSplash) {
+    return <LandingContent />;
+  }
+
+  if (authLoading || showSplash) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
         <div className="w-16 h-16 rounded-2xl bg-zinc-100 animate-pulse" />

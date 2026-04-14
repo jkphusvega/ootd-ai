@@ -1,6 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../hooks/useAuth';
 import { Home, Shirt, Zap, BookOpen, Scissors, Sparkles, Settings, CalendarDays, BarChart3, ShoppingBag, Share2 } from 'lucide-react';
 
 // 데스크탑 사이드바에 표시될 항목
@@ -31,9 +32,12 @@ const HIDDEN_PATHS = ['/login', '/signup', '/onboarding', '/auth', '/landing-min
 
 export default function Navigation() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   // 로그인, 회원가입, 온보딩 등에서는 네비게이션 숨김
+  // 비로그인 상태에서 홈(/)은 랜딩 페이지를 표시하므로 숨김
   if (HIDDEN_PATHS.some(p => pathname.startsWith(p))) return null;
+  if (pathname === '/' && !user) return null;
 
   return (
     <>

@@ -5,7 +5,7 @@ const NO_SIDEBAR_PATHS = ['/landing-minimal', '/landing-impact'];
 
 export default function ClientMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const noSidebar = NO_SIDEBAR_PATHS.some(p => pathname.startsWith(p));
+  const noSidebar = pathname === '/' || NO_SIDEBAR_PATHS.some(p => pathname.startsWith(p));
 
   return (
     <main className={`${noSidebar ? '' : 'lg:ml-[220px]'} pb-20 lg:pb-0 flex-1`}>
