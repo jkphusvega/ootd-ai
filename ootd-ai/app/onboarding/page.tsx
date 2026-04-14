@@ -1,19 +1,19 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, Sparkles, Ruler, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Check, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
 
 const MOODS = [
-  { id: 'minimal', label: '미니멀', emoji: '깔끔한' },
-  { id: 'street', label: '스트릿', emoji: '힙한' },
-  { id: 'casual', label: '캐주얼', emoji: '편안한' },
-  { id: 'gorpcore', label: '고프코어', emoji: '트렌디' },
-  { id: 'cityboy', label: '시티보이', emoji: '오버핏' },
-  { id: 'vintage', label: '빈티지', emoji: '레트로' },
+  { id: 'minimal', label: '미니멀', desc: '깔끔하고 군더더기 없는' },
+  { id: 'street', label: '스트릿', desc: '힙하고 개성 있는' },
+  { id: 'casual', label: '캐주얼', desc: '편안하고 자연스러운' },
+  { id: 'gorpcore', label: '고프코어', desc: '트렌디한 아웃도어 감성' },
+  { id: 'cityboy', label: '시티보이', desc: '오버핏 도시 감성' },
+  { id: 'vintage', label: '빈티지', desc: '레트로하고 유니크한' },
 ];
 
 export default function OnboardingPage() {
@@ -21,97 +21,65 @@ export default function OnboardingPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const { toast } = useToast();
-  const [step, setStep] = useState(1);
-  const [nickname, setNickname] = useState('');
-  const [height, setHeight] = useState(175);
-  const [weight, setWeight] = useState(70);
-  const [fit, setFit] = useState('regular');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const checkProfileAndSetDefaults = async () => {
+    const checkProfile = async () => {
       if (authLoading) return;
-      
-      if (!user) {
-        setIsChecking(false);
-        router.push('/login');
-        return;
-      }
-      
+      if (!user) { setIsChecking(false); router.push('/login'); return; }
       try {
-        // Set default nickname from OAuth metadata if available
-        const defaultName = user.user_metadata?.name || user.user_metadata?.full_name || '';
-        if (defaultName) setNickname(defaultName);
-
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (data) {
-          // 이미 프로필이 있으면 홈으로
-          router.push('/');
-          return; // Avoid setting loading to false if we are redirecting
-        }
-      } catch (err) {
-        console.error('Profile check error:', err);
-      } finally {
-        setIsChecking(false);
-      }
+        const { data } = await supabase.from('user_profiles').select('user_id').eq('user_id', user.id).single();
+        if (data) { router.push('/'); return; }
+      } catch {}
+      setIsChecking(false);
     };
-    checkProfileAndSetDefaults();
+    checkProfile();
   }, [user, authLoading, router, supabase]);
-  
+
   const toggleMood = (id: string) => {
-    setSelectedMoods(prev => 
-      prev.includes(id) ? prev.filter(m => m !== id) : 
+    setSelectedMoods(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) :
       prev.length < 3 ? [...prev, id] : prev
     );
   };
 
-  const nextStep = async () => {
-    if (step === 1) {
-      if (!nickname.trim()) {
-        toast('닉네임을 입력해주세요!', 'info');
-        return;
-      }
-      setStep(2);
-    } else {
-      // 온보딩 완료: Supabase에 저장
-      setIsSaving(true);
-      try {
-        if (!user) return;
-        
-        const { error } = await supabase
-          .from('user_profiles')
-          .upsert({
-            user_id: user.id,
-            nickname: nickname.trim(),
-            height,
-            weight,
-            fit_preference: fit,
-            style_moods: selectedMoods,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' });
+  const handleFinish = async () => {
+    if (selectedMoods.length === 0) {
+      toast('스타일을 최소 1개 선택해주세요!', 'info');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      if (!user) return;
+      const nickname =
+        user.user_metadata?.name ||
+        user.user_metadata?.full_name ||
+        user.email?.split('@')[0] ||
+        'OOTD User';
 
-        if (error) throw error;
+      const { error } = await supabase.from('user_profiles').upsert({
+        user_id: user.id,
+        nickname,
+        height: 170,
+        weight: 65,
+        fit_preference: 'regular',
+        style_moods: selectedMoods,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
 
-        // 온보딩 완료 표시
-        localStorage.setItem('ootd_onboarded', 'true');
-        router.push('/');
-      } catch (err: any) {
-        console.error('프로필 저장 실패:', err);
-        toast('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
-      } finally {
-        setIsSaving(false);
-      }
+      if (error) throw error;
+      localStorage.setItem('ootd_onboarded', 'true');
+      router.push('/');
+    } catch (err) {
+      console.error('프로필 저장 실패:', err);
+      toast('저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // 로딩 중
   if (isChecking) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -121,150 +89,81 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 font-sans overflow-hidden flex flex-col justify-between selection:bg-zinc-200">
-      
-      {/* Background */}
+    <div className="min-h-screen bg-white text-zinc-900 font-sans flex flex-col selection:bg-zinc-200">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.03),transparent_50%)] pointer-events-none" />
 
-      {/* Progress */}
-      <div className="px-6 pt-16 relative z-10 flex gap-2 max-w-lg mx-auto w-full">
-        <div className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= 1 ? 'bg-black shadow-[0_0_10px_rgba(0,0,0,0.1)]' : 'bg-zinc-200'}`} />
-        <div className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= 2 ? 'bg-black shadow-[0_0_10px_rgba(0,0,0,0.1)]' : 'bg-zinc-200'}`} />
-      </div>
+      <main className="flex-1 flex flex-col justify-center px-8 pt-20 pb-8 max-w-lg mx-auto w-full relative z-10">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+            <Sparkles className="w-6 h-6 text-black" />
+          </div>
+          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
+            어떤 스타일을<br />추구하나요?
+          </h1>
+          <p className="text-zinc-500 text-sm leading-relaxed mb-10">
+            최대 3개 선택 — AI가 날씨와 옷장에 맞춰<br />
+            매일 딱 맞는 코디를 추천해 드려요.
+          </p>
+        </motion.div>
 
-      <main className="px-8 flex-1 flex flex-col justify-center relative z-10 mt-10 max-w-lg mx-auto w-full">
-        <AnimatePresence mode="wait">
-          
-          {/* STEP 1: Body Profile */}
-          {step === 1 && (
-            <motion.div 
-              key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex flex-col gap-10"
-            >
-              <div>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                  <Ruler className="w-6 h-6 text-black" />
-                </motion.div>
-                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">기본 정보</h1>
-                <p className="text-zinc-500 text-sm leading-relaxed">보다 정확한 핏과 코디 추천을 위해<br/>몇 가지 정보만 알려주세요.</p>
-              </div>
-
-              <div className="space-y-10 pb-8">
-                {/* Nickname */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">닉네임 (Nickname)</span>
+        {/* Mood Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {MOODS.map((mood, idx) => {
+            const isSelected = selectedMoods.includes(mood.id);
+            return (
+              <motion.button
+                key={mood.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.07, duration: 0.4 }}
+                onClick={() => toggleMood(mood.id)}
+                className={`relative p-5 rounded-[1.75rem] text-left transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-black border-2 border-black shadow-[0_8px_24px_rgba(0,0,0,0.18)]'
+                    : 'bg-white border border-zinc-200 shadow-sm hover:bg-zinc-50 active:scale-[0.97]'
+                }`}
+              >
+                {isSelected && (
+                  <div className="absolute top-4 right-4 text-white">
+                    <Check className="w-4 h-4" strokeWidth={3} />
                   </div>
-                  <input 
-                    type="text" 
-                    value={nickname} 
-                    onChange={(e) => setNickname(e.target.value)}
-                    placeholder="사용하실 이름을 입력해주세요"
-                    className="w-full pb-3 text-2xl font-bold bg-transparent border-b-2 border-zinc-200 focus:border-black outline-none transition-colors placeholder:text-zinc-300"
-                  />
-                </div>
+                )}
+                <span className={`block text-[10px] tracking-widest uppercase mb-1.5 font-bold ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>
+                  {mood.desc}
+                </span>
+                <span className={`block font-extrabold text-xl ${isSelected ? 'text-white' : 'text-zinc-800'}`}>
+                  {mood.label}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
 
-                {/* Height */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">키 (Height)</span>
-                    <span className="text-3xl font-black font-serif tracking-tighter text-black">{height}<span className="text-sm font-sans text-zinc-400 italic ml-1">cm</span></span>
-                  </div>
-                  <input 
-                    type="range" min="150" max="200" value={height} onChange={(e) => setHeight(Number(e.target.value))}
-                    className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black"
-                  />
-                </div>
-
-                {/* Weight */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">몸무게 (Weight)</span>
-                    <span className="text-3xl font-black font-serif tracking-tighter text-black">{weight}<span className="text-sm font-sans text-zinc-400 italic ml-1">kg</span></span>
-                  </div>
-                  <input 
-                    type="range" min="40" max="120" value={weight} onChange={(e) => setWeight(Number(e.target.value))}
-                    className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-black"
-                  />
-                </div>
-
-                {/* Preferred Fit */}
-                <div className="space-y-4">
-                  <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block">원하는 옷장 핏감</span>
-                  <div className="flex gap-3">
-                    {['Slim', 'Regular', 'Oversized'].map(f => (
-                      <button 
-                        key={f}
-                        onClick={() => setFit(f.toLowerCase())}
-                        className={`flex-1 py-4.5 rounded-2xl text-[11px] font-bold tracking-widest uppercase transition-all shadow-sm ${fit === f.toLowerCase() ? 'bg-black text-white shadow-[0_4px_15px_rgba(0,0,0,0.2)]' : 'bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50 border-b-2 border-b-zinc-300'}`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 2: Style Mood */}
-          {step === 2 && (
-            <motion.div 
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex flex-col gap-10"
-            >
-              <div>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                  <Sparkles className="w-6 h-6 text-black" />
-                </motion.div>
-                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">스타일 DNA</h1>
-                <p className="text-zinc-500 text-sm leading-relaxed">추구하는 무드를 최대 3개 선택해주세요.<br/>AI 스타일리스트가 큐레이션에 반영합니다.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                {MOODS.map(mood => {
-                  const isSelected = selectedMoods.includes(mood.id);
-                  return (
-                    <button
-                      key={mood.id}
-                      onClick={() => toggleMood(mood.id)}
-                      className={`relative p-5 rounded-[2rem] text-left transition-all overflow-hidden ${isSelected ? 'bg-black border-2 border-black shadow-[0_10px_25px_rgba(0,0,0,0.2)]' : 'bg-white border border-zinc-200 shadow-sm hover:bg-zinc-50 border-b-4 border-b-zinc-200'}`}
-                    >
-                      {isSelected && <div className="absolute top-4 right-4 text-white"><Check className="w-5 h-5 stroke-[3]" /></div>}
-                      <span className={`block text-[10px] tracking-widest uppercase mb-1 font-bold ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>{mood.emoji}</span>
-                      <span className={`block font-extrabold text-xl ${isSelected ? 'text-white' : 'text-zinc-800'}`}>{mood.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <p className="text-center text-[11px] font-bold text-zinc-500 tracking-widest uppercase mt-4">
-                {selectedMoods.length} / 3 Selected
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <p className="text-center text-[11px] font-bold text-zinc-400 tracking-widest uppercase mt-6">
+          {selectedMoods.length} / 3 선택됨
+        </p>
       </main>
 
-      {/* Footer */}
-      <div className="px-6 pb-12 pt-8 relative z-10 bg-gradient-to-t from-white via-white/90 to-transparent max-w-lg mx-auto w-full">
-        <button 
-          onClick={nextStep}
-          disabled={(step === 2 && selectedMoods.length === 0) || isSaving}
-          className="w-full flex items-center justify-center gap-2 py-5 bg-black text-white font-extrabold tracking-[0.2em] text-[11px] uppercase rounded-[1.5rem] disabled:opacity-40 shadow-[0_10px_30px_rgba(0,0,0,0.3)] hover:bg-zinc-800 transition-all active:scale-[0.98]"
+      {/* CTA */}
+      <div className="px-8 pb-12 pt-4 max-w-lg mx-auto w-full relative z-10">
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          onClick={handleFinish}
+          disabled={selectedMoods.length === 0 || isSaving}
+          className="w-full flex items-center justify-center gap-2 py-5 bg-black text-white font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-40 shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:bg-zinc-800 transition-all active:scale-[0.98]"
         >
           {isSaving ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
           ) : (
-            <>{step === 1 ? '다음 단계로' : '완료하고 시작하기'} <ArrowRight className="w-4 h-4" /></>
+            <>시작하기 <ArrowRight className="w-4 h-4" /></>
           )}
-        </button>
+        </motion.button>
+        <p className="text-center text-[10px] text-zinc-300 mt-4">
+          키·몸무게·핏은 나중에 설정에서 수정할 수 있어요
+        </p>
       </div>
     </div>
   );

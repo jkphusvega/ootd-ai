@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, User, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, ImagePlus, Sun, Cloud, CloudSnow, LogOut } from 'lucide-react';
+import { Camera, User, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, ImagePlus, Sun, Cloud, CloudSnow, LogOut, RefreshCw, Shirt } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
@@ -15,6 +15,21 @@ interface FashionCritique {
   weatherAdvice: string;
   fitAndColor: string;
   stylistRecommendation: string;
+}
+
+interface CurationItem {
+  category: string;
+  name: string;
+  image_url: string;
+  reason: string;
+}
+
+interface CurationResult {
+  title: string;
+  description: string;
+  style: string;
+  colorTone: string;
+  items: CurationItem[];
 }
 
 export default function Home() {
@@ -31,6 +46,13 @@ export default function Home() {
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [userProfile, setUserProfile] = useState<{nickname?: string; profile_image?: string; height?: number; weight?: number; fit_preference?: string; style_moods?: string[]} | null>(null);
+
+  // 모바일 탭 상태 (기본: AI 코디 추천)
+  const [mobileTab, setMobileTab] = useState<'curation' | 'analysis'>('curation');
+  const [curation, setCuration] = useState<CurationResult | null>(null);
+  const [isCurating, setIsCurating] = useState(false);
+  const [curationError, setCurationError] = useState<string | null>(null);
+  const [wardrobeCount, setWardrobeCount] = useState(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +97,46 @@ export default function Home() {
     };
     if (!authLoading) checkProfile();
   }, [user, authLoading, router]);
+
+  // 옷장 아이템 수 조회 (AI 코디 탭에서 사용)
+  useEffect(() => {
+    const fetchWardrobeCount = async () => {
+      if (!user) return;
+      const { count } = await supabase
+        .from('clothes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .neq('category', 'ootd_feed');
+      setWardrobeCount(count || 0);
+    };
+    if (!authLoading && user) fetchWardrobeCount();
+  }, [user, authLoading, supabase]);
+
+  // AI 코디 큐레이션 생성
+  const generateCuration = async () => {
+    if (!user) return;
+    setIsCurating(true);
+    setCurationError(null);
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles').select('*').eq('user_id', user.id).single();
+      const res = await fetch('/api/curate-outfit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weatherInfo: weather || { temperature: 20, condition: 'Clear' },
+          userProfile: profile || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) setCuration(data);
+      else setCurationError(data.error || 'AI 큐레이션 오류');
+    } catch {
+      setCurationError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setIsCurating(false);
+    }
+  };
 
   // 이미지 압축: max 1024px + WebP 85% 품질 (페이로드 5MB→3~400KB)
   const compressImage = (file: File, maxDim = 1024, quality = 0.85): Promise<string> => {
@@ -446,154 +508,282 @@ export default function Home() {
         </div>
 
         {/* Top HUD */}
-        <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-start z-20">
-          <button className="w-11 h-11 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0 overflow-hidden">
+        <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-center z-20">
+          <button className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0 overflow-hidden">
             {userProfile?.profile_image || user?.user_metadata?.avatar_url ? (
               <img src={userProfile?.profile_image || user?.user_metadata?.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-5 h-5" />
+              <User className="w-4 h-4" />
             )}
           </button>
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-md border border-black/5 flex items-center gap-2.5 shadow-xl">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-              <span className="text-zinc-900 text-[10px] font-black tracking-[0.2em] uppercase">Today's Selfie</span>
-            </div>
-            {weather && (
-              <div className="px-3 py-1.5 bg-black/5 backdrop-blur-md rounded-full flex items-center gap-1.5 text-zinc-600 shadow-sm border border-zinc-200/50">
-                <MapPin className="w-3 h-3" />
-                <span className="text-[9px] font-bold tracking-[0.1em]">{weather.temperature}°C {weather.condition}</span>
-              </div>
-            )}
+
+          {/* 탭 스위처 */}
+          <div className="flex p-1 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-xl relative">
+            <motion.div
+              className="absolute top-1 bottom-1 rounded-full bg-black shadow-md"
+              initial={false}
+              animate={{ x: mobileTab === 'curation' ? 0 : '100%', width: '50%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            />
+            <button
+              onClick={() => setMobileTab('curation')}
+              className={`relative z-10 px-4 py-2 text-[10px] font-black tracking-widest uppercase rounded-full transition-colors ${mobileTab === 'curation' ? 'text-white' : 'text-zinc-500'}`}
+            >
+              AI 코디
+            </button>
+            <button
+              onClick={() => setMobileTab('analysis')}
+              className={`relative z-10 px-4 py-2 text-[10px] font-black tracking-widest uppercase rounded-full transition-colors ${mobileTab === 'analysis' ? 'text-white' : 'text-zinc-500'}`}
+            >
+              OOTD 분석
+            </button>
           </div>
-          <button onClick={handleLogout} className="w-11 h-11 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-red-500 shadow-xl hover:bg-red-50 transition shrink-0">
-            <LogOut className="w-5 h-5 ml-1" />
+
+          <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-red-400 shadow-xl hover:bg-red-50 transition shrink-0">
+            <LogOut className="w-4 h-4" />
           </button>
         </header>
 
-        {/* Idle Prompt */}
-        <AnimatePresence>
-          {scanState === 'idle' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-x-12 top-[25%] bottom-[30%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex items-center justify-center drop-shadow-md">
-              <div className="px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-zinc-800 text-[10px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg">
-                <ScanLine className="w-4 h-4" /> 카메라 버튼을 눌러 OOTD를 촬영하세요
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ── TAB: AI 코디 추천 ── */}
+        <AnimatePresence mode="wait">
+          {mobileTab === 'curation' && (
+            <motion.div key="curation-tab"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 flex flex-col pt-32 pb-28 px-6 overflow-y-auto [&::-webkit-scrollbar]:hidden">
 
-        {/* Scanning Overlay */}
-        <AnimatePresence>
-          {scanState === 'scanning' && (
-            <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 pointer-events-none">
-              <motion.div initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 bg-white" />
-              <motion.div initial={{ top: '15%' }} animate={{ top: '85%' }} transition={{ duration: 1.4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                className="absolute left-6 right-6 h-[1.5px] bg-black shadow-[0_0_20px_rgba(0,0,0,0.5)] z-20">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-16 bg-black/10 blur-[20px] rounded-full" />
-              </motion.div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
-                  className="px-6 py-4 bg-white/95 backdrop-blur-xl rounded-full border border-zinc-200 text-black font-extrabold tracking-widest text-[11px] uppercase shadow-xl flex items-center gap-3">
-                  <Sparkles className="w-4 h-4" /> 에디터 모델 분석 중...
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {/* 날씨 칩 */}
+              {weather && (
+                <div className="flex justify-center mb-6">
+                  <div className="px-4 py-2 bg-white/80 backdrop-blur-md border border-black/5 rounded-full flex items-center gap-2 shadow-md">
+                    <MapPin className="w-3 h-3 text-zinc-400" />
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-500">{weather.temperature}°C {weather.condition.toUpperCase()}</span>
+                  </div>
+                </div>
+              )}
 
-        {/* Mobile Result Bottom Sheet */}
-        <AnimatePresence>
-          {scanState === 'success' && critique && (
-            <motion.div key="success" initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[75vh]">
-              <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
-              <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 [&::-webkit-scrollbar]:hidden">
-                <div className="flex justify-between items-start mb-6">
+              {/* 옷장 없을 때 */}
+              {wardrobeCount === 0 && !isCurating && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
+                  <div className="w-16 h-16 bg-white/80 border border-zinc-200 rounded-3xl flex items-center justify-center shadow-md">
+                    <Shirt className="w-7 h-7 text-zinc-300" />
+                  </div>
                   <div>
-                    <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Review</span>
-                    <h2 className="text-2xl font-black tracking-tight text-black leading-snug break-keep pr-4 text-balance">"{critique.summary}"</h2>
+                    <p className="text-base font-extrabold text-zinc-700 mb-1">옷장이 비어 있어요</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed">옷을 등록하면 AI가 매일 코디를 골라드려요</p>
                   </div>
-                  <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle cx="32" cy="32" r="28" fill="none" stroke="#f4f4f5" strokeWidth="4" />
-                      <motion.circle cx="32" cy="32" r="28" fill="none" stroke="#18181b" strokeWidth="4"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: critique.score / 100 }} transition={{ duration: 1.5, ease: "easeOut" }} strokeDasharray="175" />
-                    </svg>
-                    <span className="text-xl font-black">{critique.score}</span>
-                  </div>
+                  <Link href="/add-clothes">
+                    <button className="mt-2 px-6 py-3 bg-black text-white text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-lg active:scale-95 transition">
+                      옷 등록하러 가기
+                    </button>
+                  </Link>
                 </div>
-                <div className="space-y-4">
-                  <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Weather Context</h3></div>
-                    <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.weatherAdvice}</p>
+              )}
+
+              {/* 큐레이션 시작 전 */}
+              {wardrobeCount > 0 && !curation && !isCurating && !curationError && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center gap-5">
+                  <div className="w-20 h-20 bg-white/80 border border-zinc-200 rounded-3xl flex items-center justify-center shadow-lg">
+                    <Sparkles className="w-9 h-9 text-zinc-300" />
                   </div>
-                  <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 mb-1"><ScanLine className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Fit & Color</h3></div>
-                    <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.fitAndColor}</p>
+                  <div>
+                    <p className="text-xl font-extrabold text-zinc-800 mb-2">오늘 뭐 입지?</p>
+                    <p className="text-sm text-zinc-400 leading-relaxed">
+                      옷장 <span className="font-bold text-zinc-600">{wardrobeCount}개</span> + 오늘 날씨로<br />AI가 최적의 코디를 골라드려요
+                    </p>
                   </div>
-                  <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
-                    <div className="flex items-center gap-2 mb-1"><Star className="w-4 h-4 text-yellow-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3></div>
-                    <p className="text-[13px] text-white leading-relaxed font-medium">{critique.stylistRecommendation}</p>
-                  </div>
-                </div>
-                <div className="mt-8 flex flex-col gap-3">
-                  <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
+                  <button
+                    onClick={generateCuration}
+                    className="px-8 py-4 bg-black text-white text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-xl active:scale-95 transition flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" /> AI 코디 추천받기
                   </button>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => setScanState('idle')} className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">다시입기</button>
-                      <Link href="/wardrobe" className="block"><button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">옷장 가기</button></Link>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Link href="/curation" className="block">
-                        <button className="w-full h-full py-4 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1">
-                          <Sparkles className="w-3.5 h-3.5" /> 코디 추천
-                        </button>
-                      </Link>
-                      <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
-                        className="w-full py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
-                        AI 추출 <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                </div>
+              )}
+
+              {/* 로딩 */}
+              {isCurating && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                    className="w-10 h-10 border-2 border-zinc-200 border-t-zinc-900 rounded-full" />
+                  <p className="text-sm font-bold text-zinc-500">AI 스타일리스트가 고민 중...</p>
+                </div>
+              )}
+
+              {/* 에러 */}
+              {curationError && !isCurating && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center">
+                  <p className="text-sm text-red-500 font-bold">{curationError}</p>
+                  <button onClick={generateCuration}
+                    className="px-6 py-3 bg-zinc-900 text-white text-[11px] font-extrabold tracking-widest uppercase rounded-xl active:scale-95 transition">
+                    다시 시도
+                  </button>
+                </div>
+              )}
+
+              {/* 큐레이션 결과 */}
+              {curation && !isCurating && (
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
+                  <div className="bg-white/90 backdrop-blur rounded-2xl border border-zinc-200 p-5 shadow-md">
+                    <h2 className="text-lg font-extrabold text-zinc-900 mb-1">{curation.title}</h2>
+                    <p className="text-xs text-zinc-500 leading-relaxed mb-3">{curation.description}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-3 py-1.5 bg-zinc-100 rounded-full text-zinc-600">{curation.style}</span>
+                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-3 py-1.5 bg-zinc-100 rounded-full text-zinc-600">{curation.colorTone}</span>
                     </div>
                   </div>
-                </div>
-              </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {curation.items.map((item, idx) => (
+                      <motion.div key={idx}
+                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}
+                        className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+                        <div className="aspect-square bg-zinc-50 flex items-center justify-center p-3">
+                          <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain"
+                            style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
+                        </div>
+                        <div className="p-3">
+                          <span className="text-[8px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-0.5">{item.category}</span>
+                          <p className="text-xs font-bold text-zinc-800 line-clamp-1">{item.name}</p>
+                          <p className="text-[10px] text-zinc-400 leading-relaxed line-clamp-2 mt-1">{item.reason}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <button onClick={generateCuration} disabled={isCurating}
+                    className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5" /> 다른 코디 추천받기
+                  </button>
+                </motion.div>
+              )}
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* Mobile Bottom Dock */}
-        <AnimatePresence>
-          {scanState !== 'success' && (
-            <>
-              <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-white via-white/80 to-transparent z-30 pointer-events-none" />
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center gap-6 z-40">
-                {/* Gallery Button */}
-                <button onClick={triggerGallery} className="w-14 h-14 bg-white/80 backdrop-blur-xl border border-black/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition active:scale-95">
-                  <ImagePlus className="w-6 h-6 text-zinc-700" strokeWidth={1.5} />
-                </button>
+          {/* ── TAB: OOTD 분석 ── */}
+          {mobileTab === 'analysis' && (
+            <motion.div key="analysis-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
 
-                {/* Shutter Button */}
-                <div className="relative flex items-center justify-center cursor-pointer" onClick={triggerCamera}>
-                  <svg className="absolute w-[96px] h-[96px] -rotate-90 pointer-events-none">
-                    <circle cx="48" cy="48" r="45" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
-                    <motion.circle cx="48" cy="48" r="45" fill="none" stroke="#000000" strokeWidth="4"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: scanState === 'scanning' ? 1 : 0 }}
-                      transition={{ duration: 2.8, ease: "linear" }} strokeDasharray="283" />
-                  </svg>
-                  <div className="w-[72px] h-[72px] bg-black rounded-full flex flex-col items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.2)] border-2 border-black/10 transition-all hover:scale-105 active:scale-95">
-                    <Camera className="w-8 h-8 text-white opacity-90" strokeWidth={1.5} />
-                  </div>
-                </div>
+              {/* Idle Prompt */}
+              <AnimatePresence>
+                {scanState === 'idle' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-x-12 top-[25%] bottom-[30%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex items-center justify-center drop-shadow-md">
+                    <div className="px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-zinc-800 text-[10px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg">
+                      <ScanLine className="w-4 h-4" /> 카메라 버튼을 눌러 OOTD를 촬영하세요
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                {/* Placeholder for center alignment */}
-                <div className="w-14 h-14" />
-              </motion.div>
-            </>
+              {/* Scanning Overlay */}
+              <AnimatePresence>
+                {scanState === 'scanning' && (
+                  <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 pointer-events-none">
+                    <motion.div initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 bg-white" />
+                    <motion.div initial={{ top: '15%' }} animate={{ top: '85%' }} transition={{ duration: 1.4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                      className="absolute left-6 right-6 h-[1.5px] bg-black shadow-[0_0_20px_rgba(0,0,0,0.5)] z-20">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-16 bg-black/10 blur-[20px] rounded-full" />
+                    </motion.div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
+                        className="px-6 py-4 bg-white/95 backdrop-blur-xl rounded-full border border-zinc-200 text-black font-extrabold tracking-widest text-[11px] uppercase shadow-xl flex items-center gap-3">
+                        <Sparkles className="w-4 h-4" /> 에디터 모델 분석 중...
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Mobile Result Bottom Sheet */}
+              <AnimatePresence>
+                {scanState === 'success' && critique && (
+                  <motion.div key="success" initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[75vh]">
+                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
+                    <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 [&::-webkit-scrollbar]:hidden">
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Review</span>
+                          <h2 className="text-2xl font-black tracking-tight text-black leading-snug break-keep pr-4 text-balance">"{critique.summary}"</h2>
+                        </div>
+                        <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                          <svg className="absolute inset-0 w-full h-full -rotate-90">
+                            <circle cx="32" cy="32" r="28" fill="none" stroke="#f4f4f5" strokeWidth="4" />
+                            <motion.circle cx="32" cy="32" r="28" fill="none" stroke="#18181b" strokeWidth="4"
+                              initial={{ pathLength: 0 }} animate={{ pathLength: critique.score / 100 }} transition={{ duration: 1.5, ease: "easeOut" }} strokeDasharray="175" />
+                          </svg>
+                          <span className="text-xl font-black">{critique.score}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
+                          <div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Weather Context</h3></div>
+                          <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.weatherAdvice}</p>
+                        </div>
+                        <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
+                          <div className="flex items-center gap-2 mb-1"><ScanLine className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Fit & Color</h3></div>
+                          <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.fitAndColor}</p>
+                        </div>
+                        <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
+                          <div className="flex items-center gap-2 mb-1"><Star className="w-4 h-4 text-yellow-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3></div>
+                          <p className="text-[13px] text-white leading-relaxed font-medium">{critique.stylistRecommendation}</p>
+                        </div>
+                      </div>
+                      <div className="mt-8 flex flex-col gap-3">
+                        <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                          <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
+                        </button>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => setScanState('idle')} className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">다시입기</button>
+                            <Link href="/wardrobe" className="block"><button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">옷장 가기</button></Link>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => setMobileTab('curation')}
+                              className="w-full h-full py-4 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5" /> 코디 추천
+                            </button>
+                            <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
+                              className="w-full py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
+                              AI 추출 <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Mobile Bottom Dock */}
+              <AnimatePresence>
+                {scanState !== 'success' && (
+                  <>
+                    <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-white via-white/80 to-transparent z-30 pointer-events-none" />
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                      className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center gap-6 z-40">
+                      <button onClick={triggerGallery} className="w-14 h-14 bg-white/80 backdrop-blur-xl border border-black/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition active:scale-95">
+                        <ImagePlus className="w-6 h-6 text-zinc-700" strokeWidth={1.5} />
+                      </button>
+                      <div className="relative flex items-center justify-center cursor-pointer" onClick={triggerCamera}>
+                        <svg className="absolute w-[96px] h-[96px] -rotate-90 pointer-events-none">
+                          <circle cx="48" cy="48" r="45" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
+                          <motion.circle cx="48" cy="48" r="45" fill="none" stroke="#000000" strokeWidth="4"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: scanState === 'scanning' ? 1 : 0 }}
+                            transition={{ duration: 2.8, ease: "linear" }} strokeDasharray="283" />
+                        </svg>
+                        <div className="w-[72px] h-[72px] bg-black rounded-full flex flex-col items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.2)] border-2 border-black/10 transition-all hover:scale-105 active:scale-95">
+                          <Camera className="w-8 h-8 text-white opacity-90" strokeWidth={1.5} />
+                        </div>
+                      </div>
+                      <div className="w-14 h-14" />
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
