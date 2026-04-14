@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navigation from "../components/Navigation";
+import ClientMain from "../components/ClientMain";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { ToastProvider } from "../components/ToastProvider";
 
@@ -53,9 +54,9 @@ export default function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <Navigation />
-            <main className="lg:ml-[220px] pb-20 lg:pb-0 flex-1">
+            <ClientMain>
               {children}
-            </main>
+            </ClientMain>
           </ToastProvider>
         </ThemeProvider>
       </body>

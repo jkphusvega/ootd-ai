@@ -90,7 +90,7 @@ export default function LandingImpact() {
               </motion.button>
             </Link>
             <span className="flex items-center justify-center text-xs text-white/25 font-medium">
-              가입 30초 · 신용카드 불필요
+              스타일리스트 비용 0원
             </span>
           </div>
         </motion.div>
