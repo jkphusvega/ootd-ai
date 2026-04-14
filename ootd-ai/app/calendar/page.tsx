@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Sun, Cloud, CloudRain, CloudSnow, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 
 interface JournalEntry {
@@ -21,6 +21,7 @@ const MONTHS_KR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월
 
 export default function CalendarPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -94,13 +95,13 @@ export default function CalendarPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0c0c0f] font-sans pb-28 lg:pb-8">
       <div className="max-w-2xl mx-auto px-4 pt-14 lg:pt-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-black">착장 캘린더</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">착장 캘린더</h1>
             <p className="text-[10px] text-zinc-400 tracking-widest uppercase mt-1">OOTD Calendar</p>
           </div>
           <button onClick={goToday}
@@ -110,7 +111,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Month Navigator */}
-        <div className="flex items-center justify-between bg-white rounded-2xl border border-zinc-200 p-4 mb-4 shadow-sm">
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 mb-4 shadow-sm">
           <button onClick={prevMonth} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center hover:bg-zinc-200 transition active:scale-95">
             <ChevronLeft className="w-5 h-5 text-zinc-600" />
           </button>
@@ -129,7 +130,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="bg-white rounded-3xl border border-zinc-200 p-3 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-3 shadow-sm">
           {/* Day Headers */}
           <div className="grid grid-cols-7 mb-2">
             {DAYS_KR.map((day, i) => (
@@ -180,7 +181,7 @@ export default function CalendarPage() {
                       </>
                     ) : (
                       <div className={`w-full h-full flex items-center justify-center ${
-                        todayMark ? 'bg-black' : 'bg-zinc-50'
+                        todayMark ? 'bg-black' : 'bg-zinc-50 dark:bg-zinc-800'
                       }`}>
                         <span className={`text-sm font-bold ${
                           todayMark ? 'text-white' :
@@ -222,7 +223,7 @@ export default function CalendarPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed z-50 inset-4 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[420px] lg:max-h-[80vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+              className="fixed z-50 inset-4 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[420px] lg:max-h-[80vh] bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             >
               {/* Image */}
               <div className="relative aspect-[3/4] max-h-[50vh] overflow-hidden shrink-0">

@@ -41,7 +41,7 @@ export default function Navigation() {
   return (
     <>
       {/* ============ DESKTOP: Left Sidebar (lg 이상) ============ */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/80 backdrop-blur-xl border-r border-zinc-200/80 flex-col z-50">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-r border-zinc-200/80 dark:border-zinc-800/80 flex-col z-50">
         {/* Logo */}
         <div className="px-6 pt-8 pb-3">
           <Link href="/" className="flex flex-col items-start gap-1">
@@ -63,8 +63,8 @@ export default function Navigation() {
                 <div
                   className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive
-                      ? 'bg-zinc-900 text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)]'
-                      : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'
+                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-black shadow-[0_4px_12px_rgba(0,0,0,0.15)]'
+                      : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200'
                   }`}
                 >
                   <Icon className={`w-[18px] h-[18px] transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
@@ -93,7 +93,7 @@ export default function Navigation() {
         {/* Gradient fade */}
         <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
         
-        <div className="bg-white/85 backdrop-blur-2xl border-t border-zinc-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+        <div className="bg-white/85 dark:bg-zinc-950/85 backdrop-blur-2xl border-t border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-around px-1 pt-2 pb-[max(env(safe-area-inset-bottom,6px),6px)]">
             {MOBILE_NAV.map((item) => {
               const isActive = pathname === item.href;
@@ -102,17 +102,17 @@ export default function Navigation() {
                 <Link key={item.href} href={item.href} className="flex-1">
                   <div className="flex flex-col items-center gap-0.5 py-1">
                     <div className={`p-1.5 rounded-xl transition-all duration-300 ${
-                      isActive 
-                        ? 'bg-black shadow-[0_2px_10px_rgba(0,0,0,0.12)]' 
+                      isActive
+                        ? 'bg-black dark:bg-white shadow-[0_2px_10px_rgba(0,0,0,0.12)]'
                         : ''
                     }`}>
                       <Icon
-                        className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-white' : 'text-zinc-400'}`}
+                        className={`w-5 h-5 transition-all duration-200 ${isActive ? 'text-white dark:text-black' : 'text-zinc-400'}`}
                         strokeWidth={isActive ? 2.2 : 1.8}
                       />
                     </div>
                     <span className={`text-[9px] tracking-wider transition-colors duration-200 ${
-                      isActive ? 'text-black font-extrabold' : 'text-zinc-400 font-medium'
+                      isActive ? 'text-black dark:text-white font-extrabold' : 'text-zinc-400 font-medium'
                     }`}>
                       {item.label}
                     </span>

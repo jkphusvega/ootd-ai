@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Sparkles, RefreshCw, Loader2, Tag, MapPin, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useWeather } from '../../hooks/useWeather';
 import { useToast } from '../../components/ToastProvider';
@@ -23,6 +23,7 @@ interface ShoppingResult {
 
 export default function ShoppingPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [result, setResult] = useState<ShoppingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,7 +96,7 @@ export default function ShoppingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0c0c0f] font-sans pb-28 lg:pb-8">
       <div className="max-w-2xl mx-auto px-5 pt-14 lg:pt-8">
 
         {/* Header */}
@@ -166,10 +167,10 @@ export default function ShoppingPage() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="bg-white rounded-3xl border border-zinc-200 p-5 shadow-sm hover:shadow-md transition-shadow"
+                    className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center text-2xl shrink-0">
+                      <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-2xl shrink-0">
                         {getCategoryEmoji(item.category)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -178,7 +179,7 @@ export default function ShoppingPage() {
                             {item.category}
                           </span>
                         </div>
-                        <h3 className="font-bold text-base text-black mb-2 break-keep">{item.name}</h3>
+                        <h3 className="font-bold text-base text-black dark:text-white mb-2 break-keep">{item.name}</h3>
                         <p className="text-[12px] text-zinc-500 leading-relaxed mb-3">{item.reason}</p>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -198,7 +199,7 @@ export default function ShoppingPage() {
                           </a>
                         </div>
 
-                        <div className="flex items-start gap-1.5 mt-3 px-3 py-2 bg-zinc-50 rounded-xl">
+                        <div className="flex items-start gap-1.5 mt-3 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
                           <MapPin className="w-3 h-3 text-zinc-400 mt-0.5 shrink-0" />
                           <p className="text-[10px] text-zinc-500 leading-relaxed">{item.brandTip}</p>
                         </div>

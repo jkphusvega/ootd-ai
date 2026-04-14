@@ -109,14 +109,14 @@ export default function StatsPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm">
+              <div key={i} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
                 <div className="w-8 h-8 bg-zinc-100 rounded-xl animate-pulse mb-3" />
                 <div className="w-16 h-7 bg-zinc-200 rounded-lg animate-pulse" />
                 <div className="w-24 h-3 bg-zinc-100 rounded-full animate-pulse mt-2" />
               </div>
             ))}
           </div>
-          <div className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
             <div className="w-32 h-3 bg-zinc-100 rounded-full animate-pulse mb-5" />
             {[1,2,3,4,5].map(i => (
               <div key={i} className="flex items-center gap-3 mb-4">
@@ -139,13 +139,13 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0c0c0f] font-sans pb-28 lg:pb-8">
       <div className="max-w-2xl mx-auto px-5 pt-14 lg:pt-8">
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-extrabold tracking-tight text-black">스타일 통계</h1>
-          <p className="text-[10px] text-zinc-400 tracking-widest uppercase mt-1">Style Analytics</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">스타일 통계</h1>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-600 tracking-widest uppercase mt-1">Style Analytics</p>
         </div>
 
         {/* Overview Cards */}
@@ -158,7 +158,7 @@ export default function StatsPage() {
           ].map((card, idx) => (
             <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm">
+              className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
               <div className={`w-8 h-8 ${card.color} rounded-xl flex items-center justify-center mb-3`}>
                 <card.icon className="w-4 h-4 text-white" />
               </div>
@@ -170,13 +170,13 @@ export default function StatsPage() {
 
         {/* Category Breakdown */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
-          <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400 mb-5">카테고리별 아이템 수</h2>
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
+          <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400 dark:text-zinc-500 mb-5">카테고리별 아이템 수</h2>
           <div className="space-y-4">
             {categoryStats.map((cat) => (
               <div key={cat.category} className="flex items-center gap-3">
-                <span className="text-xs font-bold text-zinc-600 w-16 shrink-0">{cat.label}</span>
-                <div className="flex-1 bg-zinc-100 rounded-full h-6 overflow-hidden">
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400 w-16 shrink-0">{cat.label}</span>
+                <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-6 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${(cat.count / maxCount) * 100}%` }}
@@ -193,8 +193,8 @@ export default function StatsPage() {
 
         {/* Weekly Activity */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
-          <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400 mb-5">주간 착장 빈도 (최근 12주)</h2>
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
+          <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400 dark:text-zinc-500 mb-5">주간 착장 빈도 (최근 12주)</h2>
           <div className="flex items-end gap-1.5 h-32">
             {weeklyData.map((count, idx) => (
               <motion.div key={idx} className="flex-1 flex flex-col items-center gap-1"
@@ -216,8 +216,8 @@ export default function StatsPage() {
 
         {/* Weather Distribution */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
-          <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400 mb-5">날씨별 착장 기록</h2>
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
+          <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400 dark:text-zinc-500 mb-5">날씨별 착장 기록</h2>
           <div className="grid grid-cols-4 gap-3">
             {weatherStats.map((w) => (
               <div key={w.condition} className="text-center">

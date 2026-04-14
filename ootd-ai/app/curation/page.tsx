@@ -94,7 +94,7 @@ export default function CurationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans selection:bg-zinc-200 flex flex-col pb-20 lg:pb-0">
+    <div className="min-h-screen bg-[#f8f9fa] dark:bg-[#0c0c0f] text-zinc-900 dark:text-white font-sans selection:bg-zinc-200 flex flex-col pb-20 lg:pb-0">
       <div className="absolute inset-0 bg-gradient-to-b from-white via-[#f8f9fa] to-zinc-100 z-0 pointer-events-none dark:hidden" />
 
       {/* Header */}
@@ -192,9 +192,9 @@ export default function CurationPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1, duration: 0.4 }}
-                      className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all"
+                      className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all"
                     >
-                      <div className="aspect-square overflow-hidden bg-zinc-50 flex items-center justify-center p-3">
+                      <div className="aspect-square overflow-hidden bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center p-3">
                         <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110" draggable={false}
                           style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
                       </div>
@@ -221,7 +221,7 @@ export default function CurationPage() {
 
                 {/* Info Panel */}
                 <div className="flex flex-col gap-5">
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm">
+                  <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
                     <h2 className="text-2xl font-black tracking-tight mb-3">{curation.title}</h2>
                     <p className="text-sm text-zinc-600 leading-relaxed mb-5">{curation.description}</p>
                     <div className="flex gap-3 flex-wrap">

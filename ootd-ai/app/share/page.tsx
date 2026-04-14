@@ -109,7 +109,7 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0c0c0f] font-sans pb-28 lg:pb-8">
       <div className="max-w-lg mx-auto px-6 pt-14 lg:pt-8">
 
         {/* Header */}
@@ -120,7 +120,7 @@ export default function SharePage() {
 
         {/* Preview Grid */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-5 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-5 mb-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400">내 옷장 미리보기</span>
             <span className="text-[10px] font-bold text-zinc-400">{wardrobeCount}개 아이템</span>
@@ -141,7 +141,7 @@ export default function SharePage() {
 
         {/* Share Toggle */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
 
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ export default function SharePage() {
               className="border-t border-zinc-100 pt-5">
               <p className="text-[10px] font-bold text-zinc-400 tracking-widest uppercase mb-3">공유 링크</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-zinc-100 rounded-xl px-4 py-3 text-xs text-zinc-600 font-mono truncate border border-zinc-200">
+                <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate border border-zinc-200 dark:border-zinc-700">
                   {shareUrl}
                 </div>
                 <button onClick={copyLink}

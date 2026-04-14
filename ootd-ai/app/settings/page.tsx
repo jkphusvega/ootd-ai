@@ -194,7 +194,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0c0c0f] font-sans pb-28 lg:pb-8">
       <div className="max-w-lg mx-auto px-6 pt-14 lg:pt-8">
 
         {/* Header */}
@@ -205,7 +205,7 @@ export default function SettingsPage() {
 
         {/* Profile Section */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
           
           <div className="flex items-center gap-2 mb-6">
             <User className="w-4 h-4 text-zinc-400" />
@@ -213,7 +213,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Avatar + Email */}
-          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-100">
+          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-100 dark:border-zinc-800">
             <div className="w-14 h-14 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200 flex items-center justify-center shrink-0">
               {user?.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -222,7 +222,7 @@ export default function SettingsPage() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-zinc-800 truncate">{user?.email}</p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate">{user?.email}</p>
               <p className="text-[10px] text-zinc-400 tracking-wider uppercase mt-0.5">Google Account</p>
             </div>
           </div>
@@ -234,14 +234,14 @@ export default function SettingsPage() {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full pb-2 text-lg font-bold bg-transparent border-b-2 border-zinc-200 focus:border-black outline-none transition-colors"
+              className="w-full pb-2 text-lg font-bold bg-transparent border-b-2 border-zinc-200 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none transition-colors dark:text-white"
             />
           </div>
         </motion.section>
 
         {/* Body Info */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
           
           <div className="flex items-center gap-2 mb-6">
             <Ruler className="w-4 h-4 text-zinc-400" />
@@ -292,7 +292,7 @@ export default function SettingsPage() {
 
         {/* Style Mood */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
           
           <div className="flex items-center gap-2 mb-6">
             <Sparkles className="w-4 h-4 text-zinc-400" />
@@ -318,7 +318,7 @@ export default function SettingsPage() {
 
         {/* Push Notifications */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
@@ -327,7 +327,7 @@ export default function SettingsPage() {
                 {pushState === 'subscribed' ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
               </div>
               <div>
-                <p className="font-bold text-sm text-zinc-800">코디 추천 알림 (PWA)</p>
+                <p className="font-bold text-sm text-zinc-800 dark:text-zinc-200">코디 추천 알림 (PWA)</p>
                 <p className="text-[10px] text-zinc-400">매일 앱에서 스마트 코디 알림 받기</p>
               </div>
             </div>
@@ -356,7 +356,7 @@ export default function SettingsPage() {
 
         {/* Share Wardrobe */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
@@ -365,7 +365,7 @@ export default function SettingsPage() {
                 <Share2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-sm text-zinc-800">옷장 공유</p>
+                <p className="font-bold text-sm text-zinc-800 dark:text-zinc-200">옷장 공유</p>
                 <p className="text-[10px] text-zinc-400">선택한 옷장 아이템을 친구와 공유</p>
               </div>
             </div>
@@ -397,7 +397,7 @@ export default function SettingsPage() {
 
         {/* Dark Mode */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -411,7 +411,7 @@ export default function SettingsPage() {
                 )}
               </div>
               <div>
-                <p className="font-bold text-sm text-zinc-800">다크 모드</p>
+                <p className="font-bold text-sm text-zinc-800 dark:text-zinc-200">다크 모드</p>
                 <p className="text-[10px] text-zinc-400">{theme === 'dark' ? '어두운 테마 사용 중' : '밝은 테마 사용 중'}</p>
               </div>
             </div>

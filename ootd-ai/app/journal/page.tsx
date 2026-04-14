@@ -126,15 +126,15 @@ export default function JournalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFC] text-zinc-900 font-sans selection:bg-zinc-200 pb-28 lg:pb-8">
+    <div className="min-h-screen bg-[#FDFDFC] dark:bg-[#0c0c0f] text-zinc-900 dark:text-white font-sans selection:bg-zinc-200 pb-28 lg:pb-8">
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleFileUpload} />
 
       {/* Header */}
-      <header className="px-6 pt-14 lg:pt-8 pb-4 sticky top-0 bg-[#FDFDFC]/90 backdrop-blur-xl z-30">
+      <header className="px-6 pt-14 lg:pt-8 pb-4 sticky top-0 bg-[#FDFDFC]/90 dark:bg-[#0c0c0f]/90 backdrop-blur-xl z-30 border-b border-transparent dark:border-zinc-800/50">
         <div className="max-w-5xl mx-auto flex justify-between items-end mb-2">
           <div>
-            <h1 className="text-3xl font-serif italic text-zinc-800 tracking-tight">OOTD Journal</h1>
+            <h1 className="text-3xl font-serif italic text-zinc-800 dark:text-white tracking-tight">OOTD Journal</h1>
             <p className="text-[10px] text-zinc-400 tracking-[0.2em] uppercase mt-2 font-medium">
               {entries.length > 0 ? `${entries.length} ENTRIES` : 'Start Logging'}
             </p>
@@ -229,7 +229,7 @@ export default function JournalPage() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               onClick={() => setIsModalOpen(true)}
-              className="aspect-[3/4] border border-dashed border-zinc-200 rounded-[1.5rem] flex flex-col items-center justify-center gap-3 text-zinc-400 hover:text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50/50 transition-all cursor-pointer"
+              className="aspect-[3/4] border border-dashed border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] flex flex-col items-center justify-center gap-3 text-zinc-400 hover:text-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-all cursor-pointer"
             >
               <Calendar className="w-8 h-8 opacity-50" strokeWidth={1.5} />
               <p className="text-xs font-semibold tracking-widest uppercase">Add Today's Outfit</p>
@@ -259,7 +259,7 @@ export default function JournalPage() {
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 z-50 w-full bg-white rounded-t-[2.5rem] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.05)] border-t border-zinc-100 flex flex-col items-center min-h-[35vh] lg:max-w-lg lg:left-1/2 lg:-translate-x-1/2 lg:rounded-2xl lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2"
+              className="fixed bottom-0 left-0 right-0 z-50 w-full bg-white dark:bg-zinc-900 rounded-t-[2.5rem] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.05)] border-t border-zinc-100 dark:border-zinc-800 flex flex-col items-center min-h-[35vh] lg:max-w-lg lg:left-1/2 lg:-translate-x-1/2 lg:rounded-2xl lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2"
             >
               <div className="w-12 h-1 bg-zinc-200 rounded-full mb-8 lg:hidden" />
 

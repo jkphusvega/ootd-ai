@@ -1,11 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { removeBackground } from '@imgly/background-removal';
 import { Sparkles, UploadCloud, Home, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
 
@@ -44,6 +44,7 @@ const STRATEGIES: ExtractionStrategy[] = [
 
 export default function UnifiedSandboxPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const { toast } = useToast();
 
