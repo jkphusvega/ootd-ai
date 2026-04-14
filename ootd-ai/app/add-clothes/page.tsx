@@ -69,6 +69,7 @@ export default function UnifiedSandboxPage() {
     });
   };
 
+  // 크롭 후 리사이즈하여 배경 제거 부담을 줄이는 함수
   const getSegmentedBlob = (imgSrc: string, xmin: number, ymin: number, xmax: number, ymax: number): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -79,19 +80,29 @@ export default function UnifiedSandboxPage() {
         const pxW = (xmax - xmin) * img.width;
         const pxH = (ymax - ymin) * img.height;
 
-        const paddingX = pxW * 0.05; // 5% horizontal padding - tight to minimize skin/hands
-        const paddingY = pxH * 0.05; // 5% vertical padding - tight to prevent overlap
+        const paddingX = pxW * 0.08;
+        const paddingY = pxH * 0.08;
         const finalX = Math.max(0, pxX - paddingX);
         const finalY = Math.max(0, pxY - paddingY);
         const finalW = Math.min(img.width - finalX, pxW + paddingX * 2);
         const finalH = Math.min(img.height - finalY, pxH + paddingY * 2);
 
+        // 크롭한 이미지를 최대 512px로 리사이즈 → 배경 제거 속도/안정성 향상
+        const MAX_CROP_DIM = 512;
+        let outW = finalW;
+        let outH = finalH;
+        if (outW > outH) {
+          if (outW > MAX_CROP_DIM) { outH *= MAX_CROP_DIM / outW; outW = MAX_CROP_DIM; }
+        } else {
+          if (outH > MAX_CROP_DIM) { outW *= MAX_CROP_DIM / outH; outH = MAX_CROP_DIM; }
+        }
+
         const canvas = document.createElement('canvas');
-        canvas.width = finalW;
-        canvas.height = finalH;
+        canvas.width = outW;
+        canvas.height = outH;
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject('No Canvas Ctx');
-        ctx.drawImage(img, finalX, finalY, finalW, finalH, 0, 0, finalW, finalH);
+        ctx.drawImage(img, finalX, finalY, finalW, finalH, 0, 0, outW, outH);
         canvas.toBlob((b) => { if (b) resolve(b); else reject("blob failed"); }, 'image/png');
       };
       img.onerror = reject;
@@ -99,21 +110,36 @@ export default function UnifiedSandboxPage() {
     });
   };
 
+  // 배경 제거 with 재시도 (최대 2회)
+  const removeBackgroundWithRetry = async (blob: Blob, maxRetries = 2): Promise<Blob> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await removeBackground(blob);
+      } catch (e) {
+        console.warn(`배경 제거 시도 ${attempt}/${maxRetries} 실패:`, e);
+        if (attempt === maxRetries) throw e;
+        // 재시도 전 잠깐 대기 (메모리 해제 유도)
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+    throw new Error('배경 제거 최대 재시도 초과');
+  };
+
   // ---------- PIPELINES ----------
   const handleSingleExtract = async () => {
     if (!originalImage) return;
     setIsProcessing(true);
-    setProgressMsg('단일 객체의 배경을 정밀하게 지우는 중...');
+    setProgressMsg('배경을 정밀하게 제거 중... (30초~1분 소요)');
 
     try {
-      const blob = await removeBackground(originalImage);
+      const blob = await removeBackgroundWithRetry(await (await fetch(originalImage)).blob());
       const base64data = await blobToBase64(blob);
       setResultImage(base64data);
       setProgressMsg('');
       setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
     } catch (e: unknown) {
       console.error(e);
-      toast('추출 실패!', 'error');
+      toast('배경 제거에 실패했습니다. 다른 사진으로 다시 시도해주세요.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -126,7 +152,7 @@ export default function UnifiedSandboxPage() {
     
     setPipelineMode('auto');
     setIsProcessing(true);
-    setProgressMsg('Gemini AI가 정면을 분석하여 자동 크롭 중...');
+    setProgressMsg('Gemini AI가 옷 위치를 분석하는 중...');
     setResultImages([]);
     setResultImage(null);
 
@@ -141,43 +167,62 @@ export default function UnifiedSandboxPage() {
       if (!data.items || data.items.length === 0) throw new Error('AI가 뚜렷한 옷 조각을 찾지 못했습니다.');
 
       const newResults: ExtractedItem[] = [];
+      const failedItems: string[] = [];
       const total = data.items.length;
       
       for (let i = 0; i < total; i++) {
         const item = data.items[i];
-        setProgressMsg(`[${item.category}] 부위 누끼 따는 중... (${i+1}/${total})`);
+        setProgressMsg(`[${item.category}] 누끼 따는 중... (${i+1}/${total})`);
         
-        // 카테고리별 X 너비 차별화: 상의는 넓게, 하의는 좁게, 신발은 더 좁게
-        let xmin = 0.05;
-        let xmax = 0.95;
-        const cat = item.category.toLowerCase();
-        if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
-        else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
-        
-        // Gemini의 좌표를 최대한 존중하되, 얼굴 포함만 최소한으로 방지
-        let ymin = item.y_start;
-        let ymax = item.y_end;
-        if (cat.includes('top') || cat.includes('outer')) {
-          ymin = Math.max(ymin, 0.12); // 얼굴 포함 최소 방지 (넉넉하게)
-        } else if (cat.includes('bottom')) {
-          ymin = Math.max(ymin, 0.35); // 하의 최소 시작점
-        } else if (cat.includes('shoe')) {
-          ymin = Math.max(ymin, 0.80); // 신발 최소 시작점
+        try {
+          // 카테고리별 X 너비 차별화
+          let xmin = 0.05;
+          let xmax = 0.95;
+          const cat = item.category.toLowerCase();
+          if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
+          else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
+          
+          // Gemini 좌표를 최대한 존중, 얼굴 포함만 최소 방지
+          let ymin = item.y_start;
+          let ymax = item.y_end;
+          if (cat.includes('top') || cat.includes('outer')) {
+            ymin = Math.max(ymin, 0.12);
+          } else if (cat.includes('bottom')) {
+            ymin = Math.max(ymin, 0.35);
+          } else if (cat.includes('shoe')) {
+            ymin = Math.max(ymin, 0.80);
+          }
+          
+          const croppedBlob = await getSegmentedBlob(targetOriginal, xmin, ymin, xmax, ymax);
+          const imglyBlob = await removeBackgroundWithRetry(croppedBlob);
+          const base64data = await blobToBase64(imglyBlob);
+          
+          newResults.push({
+            id: Math.random().toString(),
+            category: cat.includes('top') ? 'tops' : cat.includes('bot') ? 'bottoms' : cat.includes('out') ? 'outer' : cat.includes('shoe') ? 'shoes' : 'outer',
+            image: base64data
+          });
+
+          // 성공하면 즉시 UI에 반영 (부분 결과 표시)
+          setResultImages([...newResults]);
+        } catch (itemError) {
+          console.error(`[${item.category}] 추출 실패:`, itemError);
+          failedItems.push(item.category);
+          // 한 아이템이 실패해도 나머지 계속 진행!
         }
-        
-        const croppedBlob = await getSegmentedBlob(targetOriginal, xmin, ymin, xmax, ymax);
-        const imglyBlob = await removeBackground(croppedBlob);
-        const base64data = await blobToBase64(imglyBlob);
-        
-        newResults.push({
-          id: Math.random().toString(),
-          category: item.category.toLowerCase().includes('top') ? 'tops' : item.category.toLowerCase().includes('bot') ? 'bottoms' : item.category.toLowerCase().includes('out') ? 'outer' : item.category.toLowerCase().includes('shoe') ? 'shoes' : 'outer',
-          image: base64data
-        });
+      }
+
+      if (newResults.length === 0) {
+        throw new Error('모든 옷 조각의 배경 제거에 실패했습니다. 다른 사진으로 시도해주세요.');
       }
 
       setResultImages(newResults);
       setProgressMsg('');
+      
+      if (failedItems.length > 0) {
+        toast(`${failedItems.join(', ')} 항목은 추출에 실패했습니다.\n성공한 ${newResults.length}개만 표시합니다.`, 'error');
+      }
+      
       setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
 
     } catch (e: unknown) {
