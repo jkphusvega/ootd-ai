@@ -33,6 +33,7 @@ export default function Home() {
   const [userProfile, setUserProfile] = useState<{nickname?: string; profile_image?: string; height?: number; weight?: number; fit_preference?: string; style_moods?: string[]} | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const desktopFileInputRef = useRef<HTMLInputElement>(null);
 
   // Splash Screen
@@ -151,6 +152,7 @@ export default function Home() {
   }, [weather, userProfile]);
 
   const triggerCamera = () => { fileInputRef.current?.click(); };
+  const triggerGallery = () => { galleryInputRef.current?.click(); };
   const triggerDesktopUpload = () => { desktopFileInputRef.current?.click(); };
 
   const handleSaveToFeed = async () => {
@@ -217,6 +219,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen w-full bg-white font-sans selection:bg-zinc-200">
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+      <input type="file" accept="image/*" className="hidden" ref={galleryInputRef} onChange={handleFileChange} />
       <input type="file" accept="image/*" className="hidden" ref={desktopFileInputRef} onChange={handleFileChange} />
 
       {/* ============ SPLASH SCREEN ============ */}
@@ -562,7 +565,12 @@ export default function Home() {
             <>
               <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-white via-white/80 to-transparent z-30 pointer-events-none" />
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center z-40">
+                className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center gap-6 z-40">
+                {/* Gallery Button */}
+                <button onClick={triggerGallery} className="w-14 h-14 bg-white/80 backdrop-blur-xl border border-black/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition active:scale-95">
+                  <ImagePlus className="w-6 h-6 text-zinc-700" strokeWidth={1.5} />
+                </button>
+
                 {/* Shutter Button */}
                 <div className="relative flex items-center justify-center cursor-pointer" onClick={triggerCamera}>
                   <svg className="absolute w-[96px] h-[96px] -rotate-90 pointer-events-none">
@@ -575,6 +583,9 @@ export default function Home() {
                     <Camera className="w-8 h-8 text-white opacity-90" strokeWidth={1.5} />
                   </div>
                 </div>
+
+                {/* Placeholder for center alignment */}
+                <div className="w-14 h-14" />
               </motion.div>
             </>
           )}
