@@ -1,7 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 
-const NO_SIDEBAR_PATHS = ['/landing-minimal', '/landing-impact'];
+const NO_SIDEBAR_PATHS = ['/landing-minimal', '/landing-impact', '/shared'];
 
 export default function ClientMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun, Trash2, AlertTriangle, Bell, BellOff, Share2, Copy } from 'lucide-react';
+import { usePushNotification } from '../../hooks/usePushNotification';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '../../lib/supabase/client';
@@ -32,8 +33,11 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [shareId, setShareId] = useState('');
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const { state: pushState, subscribe: subscribePush, unsubscribe: unsubscribePush } = usePushNotification(user?.id);
 
   // 비로그인 차단
   useEffect(() => {
@@ -61,6 +65,8 @@ export default function SettingsPage() {
           setWeight(data.weight || 70);
           setFit(data.fit_preference || 'regular');
           setSelectedMoods(data.style_moods || []);
+          setIsPublic(data.is_public || false);
+          setShareId(data.share_id || '');
         }
       } catch (err) {
         console.error('Fetch profile error:', err);
@@ -142,6 +148,41 @@ export default function SettingsPage() {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
+  };
+
+  const handleTogglePublic = async () => {
+    if (!user) return;
+    const newIsPublic = !isPublic;
+    
+    // Generate shareId if it doesn't exist AND we are turning it on
+    let newShareId = shareId;
+    if (newIsPublic && !shareId) {
+      newShareId = Math.random().toString(36).substring(2, 10);
+      setShareId(newShareId);
+    }
+    
+    setIsPublic(newIsPublic);
+    
+    try {
+      await supabase.from('user_profiles').upsert({
+        user_id: user.id,
+        is_public: newIsPublic,
+        ...(newShareId && { share_id: newShareId }),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+      
+      if (newIsPublic) toast('옷장이 공개되었습니다.', 'success');
+      else toast('옷장이 비공개로 전환되었습니다.', 'success');
+    } catch {
+      setIsPublic(!newIsPublic);
+      toast('오류가 발생했습니다.', 'error');
+    }
+  };
+
+  const copyShareLink = () => {
+    const link = `${window.location.origin}/shared/${shareId}`;
+    navigator.clipboard.writeText(link);
+    toast('링크가 복사되었습니다.', 'success');
   };
 
   if (isLoading) {
@@ -275,8 +316,87 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* Dark Mode */}
+        {/* Push Notifications */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                pushState === 'subscribed' ? 'bg-indigo-100 text-indigo-600' : 'bg-zinc-100 text-zinc-400'
+              }`}>
+                {pushState === 'subscribed' ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+              </div>
+              <div>
+                <p className="font-bold text-sm text-zinc-800">코디 추천 알림 (PWA)</p>
+                <p className="text-[10px] text-zinc-400">매일 앱에서 스마트 코디 알림 받기</p>
+              </div>
+            </div>
+            
+            {pushState === 'loading' ? (
+              <Loader2 className="w-5 h-5 animate-spin text-zinc-300" />
+            ) : pushState === 'unsupported' ? (
+              <span className="text-[10px] text-zinc-400 bg-zinc-100 px-2 py-1 rounded">미지원 OS</span>
+            ) : pushState === 'denied' ? (
+              <span className="text-[10px] text-red-400 bg-red-50 px-2 py-1 rounded">OS 알림 설정 확인</span>
+            ) : (
+              <button 
+                onClick={pushState === 'subscribed' ? unsubscribePush : subscribePush}
+                className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
+                  pushState === 'subscribed' ? 'bg-indigo-600' : 'bg-zinc-300'
+                }`}>
+                <motion.div
+                  className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-md"
+                  animate={{ left: pushState === 'subscribed' ? '30px' : '4px' }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              </button>
+            )}
+          </div>
+        </motion.section>
+
+        {/* Share Wardrobe */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                isPublic ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'
+              }`}>
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-zinc-800">옷장 공유</p>
+                <p className="text-[10px] text-zinc-400">선택한 옷장 아이템을 친구와 공유</p>
+              </div>
+            </div>
+            <button onClick={handleTogglePublic}
+              className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
+                isPublic ? 'bg-emerald-500' : 'bg-zinc-300'
+              }`}>
+              <motion.div
+                className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-md"
+                animate={{ left: isPublic ? '30px' : '4px' }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            </button>
+          </div>
+          
+          {isPublic && shareId && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="pt-2">
+              <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+                <span className="text-[10px] font-mono text-zinc-500 truncate mr-2">
+                  {window.location.origin}/shared/{shareId}
+                </span>
+                <button onClick={copyShareLink} className="p-2 bg-white rounded flex items-center shrink-0 shadow-sm border border-zinc-200 hover:bg-zinc-50">
+                  <Copy className="w-3.5 h-3.5 text-zinc-600" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </motion.section>
+
+        {/* Dark Mode */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
           
           <div className="flex items-center justify-between">
