@@ -526,25 +526,25 @@ export default function Home() {
           </button>
 
           {/* 탭 스위처 */}
-          <div className="flex p-1 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-xl relative">
-            <motion.div
-              className="absolute top-1 bottom-1 rounded-full bg-black shadow-md"
-              initial={false}
-              animate={{ x: mobileTab === 'curation' ? 0 : '100%', width: '50%' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            />
-            <button
-              onClick={() => setMobileTab('curation')}
-              className={`relative z-10 px-4 py-2 text-[10px] font-black tracking-widest uppercase rounded-full transition-colors ${mobileTab === 'curation' ? 'text-white' : 'text-zinc-500'}`}
-            >
-              AI 코디
-            </button>
-            <button
-              onClick={() => setMobileTab('analysis')}
-              className={`relative z-10 px-4 py-2 text-[10px] font-black tracking-widest uppercase rounded-full transition-colors ${mobileTab === 'analysis' ? 'text-white' : 'text-zinc-500'}`}
-            >
-              OOTD 분석
-            </button>
+          <div className="flex p-1 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-xl">
+            {(['curation', 'analysis'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                className="relative flex-1 px-4 py-2 text-[10px] font-black tracking-widest uppercase rounded-full text-center"
+              >
+                {mobileTab === tab && (
+                  <motion.div
+                    layoutId="mobileTabIndicator"
+                    className="absolute inset-0 bg-black rounded-full shadow-md"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className={`relative z-10 ${mobileTab === tab ? 'text-white' : 'text-zinc-500'}`}>
+                  {tab === 'curation' ? 'AI 코디' : 'OOTD 분석'}
+                </span>
+              </button>
+            ))}
           </div>
 
           <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-red-400 shadow-xl hover:bg-red-50 transition shrink-0">
