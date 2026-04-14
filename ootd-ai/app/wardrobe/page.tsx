@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Sparkles, Home, Plus, Trash2, X, Loader2 } from 'lucide-react';
+import { Home, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,6 +11,7 @@ interface ClothItem {
   image: string;
   name: string;
   categoryId?: string;
+  createdAt?: string;
 }
 
 interface CategoryInfo {
@@ -27,6 +28,8 @@ const WARDROBE_DATA: CategoryInfo[] = [
   { id: 'socks', title: 'SOCKS / ETC', items: [] }
 ];
 
+const ITEMS_PER_CATEGORY = 8;
+
 export default function GalleryPage() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'wardrobe' | 'memories'>('wardrobe');
@@ -34,14 +37,23 @@ export default function GalleryPage() {
   const [localItems, setLocalItems] = useState<ClothItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (catId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId); else next.add(catId);
+      return next;
+    });
+  };
 
   const fetchClothes = async () => {
     if (!user) return;
     setIsLoading(true);
-    const { data, error } = await supabase.from('clothes').select('id, image_url, name, category').eq('user_id', user.id).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('clothes').select('id, image_url, name, category, created_at').eq('user_id', user.id).order('created_at', { ascending: false });
     if (data && !error) {
-      const mapped = data.map((row: { id: string; image_url: string; name: string; category: string }) => ({
-        id: row.id, image: row.image_url, name: row.name, categoryId: row.category
+      const mapped = data.map((row: { id: string; image_url: string; name: string; category: string; created_at: string }) => ({
+        id: row.id, image: row.image_url, name: row.name, categoryId: row.category, createdAt: row.created_at
       }));
       setLocalItems(mapped);
     }
@@ -53,6 +65,39 @@ export default function GalleryPage() {
       fetchClothes();
     }
   }, [user, authLoading]);
+
+  // Loading Skeleton
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#dcc4a3] pb-28 lg:pb-8">
+        <div className="fixed inset-0 pointer-events-none bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center opacity-60 mix-blend-multiply z-0" />
+        <div className="relative z-10 pt-20 max-w-6xl mx-auto px-6">
+          {/* Skeleton Header */}
+          <div className="flex justify-between items-center mb-10">
+            <div className="w-40 h-8 bg-white/20 rounded-xl animate-pulse" />
+            <div className="w-10 h-10 bg-white/20 rounded-full animate-pulse" />
+          </div>
+          {/* Skeleton Categories */}
+          {[1, 2, 3].map(i => (
+            <div key={i} className="mb-14">
+              <div className="flex justify-between items-end mb-6">
+                <div className="w-32 h-10 bg-white/15 rounded-xl animate-pulse" />
+                <div className="w-20 h-5 bg-white/10 rounded-full animate-pulse" />
+              </div>
+              <div className="flex gap-5 lg:grid lg:grid-cols-5">
+                {[1, 2, 3, 4].map(j => (
+                  <div key={j} className="shrink-0 w-[140px] lg:w-auto">
+                    <div className="w-[140px] lg:w-full aspect-square bg-white/15 rounded-2xl animate-pulse" />
+                    <div className="mt-3 w-20 h-3 bg-white/10 rounded-full animate-pulse mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const handleDelete = async (id: string) => {
     const item = localItems.find(i => i.id === id);
@@ -167,35 +212,65 @@ export default function GalleryPage() {
                     <div className="absolute top-[16px] z-0 left-0 right-0 mx-6 h-[4px] bg-gradient-to-r from-stone-700 via-stone-500 to-stone-700 shadow-[0_5px_5px_rgba(0,0,0,0.5)] rounded-full" />
                     
                     {/* ── MOBILE: Horizontal Scroll ── */}
-                    <div className="lg:hidden flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none' }}>
-                      {category.items.map((item) => (
-                        <MobileClothCard key={item.id} item={item} editMode={editMode}
-                          pendingDeleteId={pendingDeleteId}
-                          onRequestDelete={setPendingDeleteId}
-                          onConfirmDelete={handleDelete}
-                          onCancelDelete={() => setPendingDeleteId(null)} />
-                      ))}
-                      <AddNewCard />
-                    </div>
-
-                    {/* ── DESKTOP: Grid Layout ── */}
-                    <div className="hidden lg:grid grid-cols-4 xl:grid-cols-5 gap-6 px-6 pt-8 pb-6 relative z-10">
-                      {category.items.map((item) => (
-                        <DesktopClothCard key={item.id} item={item} editMode={editMode}
-                          pendingDeleteId={pendingDeleteId}
-                          onRequestDelete={setPendingDeleteId}
-                          onConfirmDelete={handleDelete}
-                          onCancelDelete={() => setPendingDeleteId(null)} />
-                      ))}
-                      <Link href="/add-clothes">
-                        <div className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
-                          <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
-                            <Plus className="w-6 h-6 text-white/50" />
+                    {(() => {
+                      const isExpanded = expandedCategories.has(category.id);
+                      const visibleItems = isExpanded ? category.items : category.items.slice(0, ITEMS_PER_CATEGORY);
+                      const hasMore = category.items.length > ITEMS_PER_CATEGORY;
+                      return (
+                        <>
+                          <div className="lg:hidden flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none' }}>
+                            {visibleItems.map((item) => (
+                              <MobileClothCard key={item.id} item={item} editMode={editMode}
+                                pendingDeleteId={pendingDeleteId}
+                                onRequestDelete={setPendingDeleteId}
+                                onConfirmDelete={handleDelete}
+                                onCancelDelete={() => setPendingDeleteId(null)} />
+                            ))}
+                            {hasMore && (
+                              <div className="snap-center shrink-0 w-[100px] h-[160px] mt-[20px] flex flex-col items-center justify-center cursor-pointer group" onClick={() => toggleCategory(category.id)}>
+                                <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition shadow-sm">
+                                  <span className="text-white/60 text-lg font-black">{isExpanded ? '−' : '+'}</span>
+                                </div>
+                                <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase mt-3 text-center">
+                                  {isExpanded ? '접기' : `+${category.items.length - ITEMS_PER_CATEGORY}개`}
+                                </span>
+                              </div>
+                            )}
+                            <AddNewCard />
                           </div>
-                          <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">ADD NEW</span>
-                        </div>
-                      </Link>
-                    </div>
+
+                          {/* ── DESKTOP: Grid Layout ── */}
+                          <div className="hidden lg:grid grid-cols-4 xl:grid-cols-5 gap-6 px-6 pt-8 pb-6 relative z-10">
+                            {visibleItems.map((item) => (
+                              <DesktopClothCard key={item.id} item={item} editMode={editMode}
+                                pendingDeleteId={pendingDeleteId}
+                                onRequestDelete={setPendingDeleteId}
+                                onConfirmDelete={handleDelete}
+                                onCancelDelete={() => setPendingDeleteId(null)} />
+                            ))}
+                            <Link href="/add-clothes">
+                              <div className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
+                                <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
+                                  <Plus className="w-6 h-6 text-white/50" />
+                                </div>
+                                <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">ADD NEW</span>
+                              </div>
+                            </Link>
+                            {hasMore && (
+                              <button onClick={() => toggleCategory(category.id)}
+                                className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
+                                <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
+                                  <span className="text-white/60 text-xl font-black">{isExpanded ? '−' : '+'}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">
+                                  {isExpanded ? '접기' : `${category.items.length - ITEMS_PER_CATEGORY}개 더보기`}
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </section>
               ))}
@@ -210,7 +285,7 @@ export default function GalleryPage() {
               {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => (
                 <div key={memory.id} className="bg-white rounded-[2rem] overflow-hidden border border-stone-200 shadow-[0_15px_40px_rgba(0,0,0,0.1)] relative group">
                   <div className="aspect-[4/5] overflow-hidden relative">
-                    <img src={memory.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
+                    <img src={memory.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
                     {pendingDeleteId === memory.id ? (
                       <div className="absolute top-4 right-4 z-20 flex gap-1">
                         <button onClick={() => handleDelete(memory.id)} className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg hover:bg-red-600 transition">삭제</button>
@@ -223,7 +298,14 @@ export default function GalleryPage() {
                     )}
                   </div>
                   <div className="p-5 pb-6 relative z-10 bg-[#fdfdfd] border-t border-stone-100 flex flex-col gap-3">
-                    <p className="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-bold">OOTD AI Insight</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-bold">OOTD AI Insight</p>
+                      {memory.createdAt && (
+                        <p className="text-stone-300 text-[9px] font-medium">
+                          {new Date(memory.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
                     <div className="text-[13px] font-extrabold text-stone-800 leading-relaxed font-sans break-keep drop-shadow-sm">
                        "{memory.name.split(':')[1] ? memory.name.split(':')[1].trim() : memory.name}"
                     </div>
@@ -295,7 +377,7 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
           </svg>
         </div>
         <div className="w-[140px] h-[160px] relative flex items-center justify-center">
-          <img src={item.image} alt={item.name} className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
+          <img src={item.image} alt={item.name} loading="lazy" className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
         </div>
         <div className="mt-5 px-3 py-1.5 bg-white/90 backdrop-blur border border-stone-200 rounded-lg shadow-md">
           <p className="text-[9px] font-black tracking-widest text-stone-800 uppercase text-center">{item.name}</p>
@@ -335,7 +417,7 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
         </div>
       )}
       <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:bg-white/20 group-hover:shadow-xl group-hover:-translate-y-1">
-        <img src={item.image} alt={item.name} className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
+        <img src={item.image} alt={item.name} loading="lazy" className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
       </div>
       <div className="mt-3 text-center">
         <p className="text-[10px] font-black tracking-widest text-white/80 uppercase">{item.name}</p>

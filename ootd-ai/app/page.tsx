@@ -212,8 +212,13 @@ export default function Home() {
     return `좋은 저녁이에요${nameStr} 🌆`;
   };
 
-  if (!authLoading && !showSplash && !user) {
-    return <div className="min-h-screen bg-white" />;
+  if (authLoading || (!showSplash && !user)) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-100 animate-pulse" />
+        <div className="w-32 h-3 bg-zinc-100 rounded-full animate-pulse" />
+      </div>
+    );
   }
 
   return (

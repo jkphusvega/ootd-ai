@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Shirt, TrendingUp, Palette, Loader2 } from 'lucide-react';
+import { BarChart3, Shirt, TrendingUp, Palette } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -100,8 +100,39 @@ export default function StatsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
+      <div className="min-h-screen bg-[#FAFAFA] font-sans pb-28 lg:pb-8">
+        <div className="max-w-2xl mx-auto px-5 pt-14 lg:pt-8">
+          <div className="mb-8">
+            <div className="w-32 h-7 bg-zinc-200 rounded-lg animate-pulse" />
+            <div className="w-20 h-3 bg-zinc-100 rounded-full animate-pulse mt-2" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm">
+                <div className="w-8 h-8 bg-zinc-100 rounded-xl animate-pulse mb-3" />
+                <div className="w-16 h-7 bg-zinc-200 rounded-lg animate-pulse" />
+                <div className="w-24 h-3 bg-zinc-100 rounded-full animate-pulse mt-2" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-3xl border border-zinc-200 p-6 mb-6 shadow-sm">
+            <div className="w-32 h-3 bg-zinc-100 rounded-full animate-pulse mb-5" />
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex items-center gap-3 mb-4">
+                <div className="w-16 h-4 bg-zinc-100 rounded-full animate-pulse" />
+                <div className="flex-1 h-6 bg-zinc-100 rounded-full animate-pulse" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-3xl border border-zinc-200 p-6 shadow-sm">
+            <div className="w-40 h-3 bg-zinc-100 rounded-full animate-pulse mb-5" />
+            <div className="flex items-end gap-1.5 h-32">
+              {Array.from({length: 12}).map((_, i) => (
+                <div key={i} className="flex-1 bg-zinc-100 rounded-md animate-pulse" style={{ height: `${20 + Math.random() * 60}%` }} />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

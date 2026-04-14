@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Rate Limiting
-  const { allowed, remaining, limit } = await checkRateLimit(user.id, 'analyze-ootd');
+  const { allowed, limit } = await checkRateLimit(user.id, 'analyze-ootd');
   if (!allowed) {
     return NextResponse.json(
       { error: `일일 분석 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
@@ -75,11 +75,26 @@ Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and profe
 
     const result = await model.generateContent([prompt, imagePart]);
     const responseText = result.response.text();
-    
+
     const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
     const parsedData = JSON.parse(jsonMatch[0]);
+
+    // 분석 이력 자동 저장 (journal_entries) — stats 페이지 점수 추적에 사용
+    try {
+      await supabase.from('journal_entries').insert({
+        user_id: user.id,
+        score: parsedData.score ?? null,
+        weather_condition: weatherInfo?.condition ?? 'Clear',
+        temperature: String(weatherInfo?.temperature ?? ''),
+        memo: parsedData.summary ?? '',
+        tags: [],
+        image_url: '',
+      });
+    } catch {
+      // 비핵심 기능: 저장 실패해도 분석 결과는 정상 반환
+    }
 
     return NextResponse.json(parsedData);
   } catch (error: unknown) {
