@@ -1,10 +1,9 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sun, Calendar, Sparkles, Image as ImageIcon, Camera, X, Check, Cloud, CloudRain, CloudSnow, Loader2, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Sun, Calendar, Image as ImageIcon, Camera, X, Check, Cloud, CloudRain, CloudSnow, Loader2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useWeather } from '../../hooks/useWeather';
 import { useToast } from '../../components/ToastProvider';
@@ -22,6 +21,7 @@ interface JournalEntry {
 
 export default function JournalPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const weather = useWeather();
   const { toast } = useToast();

@@ -71,7 +71,7 @@ export default function OnboardingPage() {
 
       if (error) throw error;
       localStorage.setItem('ootd_onboarded', 'true');
-      router.push('/');
+      router.push('/add-clothes');
     } catch (err) {
       console.error('프로필 저장 실패:', err);
       toast('저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');

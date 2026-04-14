@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Shirt, TrendingUp, Palette } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 
 interface ClothItem {
@@ -22,6 +22,7 @@ interface JournalEntry {
 
 export default function StatsPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [clothes, setClothes] = useState<ClothItem[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -49,10 +50,10 @@ export default function StatsPage() {
   }, [user, authLoading]);
 
   // 카테고리별 아이템 수
-  const categoryStats = ['outer', 'tops', 'bottoms', 'shoes', 'socks'].map(cat => ({
+  const categoryStats = ['outer', 'top', 'bottom', 'shoes', 'bag', 'accessory'].map(cat => ({
     category: cat,
     count: clothes.filter(c => c.category === cat).length,
-    label: cat === 'outer' ? '아우터' : cat === 'tops' ? '상의' : cat === 'bottoms' ? '하의' : cat === 'shoes' ? '신발' : '양말/기타',
+    label: cat === 'outer' ? '아우터' : cat === 'top' ? '상의' : cat === 'bottom' ? '하의' : cat === 'shoes' ? '신발' : cat === 'bag' ? '가방' : '액세서리',
   }));
   const maxCount = Math.max(...categoryStats.map(c => c.count), 1);
 

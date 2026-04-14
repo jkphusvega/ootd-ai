@@ -22,7 +22,7 @@ const MOBILE_NAV = [
   { href: '/', label: '홈', icon: Home },
   { href: '/wardrobe', label: '옷장', icon: Shirt },
   { href: '/curation', label: '코디', icon: Sparkles },
-  { href: '/calendar', label: '캘린더', icon: CalendarDays },
+  { href: '/journal', label: '저널', icon: BookOpen },
   { href: '/settings', label: '설정', icon: Settings },
 ];
 

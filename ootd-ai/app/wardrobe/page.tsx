@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
-import { supabase } from '../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 
 interface ClothItem {
@@ -22,22 +23,29 @@ interface CategoryInfo {
 
 const WARDROBE_DATA: CategoryInfo[] = [
   { id: 'outer', title: 'OUTER', items: [] },
-  { id: 'tops', title: 'TOPS', items: [] },
-  { id: 'bottoms', title: 'BOTTOMS', items: [] },
+  { id: 'top', title: 'TOPS', items: [] },
+  { id: 'bottom', title: 'BOTTOMS', items: [] },
   { id: 'shoes', title: 'SHOES', items: [] },
-  { id: 'socks', title: 'SOCKS / ETC', items: [] }
+  { id: 'bag', title: 'BAGS', items: [] },
+  { id: 'accessory', title: 'ACCESSORIES', items: [] },
 ];
 
 const ITEMS_PER_CATEGORY = 8;
 
 export default function GalleryPage() {
   const { user, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'wardrobe' | 'memories'>('wardrobe');
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<ClothItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!authLoading && !user) router.push('/login');
+  }, [authLoading, user, router]);
 
   const toggleCategory = (catId: string) => {
     setExpandedCategories(prev => {
