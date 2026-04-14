@@ -94,7 +94,7 @@ export default function CurationPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans selection:bg-zinc-200 flex flex-col pb-20 lg:pb-0">
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-[#f8f9fa] to-zinc-100 z-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-[#f8f9fa] to-zinc-100 z-0 pointer-events-none dark:hidden" />
 
       {/* Header */}
       <header className="relative z-10 pt-12 lg:pt-8 pb-6 px-8 max-w-6xl mx-auto w-full">

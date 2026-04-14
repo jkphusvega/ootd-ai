@@ -6,7 +6,7 @@
 }
 
 html.dark {
-  --background: #1a1a1e;
+  --background: #1c1d23;
   --foreground: #e4e4e7;
   color-scheme: dark;
 }
@@ -32,7 +32,7 @@ body {
 
 /* ── Global ── */
 html.dark body {
-  background-color: #1a1a1e !important;
+  background-color: #1c1d23 !important;
   color: #e4e4e7 !important;
 }
 
@@ -44,7 +44,7 @@ html.dark [class*="bg-[#F9F9F9]"],
 html.dark [class*="bg-white"]:not(button):not(section):not(article),
 html.dark main,
 html.dark .min-h-screen {
-  background-color: #1a1a1e !important;
+  background-color: #1c1d23 !important;
 }
 
 /* ── Card & Section Backgrounds ── */
@@ -52,17 +52,17 @@ html.dark section[class*="bg-white"],
 html.dark article[class*="bg-white"],
 html.dark div[class*="bg-white"]:not(main):not(.min-h-screen),
 html.dark [class*="bg-zinc-50"] {
-  background-color: #242428 !important;
+  background-color: #252830 !important;
 }
 
 html.dark [class*="bg-zinc-100"] {
-  background-color: #2e2e33 !important;
+  background-color: #2e3038 !important;
 }
 
 /* ── Headers ── */
 html.dark header[class*="bg-[#FDFDFC]"],
 html.dark header[class*="bg-white"] {
-  background-color: #1a1a1e !important;
+  background-color: #1c1d23 !important;
 }
 
 /* ── Text - Brighter for Dark Mode ── */
@@ -105,14 +105,30 @@ html.dark [class*="border-zinc-100"] {
 /* ── Specific Overrides ── */
 html.dark [class*="bg-white/90"],
 html.dark [class*="bg-white/80"] {
-  background-color: rgba(26, 26, 30, 0.9) !important;
+  background-color: rgba(28, 29, 35, 0.9) !important;
+}
+
+/* ── Gradient overlays: hide light-mode decorative gradients ── */
+html.dark .bg-gradient-to-b {
+  background: transparent !important;
+}
+
+/* ── Sidebar & Navigation ── */
+html.dark aside {
+  background-color: #1c1d23 !important;
+  border-color: #2e3038 !important;
+}
+
+/* ── Sidebar logo: force invert to white ── */
+html.dark aside img {
+  filter: invert(1) !important;
 }
 
 /* ── Buttons ── */
 html.dark button[class*="bg-zinc-900"],
 html.dark button[class*="bg-black"] {
   background-color: #ffffff !important;
-  color: #1a1a1e !important;
+  color: #1c1d23 !important;
 }
 
 /* ============ END DARK MODE ============ */
@@ -140,6 +156,6 @@ html.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
   background-size: 200% 100%;
 }
 html.dark .skeleton {
-  background: linear-gradient(90deg, #2a2a2f 25%, #3a3a40 50%, #2a2a2f 75%);
+  background: linear-gradient(90deg, #2a2b34 25%, #383a46 50%, #2a2b34 75%);
   background-size: 200% 100%;
 }
