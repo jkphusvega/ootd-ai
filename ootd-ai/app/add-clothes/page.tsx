@@ -15,6 +15,15 @@ interface ExtractedItem {
   image: string; // base64
 }
 
+interface FailedItem {
+  id: string;
+  category: string;
+  y_start: number;
+  y_end: number;
+  errorMsg: string;
+  retrying?: boolean;
+}
+
 export default function UnifiedSandboxPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -32,6 +41,7 @@ export default function UnifiedSandboxPage() {
   
   const [resultImage, setResultImage] = useState<string | null>(null); // For single
   const [resultImages, setResultImages] = useState<ExtractedItem[]>([]); // For auto
+  const [failedItems, setFailedItems] = useState<FailedItem[]>([]); // 실패한 아이템
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressMsg, setProgressMsg] = useState('');
@@ -154,6 +164,7 @@ export default function UnifiedSandboxPage() {
     setIsProcessing(true);
     setProgressMsg('Gemini AI가 옷 위치를 분석하는 중...');
     setResultImages([]);
+    setFailedItems([]);
     setResultImage(null);
 
     try {
@@ -167,7 +178,7 @@ export default function UnifiedSandboxPage() {
       if (!data.items || data.items.length === 0) throw new Error('AI가 뚜렷한 옷 조각을 찾지 못했습니다.');
 
       const newResults: ExtractedItem[] = [];
-      const failedItems: string[] = [];
+      const newFailed: FailedItem[] = [];
       const total = data.items.length;
       
       for (let i = 0; i < total; i++) {
@@ -175,54 +186,30 @@ export default function UnifiedSandboxPage() {
         setProgressMsg(`[${item.category}] 누끼 따는 중... (${i+1}/${total})`);
         
         try {
-          // 카테고리별 X 너비 차별화
-          let xmin = 0.05;
-          let xmax = 0.95;
-          const cat = item.category.toLowerCase();
-          if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
-          else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
-          
-          // Gemini 좌표를 최대한 존중, 얼굴 포함만 최소 방지
-          let ymin = item.y_start;
-          let ymax = item.y_end;
-          if (cat.includes('top') || cat.includes('outer')) {
-            ymin = Math.max(ymin, 0.12);
-          } else if (cat.includes('bottom')) {
-            ymin = Math.max(ymin, 0.35);
-          } else if (cat.includes('shoe')) {
-            ymin = Math.max(ymin, 0.80);
-          }
-          
-          const croppedBlob = await getSegmentedBlob(targetOriginal, xmin, ymin, xmax, ymax);
-          const imglyBlob = await removeBackgroundWithRetry(croppedBlob);
-          const base64data = await blobToBase64(imglyBlob);
-          
-          newResults.push({
-            id: Math.random().toString(),
-            category: cat.includes('top') ? 'tops' : cat.includes('bot') ? 'bottoms' : cat.includes('out') ? 'outer' : cat.includes('shoe') ? 'shoes' : 'outer',
-            image: base64data
-          });
-
-          // 성공하면 즉시 UI에 반영 (부분 결과 표시)
+          const result = await extractSingleItem(targetOriginal, item.category, item.y_start, item.y_end);
+          newResults.push(result);
           setResultImages([...newResults]);
         } catch (itemError) {
           console.error(`[${item.category}] 추출 실패:`, itemError);
-          failedItems.push(item.category);
-          // 한 아이템이 실패해도 나머지 계속 진행!
+          const errMsg = itemError instanceof Error ? itemError.message : '알 수 없는 오류';
+          newFailed.push({
+            id: Math.random().toString(),
+            category: item.category,
+            y_start: item.y_start,
+            y_end: item.y_end,
+            errorMsg: errMsg
+          });
+          setFailedItems([...newFailed]);
         }
       }
 
-      if (newResults.length === 0) {
-        throw new Error('모든 옷 조각의 배경 제거에 실패했습니다. 다른 사진으로 시도해주세요.');
+      if (newResults.length === 0 && newFailed.length > 0) {
+        toast('모든 항목이 실패했습니다. 아래에서 개별 재시도 해주세요.', 'error');
       }
 
       setResultImages(newResults);
+      setFailedItems(newFailed);
       setProgressMsg('');
-      
-      if (failedItems.length > 0) {
-        toast(`${failedItems.join(', ')} 항목은 추출에 실패했습니다.\n성공한 ${newResults.length}개만 표시합니다.`, 'error');
-      }
-      
       setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
 
     } catch (e: unknown) {
@@ -231,6 +218,51 @@ export default function UnifiedSandboxPage() {
       toast('자동 분할 추출 실패: ' + msg, 'error');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // 단일 아이템 추출 공통 함수
+  const extractSingleItem = async (imgSrc: string, category: string, y_start: number, y_end: number): Promise<ExtractedItem> => {
+    let xmin = 0.05, xmax = 0.95;
+    const cat = category.toLowerCase();
+    if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
+    else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
+    
+    let ymin = y_start, ymax = y_end;
+    if (cat.includes('top') || cat.includes('outer')) ymin = Math.max(ymin, 0.12);
+    else if (cat.includes('bottom')) ymin = Math.max(ymin, 0.35);
+    else if (cat.includes('shoe')) ymin = Math.max(ymin, 0.80);
+    
+    const croppedBlob = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax);
+    const imglyBlob = await removeBackgroundWithRetry(croppedBlob);
+    const base64data = await blobToBase64(imglyBlob);
+    
+    return {
+      id: Math.random().toString(),
+      category: cat.includes('top') ? 'tops' : cat.includes('bot') ? 'bottoms' : cat.includes('out') ? 'outer' : cat.includes('shoe') ? 'shoes' : 'outer',
+      image: base64data
+    };
+  };
+
+  // 실패한 아이템 개별 재시도
+  const retryFailedItem = async (failedItem: FailedItem) => {
+    if (!originalImage) return;
+    
+    // UI에서 retrying 표시
+    setFailedItems(prev => prev.map(f => f.id === failedItem.id ? { ...f, retrying: true } : f));
+    
+    try {
+      const result = await extractSingleItem(originalImage, failedItem.category, failedItem.y_start, failedItem.y_end);
+      
+      // 성공: failedItems에서 제거, resultImages에 추가
+      setFailedItems(prev => prev.filter(f => f.id !== failedItem.id));
+      setResultImages(prev => [...prev, result]);
+      toast(`${failedItem.category} 재시도 성공!`, 'success');
+    } catch (e) {
+      console.error(`[${failedItem.category}] 재시도 실패:`, e);
+      const errMsg = e instanceof Error ? e.message : '알 수 없는 오류';
+      setFailedItems(prev => prev.map(f => f.id === failedItem.id ? { ...f, retrying: false, errorMsg: errMsg } : f));
+      toast(`${failedItem.category} 재시도도 실패했습니다.`, 'error');
     }
   };
 
@@ -472,12 +504,13 @@ export default function UnifiedSandboxPage() {
 
              {/* Auto Mode Result View */}
              {pipelineMode === 'auto' && (
-               <div className={`border border-zinc-200 rounded-[2rem] p-4 flex flex-col bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center min-h-[380px] h-[500px] relative overflow-hidden shadow-inner ${resultImages.length === 0 ? 'items-center justify-center' : ''}`}>
+               <div className={`border border-zinc-200 rounded-[2rem] p-4 flex flex-col bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center min-h-[380px] h-[500px] relative overflow-hidden shadow-inner ${resultImages.length === 0 && failedItems.length === 0 ? 'items-center justify-center' : ''}`}>
                  <div className="absolute inset-0 bg-black/20 mix-blend-overlay pointer-events-none" />
-                 {!resultImages.length ? (
-                   <p className="text-white/90 font-extrabold text-[12px] uppercase tracking-widest text-center leading-relaxed px-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] z-10">AI 추출기를 돌리면<br/>자동으로 조각나서 리스트에 담깁니다.</p>
+                 {!resultImages.length && !failedItems.length ? (
+                   <p className="text-white/90 font-extrabold text-[12px] uppercase tracking-widest text-center leading-relaxed px-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] z-10">AI 스캐너를 돌리면<br/>자동으로 조각나서 리스트에 담깁니다.</p>
                  ) : (
                     <div className="relative w-full h-full flex flex-col gap-2 overflow-y-auto overflow-x-hidden pr-2 z-10 pb-20">
+                      {/* 성공 아이템 */}
                       {resultImages.map((item) => (
                          <div key={item.id} className="relative flex items-center gap-3 bg-white/80 backdrop-blur-xl border border-white p-2 rounded-2xl w-full shadow-lg">
                             <div className="w-[80px] h-[80px] shrink-0 rounded-xl relative flex items-center justify-center p-1 bg-stone-100/50">
