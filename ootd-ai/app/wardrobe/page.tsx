@@ -38,7 +38,7 @@ export default function GalleryPage() {
   const fetchClothes = async () => {
     if (!user) return;
     setIsLoading(true);
-    const { data, error } = await supabase.from('clothes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('clothes').select('id, image_url, name, category').eq('user_id', user.id).order('created_at', { ascending: false });
     if (data && !error) {
       const mapped = data.map((row: { id: string; image_url: string; name: string; category: string }) => ({
         id: row.id, image: row.image_url, name: row.name, categoryId: row.category

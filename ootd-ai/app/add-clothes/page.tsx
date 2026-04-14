@@ -24,6 +24,24 @@ interface FailedItem {
   retrying?: boolean;
 }
 
+interface ExtractionStrategy {
+  name: string;
+  maxDim: number;
+  padding: number;
+  xExpand: number;
+  yExpand: number;
+  enhanceContrast: boolean;
+  brightnessBoost: number;
+}
+
+// 전략 1→4 순서로 자동 시도 (실패하면 다음 전략으로)
+const STRATEGIES: ExtractionStrategy[] = [
+  { name: '기본 추출',      maxDim: 512, padding: 0.08, xExpand: 0,    yExpand: 0,    enhanceContrast: false, brightnessBoost: 0 },
+  { name: '경량 모드',      maxDim: 384, padding: 0.06, xExpand: 0,    yExpand: 0,    enhanceContrast: false, brightnessBoost: 0 },
+  { name: '대비 강화',      maxDim: 512, padding: 0.10, xExpand: 0.05, yExpand: 0.03, enhanceContrast: true,  brightnessBoost: 25 },
+  { name: '넓은 영역 스캔', maxDim: 448, padding: 0.15, xExpand: 0.10, yExpand: 0.05, enhanceContrast: true,  brightnessBoost: 15 },
+];
+
 export default function UnifiedSandboxPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -82,24 +100,6 @@ export default function UnifiedSandboxPage() {
   // ═══════════════════════════════════════════════════════
   // 🧠 Smart Strategy Cascade: 실패 원인별 자동 대응 시스템
   // ═══════════════════════════════════════════════════════
-
-  interface ExtractionStrategy {
-    name: string;
-    maxDim: number;        // 리사이즈 최대 크기
-    padding: number;       // 크롭 패딩 비율
-    xExpand: number;       // X축 추가 확장
-    yExpand: number;       // Y축 추가 확장
-    enhanceContrast: boolean; // 대비 강화 여부
-    brightnessBoost: number;  // 밝기 보정 (0~50)
-  }
-
-  // 전략 1→4 순서로 자동 시도 (실패하면 다음 전략으로)
-  const STRATEGIES: ExtractionStrategy[] = [
-    { name: '기본 추출',      maxDim: 512, padding: 0.08, xExpand: 0,    yExpand: 0,    enhanceContrast: false, brightnessBoost: 0 },
-    { name: '경량 모드',      maxDim: 384, padding: 0.06, xExpand: 0,    yExpand: 0,    enhanceContrast: false, brightnessBoost: 0 },
-    { name: '대비 강화',      maxDim: 512, padding: 0.10, xExpand: 0.05, yExpand: 0.03, enhanceContrast: true,  brightnessBoost: 25 },
-    { name: '넓은 영역 스캔', maxDim: 448, padding: 0.15, xExpand: 0.10, yExpand: 0.05, enhanceContrast: true,  brightnessBoost: 15 },
-  ];
 
   // 전략에 따라 크롭+리사이즈+전처리하여 Blob 반환
   const getSegmentedBlob = (

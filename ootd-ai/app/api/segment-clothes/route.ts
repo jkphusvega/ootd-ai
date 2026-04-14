@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     if (!apiKey) throw new Error("Gemini API Key가 설정되지 않았습니다.");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
     // Y-range only 접근: Gemini에 세로 위치 비율만 요청 (가로는 전체 사용)
     const prompt = `Analyze this full-body photo of a person wearing clothes.

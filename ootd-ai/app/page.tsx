@@ -75,23 +75,47 @@ export default function Home() {
     if (!authLoading) checkProfile();
   }, [user, authLoading, router]);
 
+  // 이미지 압축: max 1024px + WebP 85% 품질 (페이로드 5MB→3~400KB)
+  const compressImage = (file: File, maxDim = 1024, quality = 0.85): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > h) { if (w > maxDim) { h *= maxDim / w; w = maxDim; } }
+          else { if (h > maxDim) { w *= maxDim / h; h = maxDim; } }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/webp', quality));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const processFile = async (file: File) => {
-    // 🔒 보안: 5MB 이상 이미지 업로드 차단
-    if (file.size > 5 * 1024 * 1024) {
-      toast('사진 용량이 너무 큽니다!\n5MB 이하의 사진을 사용해주세요.', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+      toast('사진 용량이 너무 큽니다!\n10MB 이하의 사진을 사용해주세요.', 'error');
       return;
     }
     const objectUrl = URL.createObjectURL(file);
     setOriginalImage(objectUrl);
     setHasCustomImage(true);
     
-    const base64 = await new Promise<string>((resolve) => {
+    // 원본 base64 (피드 저장용)
+    const fullBase64 = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
       reader.readAsDataURL(file);
     });
+    setBase64Image(fullBase64);
 
-    setBase64Image(base64);
+    // API 전송용 압축 이미지 (1024px, WebP)
+    const compressed = await compressImage(file);
     setScanState('scanning');
     
     try {
@@ -99,7 +123,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: base64,
+          imageBase64: compressed,
           weatherInfo: weather || { temperature: 20, condition: 'Clear' },
           userProfile: userProfile || null
         })
@@ -107,7 +131,7 @@ export default function Home() {
       const data = await res.json();
       if (res.ok) { setCritique(data); setScanState('success'); }
       else { toast('에러가 발생했습니다: ' + (data.error || 'AI 분석 오류'), 'error'); setScanState('idle'); }
-    } catch (err) { toast('네트워크 오류가 발생했습니다.', 'error'); setScanState('idle'); }
+    } catch { toast('네트워크 오류가 발생했습니다.', 'error'); setScanState('idle'); }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,7 +147,8 @@ export default function Home() {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) await processFile(file);
-  }, [weather]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weather, userProfile]);
 
   const triggerCamera = () => { fileInputRef.current?.click(); };
   const triggerDesktopUpload = () => { desktopFileInputRef.current?.click(); };
@@ -153,9 +178,10 @@ export default function Home() {
       if (dbError) throw new Error('DB 에러: ' + dbError.message);
       toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
       setScanState('success');
-    } catch(e: any) {
+    } catch(e: unknown) {
       console.error('OOTD Save Error:', e);
-      toast('저장 실패: ' + (e.message || '알 수 없는 오류'), 'error');
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      toast('저장 실패: ' + msg, 'error');
       setScanState('success');
     }
   };
