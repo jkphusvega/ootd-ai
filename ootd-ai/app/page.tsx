@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, User, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, ImagePlus, Sun, Cloud, CloudSnow, LogOut, RefreshCw, Shirt } from 'lucide-react';
+import { Camera, User, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, ImagePlus, Sun, Cloud, CloudSnow, LogOut, RefreshCw, Shirt, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
@@ -46,6 +46,14 @@ export default function Home() {
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [userProfile, setUserProfile] = useState<{nickname?: string; profile_image?: string; height?: number; weight?: number; fit_preference?: string; style_moods?: string[]} | null>(null);
+
+  const getSearchUrls = (name: string) => {
+    const q = encodeURIComponent(name);
+    return {
+      musinsa: `https://www.musinsa.com/search/musinsa/goods?q=${q}`,
+      cm29: `https://www.29cm.co.kr/search?query=${q}`,
+    };
+  };
 
   // 모바일 탭 상태 (기본: AI 코디 추천)
   const [mobileTab, setMobileTab] = useState<'curation' | 'analysis'>('curation');
@@ -644,7 +652,21 @@ export default function Home() {
                         <div className="p-3">
                           <span className="text-[8px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-0.5">{item.category}</span>
                           <p className="text-xs font-bold text-zinc-800 line-clamp-1">{item.name}</p>
-                          <p className="text-[10px] text-zinc-400 leading-relaxed line-clamp-2 mt-1">{item.reason}</p>
+                          <p className="text-[10px] text-zinc-400 leading-relaxed line-clamp-2 mt-1 mb-2">{item.reason}</p>
+                          <div className="flex gap-1.5">
+                            <a href={getSearchUrls(item.name).musinsa} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 py-1 bg-zinc-900 rounded-md hover:bg-zinc-700 transition active:scale-95">
+                              <ExternalLink className="w-2 h-2 text-white" />
+                              <span className="text-[8px] font-bold text-white">무신사</span>
+                            </a>
+                            <a href={getSearchUrls(item.name).cm29} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 py-1 bg-zinc-100 rounded-md hover:bg-zinc-200 transition active:scale-95">
+                              <ExternalLink className="w-2 h-2 text-zinc-600" />
+                              <span className="text-[8px] font-bold text-zinc-700">29CM</span>
+                            </a>
+                          </div>
                         </div>
                       </motion.div>
                     ))}

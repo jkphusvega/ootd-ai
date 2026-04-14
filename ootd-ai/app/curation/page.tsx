@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useWeather } from '../../hooks/useWeather';
@@ -43,6 +43,14 @@ export default function CurationPage() {
     };
     if (!authLoading) checkWardrobe();
   }, [user, authLoading]);
+
+  const getSearchUrls = (name: string) => {
+    const q = encodeURIComponent(name);
+    return {
+      musinsa: `https://www.musinsa.com/search/musinsa/goods?q=${q}`,
+      cm29: `https://www.29cm.co.kr/search?query=${q}`,
+    };
+  };
 
   const generateCuration = async () => {
     if (!user) return;
@@ -192,7 +200,19 @@ export default function CurationPage() {
                       <div className="p-4">
                         <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-1">{item.category}</span>
                         <p className="text-sm font-bold text-zinc-800 mb-2 line-clamp-1">{item.name}</p>
-                        <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">{item.reason}</p>
+                        <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2 mb-3">{item.reason}</p>
+                        <div className="flex gap-2">
+                          <a href={getSearchUrls(item.name).musinsa} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-900 rounded-lg hover:bg-zinc-700 transition">
+                            <ExternalLink className="w-2.5 h-2.5 text-white" />
+                            <span className="text-[9px] font-bold text-white">무신사</span>
+                          </a>
+                          <a href={getSearchUrls(item.name).cm29} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition">
+                            <ExternalLink className="w-2.5 h-2.5 text-zinc-600" />
+                            <span className="text-[9px] font-bold text-zinc-700">29CM</span>
+                          </a>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
