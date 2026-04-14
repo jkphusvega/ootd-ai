@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       profileContext = `User's body: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { temperature: 0.4 } });
 
     const prompt = `You are a trendy top fashion stylist in Seoul.
 The user has these items in their wardrobe:

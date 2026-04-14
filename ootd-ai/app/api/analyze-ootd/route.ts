@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       }
     };
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { temperature: 0.4 } });
     
     // 사용자 프로필 정보를 프롬프트에 반영
     let profileContext = '';

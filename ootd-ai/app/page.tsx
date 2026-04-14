@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Zap, User, Grid, Settings2, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, Upload, ImagePlus, Sun, Cloud, CloudSnow, LogOut } from 'lucide-react';
+import { Camera, User, ChevronRight, ScanLine, Sparkles, MapPin, CloudRain, Star, Droplets, Bookmark, ImagePlus, Sun, Cloud, CloudSnow, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
@@ -60,7 +60,7 @@ export default function Home() {
     const checkProfile = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
@@ -306,6 +306,7 @@ export default function Home() {
                         {isDragging ? '여기에 놓으세요!' : '사진을 드래그하거나 클릭하세요'}
                       </p>
                       <p className="text-xs text-zinc-400">오늘의 OOTD 전신 사진을 올려주세요</p>
+                      <p className="text-[10px] text-zinc-300 mt-1">사진은 AI 분석에만 사용되며 서버에 저장되지 않습니다</p>
                     </div>
                   </div>
                 )}

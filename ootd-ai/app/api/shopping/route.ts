@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '../../../lib/supabase/server';
+import { checkRateLimit } from '../../../lib/rateLimit';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -11,6 +12,14 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { allowed, limit } = await checkRateLimit(user.id, 'curate-outfit');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `일일 쇼핑 추천 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
+        { status: 429 }
+      );
     }
 
     const { weatherInfo, userProfile } = await request.json();
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
       profileContext = `User profile: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { temperature: 0.4 } });
 
     const prompt = `You are a personal fashion shopping advisor in Seoul, Korea.
 
