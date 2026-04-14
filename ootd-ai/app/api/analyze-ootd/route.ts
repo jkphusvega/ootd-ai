@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '../../../lib/supabase/server';
+import { checkRateLimit } from '../../../lib/rateLimit';
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) console.error('❌ GEMINI_API_KEY is not set');
@@ -11,6 +12,15 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Rate Limiting
+  const { allowed, remaining, limit } = await checkRateLimit(user.id, 'analyze-ootd');
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `일일 분석 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
+      { status: 429 }
+    );
+  }
 
   if (!apiKey) return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
 

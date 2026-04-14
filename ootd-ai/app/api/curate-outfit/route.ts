@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '../../../lib/supabase/server';
+import { checkRateLimit } from '../../../lib/rateLimit';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -11,6 +12,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate Limiting
+    const { allowed, remaining, limit } = await checkRateLimit(user.id, 'curate-outfit');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `일일 추천 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
+        { status: 429 }
+      );
     }
 
     const { weatherInfo, userProfile } = await request.json();

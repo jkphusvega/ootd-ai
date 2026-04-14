@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun } from 'lucide-react';
+import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun, Trash2, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../components/ThemeProvider';
@@ -29,6 +30,8 @@ export default function SettingsPage() {
   const [fit, setFit] = useState('regular');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
 
@@ -106,6 +109,39 @@ export default function SettingsPage() {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeleting(true);
+    try {
+      // 1. 옷장 이미지 스토리지 삭제
+      const { data: clothes } = await supabase.from('clothes').select('image_url').eq('user_id', user.id);
+      if (clothes) {
+        const fileNames = clothes.map(c => {
+          const prefix = '/storage/v1/object/public/clothes/';
+          const idx = c.image_url.indexOf(prefix);
+          return idx !== -1 ? c.image_url.slice(idx + prefix.length) : null;
+        }).filter(Boolean) as string[];
+        if (fileNames.length > 0) await supabase.storage.from('clothes').remove(fileNames);
+      }
+
+      // 2. DB 데이터 삭제
+      await supabase.from('clothes').delete().eq('user_id', user.id);
+      await supabase.from('user_profiles').delete().eq('user_id', user.id);
+
+      // 3. 로그아웃
+      await supabase.auth.signOut();
+      toast('계정이 삭제되었습니다. 이용해주셔서 감사합니다.', 'success');
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Account deletion error:', err);
+      toast('계정 삭제 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   if (isLoading) {
@@ -294,9 +330,44 @@ export default function SettingsPage() {
 
         {/* Logout */}
         <button onClick={handleLogout}
-          className="w-full py-4 bg-white border border-zinc-200 rounded-2xl text-red-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition mb-8">
+          className="w-full py-4 bg-white border border-zinc-200 rounded-2xl text-red-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition mb-4">
           <LogOut className="w-4 h-4" /> 로그아웃
         </button>
+
+        {/* Account Deletion */}
+        {!showDeleteConfirm ? (
+          <button onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-3 bg-white border border-zinc-100 rounded-2xl text-zinc-400 font-medium text-xs flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-400 hover:border-red-200 transition mb-6">
+            <Trash2 className="w-3.5 h-3.5" /> 계정 삭제
+          </button>
+        ) : (
+          <div className="w-full p-4 bg-red-50 border border-red-200 rounded-2xl mb-6">
+            <div className="flex items-start gap-3 mb-3">
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-700 mb-1">정말 계정을 삭제하시겠습니까?</p>
+                <p className="text-xs text-red-500">모든 데이터(옷장, OOTD 기록, 프로필)가 즉시 영구 삭제되며 복구할 수 없습니다.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleDeleteAccount} disabled={isDeleting}
+                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-bold text-xs tracking-wide hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                {isDeleting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 삭제 중...</> : '영구 삭제'}
+              </button>
+              <button onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 bg-white text-zinc-600 rounded-xl font-bold text-xs border border-zinc-200 hover:bg-zinc-50 transition">
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Legal Links */}
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <Link href="/privacy" className="text-[10px] text-zinc-400 hover:text-zinc-600 transition font-medium">개인정보 처리방침</Link>
+          <span className="text-zinc-200">|</span>
+          <Link href="/terms" className="text-[10px] text-zinc-400 hover:text-zinc-600 transition font-medium">이용약관</Link>
+        </div>
 
         {/* App Info */}
         <div className="text-center pb-8">

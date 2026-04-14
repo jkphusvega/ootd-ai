@@ -1,11 +1,21 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { checkRateLimit } from '../../../lib/rateLimit';
 
 export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Rate Limiting
+  const { allowed, remaining, limit } = await checkRateLimit(user.id, 'segment-clothes');
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `일일 사용 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
+      { status: 429, headers: { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Limit': String(limit) } }
+    );
+  }
 
   try {
     const { image } = await req.json(); // base64 encoded image string (data URI)
