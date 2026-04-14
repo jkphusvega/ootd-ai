@@ -79,8 +79,33 @@ export default function UnifiedSandboxPage() {
     });
   };
 
-  // 크롭 후 리사이즈하여 배경 제거 부담을 줄이는 함수
-  const getSegmentedBlob = (imgSrc: string, xmin: number, ymin: number, xmax: number, ymax: number): Promise<Blob> => {
+  // ═══════════════════════════════════════════════════════
+  // 🧠 Smart Strategy Cascade: 실패 원인별 자동 대응 시스템
+  // ═══════════════════════════════════════════════════════
+
+  interface ExtractionStrategy {
+    name: string;
+    maxDim: number;        // 리사이즈 최대 크기
+    padding: number;       // 크롭 패딩 비율
+    xExpand: number;       // X축 추가 확장
+    yExpand: number;       // Y축 추가 확장
+    enhanceContrast: boolean; // 대비 강화 여부
+    brightnessBoost: number;  // 밝기 보정 (0~50)
+  }
+
+  // 전략 1→4 순서로 자동 시도 (실패하면 다음 전략으로)
+  const STRATEGIES: ExtractionStrategy[] = [
+    { name: '기본 추출',      maxDim: 512, padding: 0.08, xExpand: 0,    yExpand: 0,    enhanceContrast: false, brightnessBoost: 0 },
+    { name: '경량 모드',      maxDim: 384, padding: 0.06, xExpand: 0,    yExpand: 0,    enhanceContrast: false, brightnessBoost: 0 },
+    { name: '대비 강화',      maxDim: 512, padding: 0.10, xExpand: 0.05, yExpand: 0.03, enhanceContrast: true,  brightnessBoost: 25 },
+    { name: '넓은 영역 스캔', maxDim: 448, padding: 0.15, xExpand: 0.10, yExpand: 0.05, enhanceContrast: true,  brightnessBoost: 15 },
+  ];
+
+  // 전략에 따라 크롭+리사이즈+전처리하여 Blob 반환
+  const getSegmentedBlob = (
+    imgSrc: string, xmin: number, ymin: number, xmax: number, ymax: number,
+    strategy: ExtractionStrategy
+  ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "Anonymous";
@@ -90,21 +115,18 @@ export default function UnifiedSandboxPage() {
         const pxW = (xmax - xmin) * img.width;
         const pxH = (ymax - ymin) * img.height;
 
-        const paddingX = pxW * 0.08;
-        const paddingY = pxH * 0.08;
+        const paddingX = pxW * strategy.padding;
+        const paddingY = pxH * strategy.padding;
         const finalX = Math.max(0, pxX - paddingX);
         const finalY = Math.max(0, pxY - paddingY);
         const finalW = Math.min(img.width - finalX, pxW + paddingX * 2);
         const finalH = Math.min(img.height - finalY, pxH + paddingY * 2);
 
-        // 크롭한 이미지를 최대 512px로 리사이즈 → 배경 제거 속도/안정성 향상
-        const MAX_CROP_DIM = 512;
-        let outW = finalW;
-        let outH = finalH;
+        let outW = finalW, outH = finalH;
         if (outW > outH) {
-          if (outW > MAX_CROP_DIM) { outH *= MAX_CROP_DIM / outW; outW = MAX_CROP_DIM; }
+          if (outW > strategy.maxDim) { outH *= strategy.maxDim / outW; outW = strategy.maxDim; }
         } else {
-          if (outH > MAX_CROP_DIM) { outW *= MAX_CROP_DIM / outH; outH = MAX_CROP_DIM; }
+          if (outH > strategy.maxDim) { outW *= strategy.maxDim / outH; outH = strategy.maxDim; }
         }
 
         const canvas = document.createElement('canvas');
@@ -113,6 +135,22 @@ export default function UnifiedSandboxPage() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject('No Canvas Ctx');
         ctx.drawImage(img, finalX, finalY, finalW, finalH, 0, 0, outW, outH);
+
+        // 🎨 전략에 따른 이미지 전처리 (대비/밝기 강화)
+        if (strategy.enhanceContrast) {
+          const imageData = ctx.getImageData(0, 0, outW, outH);
+          const data = imageData.data;
+          const contrastFactor = 1.3; // 30% 대비 증가
+          const brightAdd = strategy.brightnessBoost;
+          for (let i = 0; i < data.length; i += 4) {
+            // RGB에 대비 & 밝기 적용 (알파 제외)
+            data[i]     = Math.min(255, Math.max(0, (data[i] - 128) * contrastFactor + 128 + brightAdd));
+            data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - 128) * contrastFactor + 128 + brightAdd));
+            data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - 128) * contrastFactor + 128 + brightAdd));
+          }
+          ctx.putImageData(imageData, 0, 0);
+        }
+
         canvas.toBlob((b) => { if (b) resolve(b); else reject("blob failed"); }, 'image/png');
       };
       img.onerror = reject;
@@ -120,36 +158,119 @@ export default function UnifiedSandboxPage() {
     });
   };
 
-  // 배경 제거 with 재시도 (최대 2회)
-  const removeBackgroundWithRetry = async (blob: Blob, maxRetries = 2): Promise<Blob> => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  // 단일 아이템을 전략 캐스케이드로 추출
+  const extractSingleItem = async (
+    imgSrc: string, category: string, y_start: number, y_end: number,
+    onStrategyChange?: (strategyName: string, attempt: number, total: number) => void
+  ): Promise<ExtractedItem> => {
+    let xmin = 0.05, xmax = 0.95;
+    const cat = category.toLowerCase();
+    if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
+    else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
+    
+    let ymin = y_start, ymax = y_end;
+    if (cat.includes('top') || cat.includes('outer')) ymin = Math.max(ymin, 0.12);
+    else if (cat.includes('bottom')) ymin = Math.max(ymin, 0.35);
+    else if (cat.includes('shoe')) ymin = Math.max(ymin, 0.80);
+    
+    const errors: string[] = [];
+
+    for (let s = 0; s < STRATEGIES.length; s++) {
+      const strategy = STRATEGIES[s];
+      onStrategyChange?.(strategy.name, s + 1, STRATEGIES.length);
+
       try {
-        return await removeBackground(blob);
+        // 전략별 X/Y 확장 적용
+        const sXmin = Math.max(0, xmin - strategy.xExpand);
+        const sXmax = Math.min(1, xmax + strategy.xExpand);
+        const sYmin = Math.max(0, ymin - strategy.yExpand);
+        const sYmax = Math.min(1, ymax + strategy.yExpand);
+
+        const croppedBlob = await getSegmentedBlob(imgSrc, sXmin, sYmin, sXmax, sYmax, strategy);
+        const imglyBlob = await removeBackground(croppedBlob);
+        const base64data = await blobToBase64(imglyBlob);
+
+        console.log(`✅ [${category}] "${strategy.name}" 전략으로 성공`);
+        return {
+          id: Math.random().toString(),
+          category: cat.includes('top') ? 'tops' : cat.includes('bot') ? 'bottoms' : cat.includes('out') ? 'outer' : cat.includes('shoe') ? 'shoes' : 'outer',
+          image: base64data
+        };
       } catch (e) {
-        console.warn(`배경 제거 시도 ${attempt}/${maxRetries} 실패:`, e);
-        if (attempt === maxRetries) throw e;
-        // 재시도 전 잠깐 대기 (메모리 해제 유도)
-        await new Promise(r => setTimeout(r, 1000));
+        const errMsg = e instanceof Error ? e.message : String(e);
+        errors.push(`[${strategy.name}] ${errMsg}`);
+        console.warn(`⚠️ [${category}] "${strategy.name}" 전략 실패:`, errMsg);
+        // 다음 전략 시도 전 메모리 해제 대기
+        await new Promise(r => setTimeout(r, 800));
       }
     }
-    throw new Error('배경 제거 최대 재시도 초과');
+
+    // 모든 전략 실패  
+    throw new Error(`${STRATEGIES.length}가지 전략 모두 실패:\n${errors.join('\n')}`);
   };
 
   // ---------- PIPELINES ----------
   const handleSingleExtract = async () => {
     if (!originalImage) return;
     setIsProcessing(true);
-    setProgressMsg('배경을 정밀하게 제거 중... (30초~1분 소요)');
 
     try {
-      const blob = await removeBackgroundWithRetry(await (await fetch(originalImage)).blob());
-      const base64data = await blobToBase64(blob);
-      setResultImage(base64data);
-      setProgressMsg('');
-      setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
+      // 단일 모드도 전략 캐스케이드 적용
+      const fakeCategory = 'single';
+      let lastErr: Error | null = null;
+
+      for (let s = 0; s < STRATEGIES.length; s++) {
+        const strategy = STRATEGIES[s];
+        setProgressMsg(`배경 제거 중 [${strategy.name}] (${s+1}/${STRATEGIES.length})...`);
+
+        try {
+          const response = await fetch(originalImage);
+          const originalBlob = await response.blob();
+          
+          // 리사이즈 적용
+          const resizedBlob = await new Promise<Blob>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              let w = img.width, h = img.height;
+              if (w > h) { if (w > strategy.maxDim) { h *= strategy.maxDim / w; w = strategy.maxDim; } }
+              else { if (h > strategy.maxDim) { w *= strategy.maxDim / h; h = strategy.maxDim; } }
+              const canvas = document.createElement('canvas');
+              canvas.width = w; canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return reject('no ctx');
+              ctx.drawImage(img, 0, 0, w, h);
+              if (strategy.enhanceContrast) {
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                  data[i] = Math.min(255, Math.max(0, (data[i] - 128) * 1.3 + 128 + strategy.brightnessBoost));
+                  data[i+1] = Math.min(255, Math.max(0, (data[i+1] - 128) * 1.3 + 128 + strategy.brightnessBoost));
+                  data[i+2] = Math.min(255, Math.max(0, (data[i+2] - 128) * 1.3 + 128 + strategy.brightnessBoost));
+                }
+                ctx.putImageData(imageData, 0, 0);
+              }
+              canvas.toBlob((b) => b ? resolve(b) : reject('blob fail'), 'image/png');
+            };
+            img.src = URL.createObjectURL(originalBlob);
+          });
+
+          const resultBlob = await removeBackground(resizedBlob);
+          const base64data = await blobToBase64(resultBlob);
+          setResultImage(base64data);
+          setProgressMsg('');
+          setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300);
+          return; // 성공!
+        } catch (e) {
+          lastErr = e instanceof Error ? e : new Error(String(e));
+          console.warn(`단일 추출 "${strategy.name}" 실패:`, e);
+          await new Promise(r => setTimeout(r, 800));
+        }
+      }
+
+      throw lastErr || new Error('모든 전략 실패');
     } catch (e: unknown) {
       console.error(e);
-      toast('배경 제거에 실패했습니다. 다른 사진으로 다시 시도해주세요.', 'error');
+      toast('모든 전략을 시도했지만 배경 제거에 실패했습니다.\n다른 사진으로 시도해주세요.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -183,10 +304,14 @@ export default function UnifiedSandboxPage() {
       
       for (let i = 0; i < total; i++) {
         const item = data.items[i];
-        setProgressMsg(`[${item.category}] 누끼 따는 중... (${i+1}/${total})`);
         
         try {
-          const result = await extractSingleItem(targetOriginal, item.category, item.y_start, item.y_end);
+          const result = await extractSingleItem(
+            targetOriginal, item.category, item.y_start, item.y_end,
+            (strategyName, attempt, stratTotal) => {
+              setProgressMsg(`[${item.category}] ${strategyName} (${attempt}/${stratTotal}) — 아이템 ${i+1}/${total}`);
+            }
+          );
           newResults.push(result);
           setResultImages([...newResults]);
         } catch (itemError) {
@@ -221,30 +346,7 @@ export default function UnifiedSandboxPage() {
     }
   };
 
-  // 단일 아이템 추출 공통 함수
-  const extractSingleItem = async (imgSrc: string, category: string, y_start: number, y_end: number): Promise<ExtractedItem> => {
-    let xmin = 0.05, xmax = 0.95;
-    const cat = category.toLowerCase();
-    if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
-    else if (cat.includes('shoe')) { xmin = 0.15; xmax = 0.85; }
-    
-    let ymin = y_start, ymax = y_end;
-    if (cat.includes('top') || cat.includes('outer')) ymin = Math.max(ymin, 0.12);
-    else if (cat.includes('bottom')) ymin = Math.max(ymin, 0.35);
-    else if (cat.includes('shoe')) ymin = Math.max(ymin, 0.80);
-    
-    const croppedBlob = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax);
-    const imglyBlob = await removeBackgroundWithRetry(croppedBlob);
-    const base64data = await blobToBase64(imglyBlob);
-    
-    return {
-      id: Math.random().toString(),
-      category: cat.includes('top') ? 'tops' : cat.includes('bot') ? 'bottoms' : cat.includes('out') ? 'outer' : cat.includes('shoe') ? 'shoes' : 'outer',
-      image: base64data
-    };
-  };
-
-  // 실패한 아이템 개별 재시도
+  // 실패한 아이템 개별 재시도 (전략 캐스케이드 적용)
   const retryFailedItem = async (failedItem: FailedItem) => {
     if (!originalImage) return;
     
@@ -252,17 +354,24 @@ export default function UnifiedSandboxPage() {
     setFailedItems(prev => prev.map(f => f.id === failedItem.id ? { ...f, retrying: true } : f));
     
     try {
-      const result = await extractSingleItem(originalImage, failedItem.category, failedItem.y_start, failedItem.y_end);
+      const result = await extractSingleItem(
+        originalImage, failedItem.category, failedItem.y_start, failedItem.y_end,
+        (strategyName, attempt, total) => {
+          setProgressMsg(`[${failedItem.category}] 재시도: ${strategyName} (${attempt}/${total})`);
+        }
+      );
       
       // 성공: failedItems에서 제거, resultImages에 추가
       setFailedItems(prev => prev.filter(f => f.id !== failedItem.id));
       setResultImages(prev => [...prev, result]);
-      toast(`${failedItem.category} 재시도 성공!`, 'success');
+      setProgressMsg('');
+      toast(`${failedItem.category} 재시도 성공! 🎉`, 'success');
     } catch (e) {
       console.error(`[${failedItem.category}] 재시도 실패:`, e);
       const errMsg = e instanceof Error ? e.message : '알 수 없는 오류';
-      setFailedItems(prev => prev.map(f => f.id === failedItem.id ? { ...f, retrying: false, errorMsg: errMsg } : f));
-      toast(`${failedItem.category} 재시도도 실패했습니다.`, 'error');
+      setFailedItems(prev => prev.map(f => f.id === failedItem.id ? { ...f, retrying: false, errorMsg: '4가지 전략 모두 실패' } : f));
+      setProgressMsg('');
+      toast(`${failedItem.category}: 모든 전략을 시도했지만 실패했습니다.`, 'error');
     }
   };
 
