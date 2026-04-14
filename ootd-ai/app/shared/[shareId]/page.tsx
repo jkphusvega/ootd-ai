@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shirt, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -28,7 +28,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   accessory: '액세서리',
 };
 
-export default function SharedWardrobePage({ params }: { params: { shareId: string } }) {
+export default function SharedWardrobePage({ params }: { params: Promise<{ shareId: string }> }) {
+  const { shareId } = use(params);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -42,7 +43,7 @@ export default function SharedWardrobePage({ params }: { params: { shareId: stri
       const { data: profileData } = await supabase
         .from('user_profiles')
         .select('user_id, nickname, style_moods, is_public')
-        .eq('share_id', params.shareId)
+        .eq('share_id', shareId)
         .single();
 
       if (!profileData || !profileData.is_public) {
@@ -69,7 +70,7 @@ export default function SharedWardrobePage({ params }: { params: { shareId: stri
     };
 
     fetchSharedWardrobe();
-  }, [params.shareId]);
+  }, [shareId]);
 
   if (isLoading) {
     return (
