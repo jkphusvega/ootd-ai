@@ -89,7 +89,15 @@ IMPORTANT: Only return raw JSON. No markdown. Write title, description, and reas
     const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
-    const parsedData = JSON.parse(jsonMatch[0]);
+    let parsedData;
+    try {
+      parsedData = JSON.parse(jsonMatch[0]);
+    } catch {
+      throw new Error('AI 응답 JSON 파싱 실패');
+    }
+    if (!parsedData.title || !Array.isArray(parsedData.items)) {
+      throw new Error('AI 응답 형식이 올바르지 않습니다.');
+    }
 
     // Push notification — fire and forget, don't block response
     fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL('/api/push/send', request.url).toString() : '/api/push/send'}`, {

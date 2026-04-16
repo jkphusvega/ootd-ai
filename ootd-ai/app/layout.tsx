@@ -60,7 +60,7 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-white text-zinc-900">
+      <body className="min-h-full flex flex-col bg-white dark:bg-[#0c0c0f] text-zinc-900 dark:text-white">
         <ThemeProvider>
           <ToastProvider>
             <Navigation />

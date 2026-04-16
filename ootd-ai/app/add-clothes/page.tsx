@@ -191,7 +191,6 @@ export default function UnifiedSandboxPage() {
         const imglyBlob = await removeBackground(croppedBlob);
         const base64data = await blobToBase64(imglyBlob);
 
-        console.log(`✅ [${category}] "${strategy.name}" 전략으로 성공`);
         return {
           id: Math.random().toString(),
           category: cat.includes('top') ? 'tops' : cat.includes('bot') ? 'bottoms' : cat.includes('out') ? 'outer' : cat.includes('shoe') ? 'shoes' : 'outer',

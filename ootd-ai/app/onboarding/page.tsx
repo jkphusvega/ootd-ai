@@ -1,3 +1,5 @@
+
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
@@ -82,14 +84,14 @@ export default function OnboardingPage() {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0c0c0f] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 font-sans flex flex-col selection:bg-zinc-200">
+    <div className="min-h-screen bg-white dark:bg-[#0c0c0f] text-zinc-900 dark:text-white font-sans flex flex-col selection:bg-zinc-200">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.03),transparent_50%)] pointer-events-none" />
 
       <main className="flex-1 flex flex-col justify-center px-8 pt-20 pb-8 max-w-lg mx-auto w-full relative z-10">
@@ -121,7 +123,7 @@ export default function OnboardingPage() {
                 className={`relative p-5 rounded-[1.75rem] text-left transition-all duration-200 ${
                   isSelected
                     ? 'bg-black border-2 border-black shadow-[0_8px_24px_rgba(0,0,0,0.18)]'
-                    : 'bg-white border border-zinc-200 shadow-sm hover:bg-zinc-50 active:scale-[0.97]'
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-[0.97]'
                 }`}
               >
                 {isSelected && (
@@ -132,7 +134,7 @@ export default function OnboardingPage() {
                 <span className={`block text-[10px] tracking-widest uppercase mb-1.5 font-bold ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>
                   {mood.desc}
                 </span>
-                <span className={`block font-extrabold text-xl ${isSelected ? 'text-white' : 'text-zinc-800'}`}>
+                <span className={`block font-extrabold text-xl ${isSelected ? 'text-white' : 'text-zinc-800 dark:text-white'}`}>
                   {mood.label}
                 </span>
               </motion.button>

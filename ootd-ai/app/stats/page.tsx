@@ -64,10 +64,10 @@ export default function StatsPage() {
   const totalEntries = entries.length;
   const scoredEntries = entries.filter(e => e.score !== null);
   const avgScore = scoredEntries.length > 0
-    ? Math.round(scoredEntries.reduce((sum, e) => sum + (e.score || 0), 0) / scoredEntries.length)
+    ? Math.round(scoredEntries.reduce((sum, e) => sum + (e.score ?? 0), 0) / scoredEntries.length)
     : null;
   const bestScore = scoredEntries.length > 0
-    ? Math.max(...scoredEntries.map(e => e.score || 0))
+    ? Math.max(...scoredEntries.map(e => e.score ?? 0))
     : null;
 
   // 이번 달 착장 횟수

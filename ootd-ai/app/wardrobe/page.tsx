@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../components/ToastProvider';
 
 interface ClothItem {
   id: string;
@@ -36,6 +37,7 @@ export default function GalleryPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'wardrobe' | 'memories'>('wardrobe');
   const [editMode, setEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<ClothItem[]>([]);
@@ -114,6 +116,7 @@ export default function GalleryPage() {
 
     const { error } = await supabase.from('clothes').delete().eq('id', id);
     if (error) {
+      toast('삭제에 실패했습니다. 다시 시도해주세요.', 'error');
       fetchClothes();
       return;
     }

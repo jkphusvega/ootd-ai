@@ -42,7 +42,7 @@ export default function Home() {
   const weather = useWeather();
   const { toast } = useToast();
   const [critique, setCritique] = useState<FashionCritique | null>(null);
-  const [originalImage, setOriginalImage] = useState<string>("https://images.unsplash.com/photo-1485230895905-312046452294?q=80&w=800&auto=format&fit=crop");
+  const [originalImage, setOriginalImage] = useState<string>("");
   const [hasCustomImage, setHasCustomImage] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -285,7 +285,7 @@ export default function Home() {
 
   if (authLoading || showSplash) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-white dark:bg-[#0c0c0f] flex flex-col items-center justify-center gap-4">
         <div className="w-16 h-16 rounded-2xl bg-zinc-100 animate-pulse" />
         <div className="w-32 h-3 bg-zinc-100 rounded-full animate-pulse" />
       </div>
@@ -293,7 +293,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-white font-sans selection:bg-zinc-200">
+    <div className="relative min-h-screen w-full bg-white dark:bg-[#0c0c0f] font-sans selection:bg-zinc-200">
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
       <input type="file" accept="image/*" className="hidden" ref={galleryInputRef} onChange={handleFileChange} />
       <input type="file" accept="image/*" className="hidden" ref={desktopFileInputRef} onChange={handleFileChange} />
@@ -323,18 +323,18 @@ export default function Home() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900">{getGreeting()}</h1>
+                <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">{getGreeting()}</h1>
                 <button onClick={handleLogout} className="text-xs px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full font-bold transition flex items-center gap-1">
                   <LogOut className="w-3 h-3"/> 로그아웃
                 </button>
               </div>
-              <p className="text-zinc-400 text-sm font-medium">오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요</p>
+              <p className="text-zinc-400 dark:text-zinc-500 text-sm font-medium">오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요</p>
             </div>
             {weather && (
-              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl">
+              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
                 <WeatherIcon />
                 <div>
-                  <span className="text-xl font-extrabold text-zinc-900">{weather.temperature}°C</span>
+                  <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{weather.temperature}°C</span>
                   <span className="text-xs text-zinc-400 ml-2 font-semibold">{weather.condition}</span>
                 </div>
               </div>
@@ -354,7 +354,7 @@ export default function Home() {
                     ? 'border-zinc-900 bg-zinc-50 scale-[1.01] shadow-[0_0_40px_rgba(0,0,0,0.08)]'
                     : hasCustomImage
                     ? 'border-zinc-200 shadow-xl'
-                    : 'border-dashed border-zinc-300 bg-zinc-50/50 hover:border-zinc-400 hover:bg-zinc-100/50'
+                    : 'border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-zinc-400 hover:bg-zinc-100/50'
                 }`}
               >
                 {hasCustomImage ? (
@@ -401,11 +401,11 @@ export default function Home() {
                 {scanState === 'idle' && !critique && (
                   <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-16 h-16 bg-zinc-100 rounded-3xl flex items-center justify-center mb-5">
-                      <Sparkles className="w-7 h-7 text-zinc-300" />
+                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mb-5">
+                      <Sparkles className="w-7 h-7 text-zinc-300 dark:text-zinc-600" />
                     </div>
                     <h3 className="text-lg font-bold text-zinc-400 mb-2">AI 리뷰 대기 중</h3>
-                    <p className="text-sm text-zinc-300 leading-relaxed">
+                    <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed">
                       왼쪽에 OOTD 사진을 업로드하면<br/>AI 스타일리스트가 분석을 시작합니다
                     </p>
                   </motion.div>
@@ -425,10 +425,10 @@ export default function Home() {
                     transition={{ duration: 0.5, ease: 'easeOut' }} className="flex flex-col gap-5">
                     
                     {/* Score + Summary */}
-                    <div className="flex justify-between items-start p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <div className="flex justify-between items-start p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                       <div className="flex-1 pr-6">
                         <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-2">AI Stylist Review</span>
-                        <h2 className="text-xl font-extrabold tracking-tight text-black leading-snug break-keep text-balance">
+                        <h2 className="text-xl font-extrabold tracking-tight text-black dark:text-white leading-snug break-keep text-balance">
                           "{critique.summary}"
                         </h2>
                       </div>
@@ -443,20 +443,20 @@ export default function Home() {
                     </div>
 
                     {/* Detail Cards */}
-                    <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
+                    <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
                       <div className="flex items-center gap-2 mb-1">
                         <Droplets className="w-4 h-4 text-zinc-400" />
-                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Weather Context</h3>
+                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Weather Context</h3>
                       </div>
-                      <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.weatherAdvice}</p>
+                      <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.weatherAdvice}</p>
                     </div>
 
-                    <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
+                    <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
                       <div className="flex items-center gap-2 mb-1">
                         <ScanLine className="w-4 h-4 text-zinc-400" />
-                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Fit & Color</h3>
+                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Fit & Color</h3>
                       </div>
-                      <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.fitAndColor}</p>
+                      <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.fitAndColor}</p>
                     </div>
 
                     <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
@@ -473,8 +473,8 @@ export default function Home() {
                         <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
                       </button>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <button onClick={() => { setScanState('idle'); setCritique(null); setHasCustomImage(false); setOriginalImage("https://images.unsplash.com/photo-1485230895905-312046452294?q=80&w=800&auto=format&fit=crop"); }}
-                          className="py-3.5 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-50">
+                        <button onClick={() => { setScanState('idle'); setCritique(null); setHasCustomImage(false); setOriginalImage(""); }}
+                          className="py-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-50">
                           다시 분석
                         </button>
                         <Link href="/wardrobe" className="block">
@@ -509,10 +509,10 @@ export default function Home() {
       {/* ════════════════════════════════════════════════
           MOBILE LAYOUT (lg 미만): Camera-First Style
           ════════════════════════════════════════════════ */}
-      <div className="lg:hidden relative h-screen w-full overflow-hidden bg-[#F9F9F9]">
+      <div className="lg:hidden relative h-screen w-full overflow-hidden bg-[#F9F9F9] dark:bg-[#0c0c0f]">
         {/* Premium Minimalist Background */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,_#ffffff_0%,_#F2F2F7_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,_#ffffff_0%,_#F2F2F7_100%)] dark:bg-none dark:bg-[#0c0c0f]" />
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
         </div>
 
@@ -527,7 +527,7 @@ export default function Home() {
           </button>
 
           {/* 탭 스위처 */}
-          <div className="flex p-1 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-xl">
+          <div className="flex p-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-xl">
             {(['curation', 'analysis'] as const).map((tab) => (
               <button
                 key={tab}
@@ -632,9 +632,9 @@ export default function Home() {
               {/* 큐레이션 결과 */}
               {curation && !isCurating && (
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                  <div className="bg-white/90 backdrop-blur rounded-2xl border border-zinc-200 p-5 shadow-md">
-                    <h2 className="text-lg font-extrabold text-zinc-900 mb-1">{curation.title}</h2>
-                    <p className="text-xs text-zinc-500 leading-relaxed mb-3">{curation.description}</p>
+                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-md">
+                    <h2 className="text-lg font-extrabold text-zinc-900 dark:text-white mb-1">{curation.title}</h2>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mb-3">{curation.description}</p>
                     <div className="flex gap-2 flex-wrap">
                       <span className="text-[9px] font-extrabold tracking-widest uppercase px-3 py-1.5 bg-zinc-100 rounded-full text-zinc-600">{curation.style}</span>
                       <span className="text-[9px] font-extrabold tracking-widest uppercase px-3 py-1.5 bg-zinc-100 rounded-full text-zinc-600">{curation.colorTone}</span>
@@ -645,14 +645,14 @@ export default function Home() {
                     {curation.items.map((item, idx) => (
                       <motion.div key={idx}
                         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}
-                        className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-                        <div className="aspect-square bg-zinc-50 flex items-center justify-center p-3">
+                        className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                        <div className="aspect-square bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center p-3">
                           <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain"
                             style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
                         </div>
                         <div className="p-3">
                           <span className="text-[8px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-0.5">{item.category}</span>
-                          <p className="text-xs font-bold text-zinc-800 line-clamp-1">{item.name}</p>
+                          <p className="text-xs font-bold text-zinc-800 dark:text-white line-clamp-1">{item.name}</p>
                           <p className="text-[10px] text-zinc-400 leading-relaxed line-clamp-2 mt-1 mb-2">{item.reason}</p>
                           <div className="flex gap-1.5">
                             <a href={getSearchUrls(item.name).musinsa} target="_blank" rel="noopener noreferrer"
@@ -674,7 +674,7 @@ export default function Home() {
                   </div>
 
                   <button onClick={generateCuration} disabled={isCurating}
-                    className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2">
+                    className="w-full py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5" /> 다른 코디 추천받기
                   </button>
                 </motion.div>
@@ -722,13 +722,13 @@ export default function Home() {
                 {scanState === 'success' && critique && (
                   <motion.div key="success" initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[75vh]">
+                    className="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-950 rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[75vh]">
                     <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
                     <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 [&::-webkit-scrollbar]:hidden">
                       <div className="flex justify-between items-start mb-6">
                         <div>
                           <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Review</span>
-                          <h2 className="text-2xl font-black tracking-tight text-black leading-snug break-keep pr-4 text-balance">"{critique.summary}"</h2>
+                          <h2 className="text-2xl font-black tracking-tight text-black dark:text-white leading-snug break-keep pr-4 text-balance">"{critique.summary}"</h2>
                         </div>
                         <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
                           <svg className="absolute inset-0 w-full h-full -rotate-90">
@@ -740,13 +740,13 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
-                          <div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Weather Context</h3></div>
-                          <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.weatherAdvice}</p>
+                        <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+                          <div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Weather Context</h3></div>
+                          <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.weatherAdvice}</p>
                         </div>
-                        <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
-                          <div className="flex items-center gap-2 mb-1"><ScanLine className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800">Fit & Color</h3></div>
-                          <p className="text-[13px] text-zinc-600 leading-relaxed font-medium">{critique.fitAndColor}</p>
+                        <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+                          <div className="flex items-center gap-2 mb-1"><ScanLine className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Fit & Color</h3></div>
+                          <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.fitAndColor}</p>
                         </div>
                         <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
                           <div className="flex items-center gap-2 mb-1"><Star className="w-4 h-4 text-yellow-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3></div>
@@ -783,10 +783,10 @@ export default function Home() {
               <AnimatePresence>
                 {scanState !== 'success' && (
                   <>
-                    <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-white via-white/80 to-transparent z-30 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#F9F9F9] dark:from-[#0c0c0f] via-[#F9F9F9]/80 dark:via-[#0c0c0f]/80 to-transparent z-30 pointer-events-none" />
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
                       className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center gap-6 z-40">
-                      <button onClick={triggerGallery} className="w-14 h-14 bg-white/80 backdrop-blur-xl border border-black/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition active:scale-95">
+                      <button onClick={triggerGallery} className="w-14 h-14 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white dark:hover:bg-zinc-700 transition active:scale-95">
                         <ImagePlus className="w-6 h-6 text-zinc-700" strokeWidth={1.5} />
                       </button>
                       <div className="relative flex items-center justify-center cursor-pointer" onClick={triggerCamera}>

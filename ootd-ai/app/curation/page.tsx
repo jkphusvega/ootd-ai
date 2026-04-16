@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle, ExternalLink, BookmarkCheck, Bookmark } from 'lucide-react';
+import { useToast } from '../../components/ToastProvider';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useWeather } from '../../hooks/useWeather';
@@ -29,6 +30,9 @@ export default function CurationPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wardrobeCount, setWardrobeCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Check wardrobe count
@@ -53,10 +57,34 @@ export default function CurationPage() {
     };
   };
 
+  const saveCuration = async () => {
+    if (!user || !curation || isSaved) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('journal_entries').insert({
+        user_id: user.id,
+        image_url: curation.items[0]?.image_url || '',
+        temperature: weather ? `${Math.round(weather.temperature)}°` : '',
+        weather_condition: weather?.condition || 'Clear',
+        tags: [curation.style, curation.colorTone].filter(Boolean),
+        score: null,
+        memo: `${curation.title}\n${curation.description}`,
+      });
+      if (error) throw error;
+      setIsSaved(true);
+      toast('오늘의 코디가 저널에 저장됐어요!', 'success');
+    } catch {
+      toast('저장 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const generateCuration = async () => {
     if (!user) return;
     setIsLoading(true);
     setError(null);
+    setIsSaved(false);
     try {
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -236,6 +264,18 @@ export default function CurationPage() {
                     </div>
                   </div>
 
+                  <button
+                    onClick={saveCuration}
+                    disabled={isSaving || isSaved}
+                    className={`w-full py-4 rounded-2xl font-extrabold tracking-widest text-xs uppercase transition flex items-center justify-center gap-2 ${
+                      isSaved
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                    {isSaved ? '저장 완료!' : '저널에 저장하기'}
+                  </button>
                   <button
                     onClick={generateCuration}
                     disabled={isLoading}

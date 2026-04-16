@@ -116,7 +116,7 @@ export default function CalendarPage() {
             <ChevronLeft className="w-5 h-5 text-zinc-600" />
           </button>
           <div className="text-center">
-            <span className="text-xl font-black tracking-tight text-black">{year}년 {MONTHS_KR[month]}</span>
+            <span className="text-xl font-black tracking-tight text-black dark:text-white">{year}년 {MONTHS_KR[month]}</span>
             <div className="flex items-center justify-center gap-4 mt-1">
               <span className="text-[10px] font-bold text-zinc-400 tracking-widest">{totalEntries}일 기록</span>
               {avgScore && (

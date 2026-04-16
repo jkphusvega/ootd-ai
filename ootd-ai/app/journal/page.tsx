@@ -26,6 +26,7 @@ export default function JournalPage() {
   const weather = useWeather();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<'idle' | 'analyzing' | 'done'>('idle');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,8 +97,8 @@ export default function JournalPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 저널 기록을 삭제하시겠습니까?')) return;
     setEntries(prev => prev.filter(e => e.id !== id));
+    setConfirmDeleteId(null);
     await supabase.from('journal_entries').delete().eq('id', id);
   };
 
@@ -197,7 +198,7 @@ export default function JournalPage() {
                     <img src={entry.image_url} alt="OOTD" className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-105" />
                     
                     {/* Delete button */}
-                    <button onClick={() => handleDelete(entry.id)}
+                    <button onClick={() => setConfirmDeleteId(entry.id)}
                       className="absolute top-4 right-4 bg-black/50 backdrop-blur text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-black/70">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -247,6 +248,32 @@ export default function JournalPage() {
       >
         <Plus className="w-6 h-6 text-white" />
       </motion.button>
+
+      {/* Delete Confirm Dialog */}
+      <AnimatePresence>
+        {confirmDeleteId && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
+              onClick={() => setConfirmDeleteId(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-x-6 bottom-10 z-50 max-w-sm mx-auto bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-700 p-6 shadow-2xl">
+              <p className="text-base font-extrabold text-zinc-900 dark:text-white mb-1">기록을 삭제할까요?</p>
+              <p className="text-sm text-zinc-400 mb-6">삭제된 기록은 복구할 수 없습니다.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
+                  취소
+                </button>
+                <button onClick={() => handleDelete(confirmDeleteId)}
+                  className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition">
+                  삭제
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Upload Modal */}
       <AnimatePresence>

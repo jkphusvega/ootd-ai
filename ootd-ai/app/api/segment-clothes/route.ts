@@ -72,7 +72,7 @@ Return ONLY raw JSON (no markdown, no code fences):
     const result = await model.generateContent([prompt, imagePart]);
     let responseText = result.response.text().trim();
     
-    console.log("Raw Gemini Segmentation Response: ", responseText);
+
 
     // Markdown 방어막 정제
     if (responseText.startsWith('```json')) responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
