@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Shirt, TrendingUp, Palette } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
@@ -167,6 +168,23 @@ export default function StatsPage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Empty state guide */}
+        {totalEntries === 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8 mb-6 shadow-sm text-center">
+            <p className="text-3xl mb-3">📊</p>
+            <p className="font-extrabold text-zinc-800 dark:text-white mb-2">아직 통계 데이터가 없어요</p>
+            <p className="text-sm text-zinc-400 leading-relaxed mb-5">
+              저널을 <span className="font-bold text-zinc-600 dark:text-zinc-300">3개 이상</span> 기록하면<br />착장 분석과 OOTD 점수 통계가 나타나요
+            </p>
+            <Link href="/journal">
+              <button className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-lg hover:opacity-80 transition active:scale-95">
+                저널 기록하러 가기
+              </button>
+            </Link>
+          </motion.div>
+        )}
 
         {/* Category Breakdown */}
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}

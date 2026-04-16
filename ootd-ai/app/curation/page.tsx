@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle, ExternalLink, BookmarkCheck, Bookmark } from 'lucide-react';
+import { Sparkles, MapPin, RefreshCw, Sun, Cloud, CloudRain, CloudSnow, Loader2, AlertCircle, ExternalLink, BookmarkCheck, Bookmark, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '../../components/ToastProvider';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
@@ -276,6 +277,11 @@ export default function CurationPage() {
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                     {isSaved ? '저장 완료!' : '저널에 저장하기'}
                   </button>
+                  {isSaved && (
+                    <Link href="/journal" className="w-full py-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+                      저널에서 보기 <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
                   <button
                     onClick={generateCuration}
                     disabled={isLoading}

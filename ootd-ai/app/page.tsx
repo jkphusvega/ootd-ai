@@ -405,9 +405,19 @@ export default function Home() {
                       <Sparkles className="w-7 h-7 text-zinc-300 dark:text-zinc-600" />
                     </div>
                     <h3 className="text-lg font-bold text-zinc-400 mb-2">AI 리뷰 대기 중</h3>
-                    <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed">
+                    <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed mb-6">
                       왼쪽에 OOTD 사진을 업로드하면<br/>AI 스타일리스트가 분석을 시작합니다
                     </p>
+                    {wardrobeCount === 0 && (
+                      <div className="mt-2 px-5 py-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl text-center">
+                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3">옷장이 비어 있어요<br/>AI 코디 추천을 받으려면 먼저 옷을 등록해야 해요</p>
+                        <Link href="/add-clothes">
+                          <button className="px-5 py-2 bg-black text-white text-[10px] font-extrabold tracking-widest uppercase rounded-xl hover:bg-zinc-800 transition active:scale-95">
+                            옷 등록하러 가기
+                          </button>
+                        </Link>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
