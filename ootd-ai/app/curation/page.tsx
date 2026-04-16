@@ -33,6 +33,7 @@ export default function CurationPage() {
   const [wardrobeCount, setWardrobeCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isWorn, setIsWorn] = useState(false);
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -81,11 +82,36 @@ export default function CurationPage() {
     }
   };
 
+  const wearToday = async () => {
+    if (!user || !curation || isWorn) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('journal_entries').insert({
+        user_id: user.id,
+        image_url: curation.items[0]?.image_url || '',
+        temperature: weather ? `${Math.round(weather.temperature)}°` : '',
+        weather_condition: weather?.condition || 'Clear',
+        tags: [curation.style, curation.colorTone, '착용확정'].filter(Boolean),
+        score: null,
+        memo: `✅ 오늘 착용\n${curation.title}\n${curation.description}`,
+      });
+      if (error) throw error;
+      setIsWorn(true);
+      setIsSaved(true);
+      toast('오늘 착장으로 저널에 기록됐어요! 🎉', 'success');
+    } catch {
+      toast('저장 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const generateCuration = async () => {
     if (!user) return;
     setIsLoading(true);
     setError(null);
     setIsSaved(false);
+    setIsWorn(false);
     try {
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -265,6 +291,18 @@ export default function CurationPage() {
                     </div>
                   </div>
 
+                  <button
+                    onClick={wearToday}
+                    disabled={isSaving || isWorn}
+                    className={`w-full py-4 rounded-2xl font-extrabold tracking-widest text-xs uppercase transition flex items-center justify-center gap-2 ${
+                      isWorn
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-black text-white hover:bg-zinc-800 shadow-xl'
+                    }`}
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : isWorn ? <BookmarkCheck className="w-4 h-4" /> : <span>👕</span>}
+                    {isWorn ? '오늘 착장 기록 완료!' : '오늘 이 코디 입었어요'}
+                  </button>
                   <button
                     onClick={saveCuration}
                     disabled={isSaving || isSaved}
