@@ -96,7 +96,7 @@ Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and profe
           const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            supabase.from('journal_entries').insert({
+            Promise.resolve(supabase.from('journal_entries').insert({
               user_id: user.id,
               score: parsed.score ?? null,
               weather_condition: weatherInfo?.condition ?? 'Clear',
@@ -104,7 +104,7 @@ Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and profe
               memo: parsed.summary ?? '',
               tags: [],
               image_url: '',
-            }).then(() => {/* no-op */}).catch(() => {/* 비핵심 기능: 저장 실패 무시 */});
+            })).catch(() => {/* 비핵심 기능: 저장 실패 무시 */});
           }
         } catch {
           // 파싱 실패해도 무시
