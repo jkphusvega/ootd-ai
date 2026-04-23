@@ -7,6 +7,25 @@ const apiKey = process.env.GEMINI_API_KEY;
 
 const genAI = new GoogleGenerativeAI(apiKey || '');
 
+async function generateWithRetry(model: ReturnType<typeof genAI.getGenerativeModel>, parts: Parameters<typeof model.generateContent>[0], retries = 2): Promise<string> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const result = await model.generateContent(parts);
+      return result.response.text();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      const is503 = msg.includes('503') || msg.includes('Service Unavailable') || msg.includes('high demand');
+      if (is503 && i < retries) {
+        await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+        continue;
+      }
+      if (is503) throw new Error('AI 서버가 잠시 과부하 상태예요. 잠깐 후 다시 시도해주세요 🙏');
+      throw err;
+    }
+  }
+  throw new Error('AI 분석에 실패했습니다.');
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -72,8 +91,7 @@ Structure your JSON EXACTLY like this:
 }
 Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and professional like a star's personal stylist. Return ONLY raw JSON string. No markdown brackets whatsoever.`;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const responseText = result.response.text();
+    const responseText = await generateWithRetry(model, [prompt, imagePart]);
 
     const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);

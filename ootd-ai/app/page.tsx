@@ -197,8 +197,8 @@ export default function Home() {
       });
       const data = await res.json();
       if (res.ok) { setCritique(data); setScanState('success'); }
-      else { toast('에러가 발생했습니다: ' + (data.error || 'AI 분석 오류'), 'error'); setScanState('idle'); }
-    } catch { toast('네트워크 오류가 발생했습니다.', 'error'); setScanState('idle'); }
+      else { toast(data.error || 'AI 분석 중 오류가 발생했습니다.', 'error'); setScanState('idle'); }
+    } catch { toast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error'); setScanState('idle'); }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,6 +218,23 @@ export default function Home() {
   }, [weather, userProfile]);
 
   const triggerCamera = () => { fileInputRef.current?.click(); };
+
+  const retryAnalysis = async () => {
+    if (!base64Image) return;
+    setScanState('scanning');
+    try {
+      const blob = await (await fetch(base64Image)).blob();
+      const compressed = await compressImage(new File([blob], 'retry.jpg', { type: blob.type }));
+      const res = await fetch('/api/analyze-ootd', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: compressed, weatherInfo: weather || { temperature: 20, condition: 'Clear' }, userProfile: userProfile || null }),
+      });
+      const data = await res.json();
+      if (res.ok) { setCritique(data); setScanState('success'); }
+      else { toast(data.error || 'AI 분석 중 오류가 발생했습니다.', 'error'); setScanState('idle'); }
+    } catch { toast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error'); setScanState('idle'); }
+  };
   const triggerGallery = () => { galleryInputRef.current?.click(); };
   const triggerDesktopUpload = () => { desktopFileInputRef.current?.click(); };
 
@@ -700,10 +717,17 @@ export default function Home() {
               <AnimatePresence>
                 {scanState === 'idle' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute inset-x-12 top-[25%] bottom-[30%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex items-center justify-center drop-shadow-md">
-                    <div className="px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-zinc-800 text-[10px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg">
-                      <ScanLine className="w-4 h-4" /> 카메라 버튼을 눌러 OOTD를 촬영하세요
-                    </div>
+                    className="absolute inset-x-12 top-[25%] bottom-[30%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex flex-col items-center justify-center gap-3 drop-shadow-md">
+                    {hasCustomImage && base64Image ? (
+                      <button onClick={retryAnalysis}
+                        className="pointer-events-auto px-6 py-3 rounded-full bg-black text-white text-[11px] font-extrabold tracking-widest uppercase flex items-center gap-2 shadow-xl active:scale-95 transition">
+                        <RefreshCw className="w-4 h-4" /> 다시 분석하기
+                      </button>
+                    ) : (
+                      <div className="px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-zinc-800 text-[10px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg">
+                        <ScanLine className="w-4 h-4" /> 카메라 버튼을 눌러 OOTD를 촬영하세요
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -712,11 +736,18 @@ export default function Home() {
               <AnimatePresence>
                 {scanState === 'scanning' && (
                   <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 pointer-events-none">
-                    <motion.div initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 bg-white" />
-                    <motion.div initial={{ top: '15%' }} animate={{ top: '85%' }} transition={{ duration: 1.4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                      className="absolute left-6 right-6 h-[1.5px] bg-black shadow-[0_0_20px_rgba(0,0,0,0.5)] z-20">
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-16 bg-black/10 blur-[20px] rounded-full" />
-                    </motion.div>
+                    <motion.div initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} className="absolute inset-0 bg-white" />
+                    <div className="absolute left-6 right-6 top-[15%] bottom-[15%] overflow-hidden">
+                      <motion.div
+                        initial={{ y: 0 }}
+                        animate={{ y: ['0%', '100%', '0%'] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                        style={{ willChange: 'transform' }}
+                        className="absolute left-0 right-0 h-[1.5px] bg-black shadow-[0_0_12px_rgba(0,0,0,0.4)]"
+                      >
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-8 bg-black/8 blur-[12px] rounded-full" />
+                      </motion.div>
+                    </div>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
                         className="px-6 py-4 bg-white/95 backdrop-blur-xl rounded-full border border-zinc-200 text-black font-extrabold tracking-widest text-[11px] uppercase shadow-xl flex items-center gap-3">
