@@ -149,6 +149,59 @@ export default function JournalPage() {
         </div>
       </header>
 
+      {/* Stats + Chart Section */}
+      {entries.length > 0 && entries.some(e => e.score) && (
+        <section className="px-6 mt-4 mb-2 max-w-5xl mx-auto">
+          {/* 스탯 카드 */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            {[{
+              label: 'ENTRIES', value: entries.length, unit: ''
+            }, {
+              label: 'AVG SCORE',
+              value: Math.round(entries.filter(e => e.score).reduce((s, e) => s + (e.score ?? 0), 0) / entries.filter(e => e.score).length),
+              unit: 'pt'
+            }, {
+              label: 'BEST', value: Math.max(...entries.filter(e => e.score).map(e => e.score ?? 0)), unit: 'pt'
+            }].map(stat => (
+              <div key={stat.label} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 text-center shadow-sm">
+                <p className="text-[9px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase mb-1">{stat.label}</p>
+                <p className="text-2xl font-black text-zinc-900 dark:text-white leading-none">
+                  {stat.value}<span className="text-sm font-bold text-zinc-400 ml-0.5">{stat.unit}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+          {/* 점수 추이 바 차트 (최근 10개) */}
+          {(() => {
+            const scored = entries.filter(e => e.score).slice(0, 10).reverse();
+            const max = Math.max(...scored.map(e => e.score ?? 0));
+            return (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
+                <p className="text-[9px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase mb-4">SCORE TREND</p>
+                <div className="flex items-end gap-2 h-20">
+                  {scored.map((entry, i) => (
+                    <div key={entry.id} className="flex-1 flex flex-col items-center gap-1 group">
+                      <span className="text-[8px] font-bold text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {entry.score}
+                      </span>
+                      <div className="w-full rounded-t-md transition-all duration-500 relative overflow-hidden"
+                        style={{ height: `${((entry.score ?? 0) / max) * 64}px`, background: i === scored.length - 1 ? '#18181b' : '#e4e4e7' }}>
+                        {i === scored.length - 1 && (
+                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-zinc-700" />
+                        )}
+                      </div>
+                      <span className="text-[7px] text-zinc-300 font-medium">
+                        {new Date(entry.created_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+      )}
+
       {/* Main Feed */}
       <main className="px-6 mt-6 max-w-5xl mx-auto">
         {isLoading ? (

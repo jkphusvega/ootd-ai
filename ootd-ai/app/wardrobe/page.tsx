@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Plus, Trash2, X } from 'lucide-react';
+import { Home, Plus, Trash2, X, Droplets, ScanLine, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
@@ -44,6 +44,7 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [selectedFeed, setSelectedFeed] = useState<ClothItem | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -288,44 +289,58 @@ export default function GalleryPage() {
             </motion.div>
           )}
 
-          {/* TAB 2: MEMORIES / OOTD FEEDS */}
+          {/* TAB 2: OOTD FEEDS */}
           {activeTab === 'memories' && (
             <motion.div key="memories" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="px-6 mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => (
-                <div key={memory.id} className="bg-white rounded-[2rem] overflow-hidden border border-stone-200 shadow-[0_15px_40px_rgba(0,0,0,0.1)] relative group">
-                  <div className="aspect-[4/5] overflow-hidden relative">
-                    <img src={memory.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
-                    {pendingDeleteId === memory.id ? (
-                      <div className="absolute top-4 right-4 z-20 flex gap-1">
-                        <button onClick={() => handleDelete(memory.id)} className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg hover:bg-red-600 transition">삭제</button>
-                        <button onClick={() => setPendingDeleteId(null)} className="bg-white text-zinc-700 text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg hover:bg-zinc-100 transition">취소</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setPendingDeleteId(memory.id)} className="absolute top-4 right-4 bg-black/60 backdrop-blur text-white p-2.5 rounded-full shadow-md z-20 hover:scale-110 active:scale-95">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-5 pb-6 relative z-10 bg-[#fdfdfd] border-t border-stone-100 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-stone-400 text-[10px] uppercase tracking-[0.2em] font-bold">OOTD AI Insight</p>
-                      {memory.createdAt && (
-                        <p className="text-stone-300 text-[9px] font-medium">
-                          {new Date(memory.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                        </p>
+              className="px-6 mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => {
+                // JSON 파싱 시도 (신형), 실패하면 구형 포맷 폴백
+                let parsed: { score?: number; summary?: string } = {};
+                try { parsed = JSON.parse(memory.name); } catch {
+                  const s = memory.name.split(':');
+                  parsed = { score: parseInt(s[0]), summary: s[1]?.trim() };
+                }
+                return (
+                  <motion.div key={memory.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => setSelectedFeed(memory)}
+                    className="relative group cursor-pointer rounded-[1.5rem] overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-stone-200">
+                    <div className="aspect-[3/4] relative">
+                      <img src={memory.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      {/* 삭제 버튼 */}
+                      {pendingDeleteId === memory.id ? (
+                        <div className="absolute top-3 right-3 z-20 flex gap-1" onClick={e => e.stopPropagation()}>
+                          <button onClick={() => handleDelete(memory.id)} className="bg-red-500 text-white text-[9px] font-black px-2.5 py-1.5 rounded-full shadow-lg">삭제</button>
+                          <button onClick={() => setPendingDeleteId(null)} className="bg-white text-zinc-700 text-[9px] font-black px-2.5 py-1.5 rounded-full shadow-lg">취소</button>
+                        </div>
+                      ) : (
+                        <button onClick={e => { e.stopPropagation(); setPendingDeleteId(memory.id); }}
+                          className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white p-2 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       )}
+                      {/* 점수 배지 */}
+                      {parsed.score && (
+                        <div className="absolute top-3 left-3 bg-black text-white px-2.5 py-1 rounded-full font-black text-sm shadow-lg">
+                          {parsed.score}
+                        </div>
+                      )}
+                      {/* 날짜 + 요약 */}
+                      <div className="absolute bottom-3 left-3 right-3">
+                        {memory.createdAt && (
+                          <p className="text-white/60 text-[9px] font-bold tracking-widest uppercase mb-1">
+                            {new Date(memory.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                          </p>
+                        )}
+                        {parsed.summary && (
+                          <p className="text-white text-[11px] font-bold leading-tight line-clamp-2">"{parsed.summary}"</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-[13px] font-extrabold text-stone-800 leading-relaxed font-sans break-keep drop-shadow-sm">
-                       "{memory.name.split(':')[1] ? memory.name.split(':')[1].trim() : memory.name}"
-                    </div>
-                    <div className="absolute top-[-25px] right-6 bg-black text-white px-4 py-2 rounded-full font-black text-lg shadow-[0_5px_15px_rgba(0,0,0,0.3)] ring-4 ring-[#fdfdfd]">
-                       {memory.name.split('점')[0]}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                );
+              })}
               {localItems.filter(i => i.categoryId === 'ootd_feed').length === 0 && (
                 <div className="col-span-full">
                   <p className="text-stone-600/70 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-white/20 rounded-xl border border-stone-500/10">
@@ -346,6 +361,97 @@ export default function GalleryPage() {
           </button>
         </Link>
       </div>
+
+      {/* ── Feed Detail Modal ── */}
+      <AnimatePresence>
+        {selectedFeed && (() => {
+          let c: { score?: number; summary?: string; weatherAdvice?: string; fitAndColor?: string; stylistRecommendation?: string } = {};
+          try { c = JSON.parse(selectedFeed.name); } catch {
+            const s = selectedFeed.name.split(':');
+            c = { score: parseInt(s[0]), summary: s[1]?.trim() };
+          }
+          return (
+            <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+                onClick={() => setSelectedFeed(null)} />
+              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col">
+                {/* 핸들 */}
+                <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
+                <div className="flex-1 overflow-y-auto px-6 pb-10 [&::-webkit-scrollbar]:hidden">
+                  {/* 이미지 + 점수 */}
+                  <div className="relative mt-4 rounded-2xl overflow-hidden aspect-[3/2] mb-6">
+                    <img src={selectedFeed.image} alt="OOTD" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    {c.score && (
+                      <div className="absolute bottom-4 left-4 flex items-end gap-2">
+                        <span className="text-white font-black text-4xl leading-none">{c.score}</span>
+                        <span className="text-white/70 font-bold text-sm mb-1">/ 100</span>
+                      </div>
+                    )}
+                    {selectedFeed.createdAt && (
+                      <span className="absolute top-4 right-4 bg-black/50 backdrop-blur text-white text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full">
+                        {new Date(selectedFeed.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
+                    <button onClick={() => setSelectedFeed(null)}
+                      className="absolute top-4 left-4 bg-black/50 backdrop-blur text-white p-2 rounded-full">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Summary */}
+                  {c.summary && (
+                    <div className="mb-5">
+                      <p className="text-[10px] font-extrabold tracking-[0.2em] text-stone-400 uppercase mb-2">AI Stylist Review</p>
+                      <h2 className="text-xl font-black text-stone-900 leading-snug break-keep">"{c.summary}"</h2>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    {/* Weather */}
+                    {c.weatherAdvice && (
+                      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Droplets className="w-4 h-4 text-stone-400" />
+                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-stone-600">Weather Context</h3>
+                        </div>
+                        <p className="text-[13px] text-stone-600 leading-relaxed font-medium">{c.weatherAdvice}</p>
+                      </div>
+                    )}
+                    {/* Fit & Color */}
+                    {c.fitAndColor && (
+                      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ScanLine className="w-4 h-4 text-stone-400" />
+                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-stone-600">Fit & Color</h3>
+                        </div>
+                        <p className="text-[13px] text-stone-600 leading-relaxed font-medium">{c.fitAndColor}</p>
+                      </div>
+                    )}
+                    {/* Stylist Pick */}
+                    {c.stylistRecommendation && (
+                      <div className="p-4 bg-stone-900 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="w-4 h-4 text-yellow-400" />
+                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3>
+                        </div>
+                        <p className="text-[13px] text-white/90 leading-relaxed font-medium">{c.stylistRecommendation}</p>
+                      </div>
+                    )}
+                    {/* 구형 데이터 안내 */}
+                    {!c.weatherAdvice && !c.fitAndColor && !c.stylistRecommendation && (
+                      <p className="text-center text-stone-400 text-xs py-6">새로 저장한 OOTD부터 상세 분석이 표시됩니다.</p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }
