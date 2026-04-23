@@ -26,17 +26,17 @@ const CONTEXTS = [
 ];
 
 const BODY_SHAPES = [
-  { id: 'triangle', label: '삼각형', desc: '하체가 발달한 체형' },
-  { id: 'inverted_triangle', label: '역삼각형', desc: '어깨/상체가 발달한 체형' },
-  { id: 'rectangle', label: '직사각형', desc: '어깨와 골반 너비가 비슷한 체형' },
-  { id: 'oval', label: '둥근형', desc: '복부가 발달한 체형' },
+  { id: 'pear', label: '서양배형', desc: '하체가 발달한 체형', emoji: '🍐' },
+  { id: 'strawberry', label: '딸기형', desc: '상체/어깨가 발달한 체형', emoji: '🍓' },
+  { id: 'banana', label: '바나나형', desc: '슬림하고 곧은 체형', emoji: '🍌' },
+  { id: 'apple', label: '사과형', desc: '복부가 발달한 체형', emoji: '🍎' },
 ];
 
 const BODY_GOALS = [
-  { id: 'taller', label: '키 커 보이기', desc: '비율이 좋아 보이게' },
-  { id: 'slimmer', label: '슬림해 보이기', desc: '체격을 커버하게' },
-  { id: 'broader', label: '체격 커 보이기', desc: '어깨가 넓어 보이게' },
-  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 보완하게' },
+  { id: 'taller', label: '비율 깡패', desc: '다리가 길어 보이게', emoji: '📏' },
+  { id: 'broader', label: '어깨 깡패', desc: '어깨가 넓어 보이게', emoji: '🏋️‍♂️' },
+  { id: 'slimmer', label: '슬림 핏', desc: '전체적으로 갸름해 보이게', emoji: '🕴️' },
+  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 가리게', emoji: '👖' },
 ];
 
 export default function OnboardingPage() {
@@ -294,13 +294,16 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {BODY_SHAPES.map(shape => (
                     <button key={shape.id} onClick={() => setSelectedShape(shape.id)}
-                      className={`p-3 rounded-xl text-left transition-all border ${
+                      className={`p-4 rounded-2xl text-left transition-all border flex gap-3 items-center ${
                         selectedShape === shape.id 
                           ? 'bg-black text-white border-black shadow-md' 
                           : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
                       }`}>
-                      <span className={`block font-bold text-sm ${selectedShape === shape.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{shape.label}</span>
-                      <span className={`block text-[10px] mt-0.5 ${selectedShape === shape.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{shape.desc}</span>
+                      <span className="text-2xl shrink-0">{shape.emoji}</span>
+                      <div>
+                        <span className={`block font-bold text-sm ${selectedShape === shape.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{shape.label}</span>
+                        <span className={`block text-[10px] mt-0.5 ${selectedShape === shape.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{shape.desc}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -312,13 +315,16 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {BODY_GOALS.map(goal => (
                     <button key={goal.id} onClick={() => setSelectedGoal(goal.id)}
-                      className={`p-3 rounded-xl text-left transition-all border ${
+                      className={`p-4 rounded-2xl text-left transition-all border flex gap-3 items-center ${
                         selectedGoal === goal.id 
                           ? 'bg-black text-white border-black shadow-md' 
                           : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
                       }`}>
-                      <span className={`block font-bold text-sm ${selectedGoal === goal.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{goal.label}</span>
-                      <span className={`block text-[10px] mt-0.5 ${selectedGoal === goal.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{goal.desc}</span>
+                      <span className="text-2xl shrink-0">{goal.emoji}</span>
+                      <div>
+                        <span className={`block font-bold text-sm ${selectedGoal === goal.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{goal.label}</span>
+                        <span className={`block text-[10px] mt-0.5 ${selectedGoal === goal.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{goal.desc}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
