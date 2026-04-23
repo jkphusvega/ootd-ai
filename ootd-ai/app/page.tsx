@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useWeather } from '../hooks/useWeather';
 import { useToast } from '../components/ToastProvider';
 import LandingContent from '../components/LandingContent';
+import { logEvent } from '../lib/analytics';
 
 interface FashionCritique {
   score: number;
@@ -64,6 +65,7 @@ export default function Home() {
   const [wardrobeCount, setWardrobeCount] = useState(0);
   const [partialCritique, setPartialCritique] = useState<Partial<FashionCritique> | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +185,8 @@ export default function Home() {
   };
 
   const processFile = async (file: File) => {
+    if (scanState === 'scanning') return;
+    if (isRateLimited) return;
     if (file.size > 10 * 1024 * 1024) {
       toast('사진 용량이 너무 큽니다!\n10MB 이하의 사진을 사용해주세요.', 'error');
       return;
@@ -218,6 +222,7 @@ export default function Home() {
       });
       if (!res.ok || !res.body) {
         const errData = await res.json().catch(() => ({ error: 'AI 분석 중 오류가 발생했습니다.' }));
+        if (res.status === 429) setIsRateLimited(true);
         toast(errData.error || 'AI 분석 중 오류가 발생했습니다.', 'error');
         setScanState('idle');
         return;
@@ -243,6 +248,7 @@ export default function Home() {
       const parsed = JSON.parse(jsonMatch[0]);
       if (parsed.error) { toast(parsed.error, 'error'); setScanState('idle'); setIsStreaming(false); setPartialCritique(null); return; }
       setCritique(parsed); setPartialCritique(null); setIsStreaming(false); setScanState('success');
+      if (user) logEvent(user.id, 'ootd_analyzed', { score: parsed.score, weather_condition: weather?.condition, temperature: weather?.temperature });
     } catch { toast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error'); setScanState('idle'); }
   };
 
@@ -280,6 +286,7 @@ export default function Home() {
       });
       if (!res.ok || !res.body) {
         const errData = await res.json().catch(() => ({ error: 'AI 분석 중 오류가 발생했습니다.' }));
+        if (res.status === 429) setIsRateLimited(true);
         toast(errData.error || 'AI 분석 중 오류가 발생했습니다.', 'error');
         setScanState('idle');
         return;
@@ -305,6 +312,7 @@ export default function Home() {
       const parsed = JSON.parse(jsonMatch[0]);
       if (parsed.error) { toast(parsed.error, 'error'); setScanState('idle'); setIsStreaming(false); setPartialCritique(null); return; }
       setCritique(parsed); setPartialCritique(null); setIsStreaming(false); setScanState('success');
+      if (user) logEvent(user.id, 'ootd_analyzed', { score: parsed.score, weather_condition: weather?.condition, temperature: weather?.temperature });
     } catch { toast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error'); setScanState('idle'); }
   };
   const triggerGallery = () => { galleryInputRef.current?.click(); };
@@ -343,6 +351,7 @@ export default function Home() {
       });
       if (dbError) throw new Error('DB 에러: ' + dbError.message);
       toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
+      logEvent(user!.id, 'ootd_saved_to_feed', { score: critique.score });
       setScanState('success');
     } catch(e: unknown) {
       console.error('OOTD Save Error:', e);
@@ -443,11 +452,11 @@ export default function Home() {
             {/* ── Left Column: Image Upload Area ── */}
             <div className="flex flex-col gap-5">
               <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={triggerDesktopUpload}
-                className={`relative aspect-[3/4] w-full rounded-3xl overflow-hidden cursor-pointer group transition-all duration-300 border-2 ${
+                onDragOver={!isRateLimited ? handleDragOver : undefined}
+                onDragLeave={!isRateLimited ? handleDragLeave : undefined}
+                onDrop={!isRateLimited ? handleDrop : undefined}
+                onClick={!isRateLimited ? triggerDesktopUpload : undefined}
+                className={`relative aspect-[3/4] w-full rounded-3xl overflow-hidden transition-all duration-300 border-2 ${isRateLimited ? 'cursor-not-allowed opacity-60' : 'cursor-pointer group'} ${
                   isDragging
                     ? 'border-zinc-900 bg-zinc-50 scale-[1.01] shadow-[0_0_40px_rgba(0,0,0,0.08)]'
                     : hasCustomImage
@@ -502,11 +511,37 @@ export default function Home() {
                     <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mb-5">
                       <Sparkles className="w-7 h-7 text-zinc-300 dark:text-zinc-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-zinc-400 mb-2">AI 리뷰 대기 중</h3>
-                    <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed mb-6">
-                      왼쪽에 OOTD 사진을 업로드하면<br/>AI 스타일리스트가 분석을 시작합니다
-                    </p>
-                    {wardrobeCount === 0 && (
+                    {isRateLimited ? (
+                      <>
+                        <h3 className="text-lg font-bold text-red-400 mb-2">오늘 분석 한도를 채웠어요</h3>
+                        <p className="text-sm text-zinc-400 leading-relaxed">내일 다시 이용할 수 있어요</p>
+                      </>
+                    ) : hasCustomImage && base64Image ? (
+                      <>
+                        <h3 className="text-lg font-bold text-zinc-400 mb-2">분석 준비 완료</h3>
+                        <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed mb-6">
+                          이미지가 업로드됐어요<br/>아래에서 다시 분석하거나 새 사진을 올릴 수 있어요
+                        </p>
+                        <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                          <button onClick={retryAnalysis}
+                            className="px-5 py-3 bg-black text-white text-[11px] font-extrabold tracking-widest uppercase rounded-xl hover:bg-zinc-800 transition active:scale-95 flex items-center justify-center gap-2">
+                            <RefreshCw className="w-3.5 h-3.5" /> 다시 분석하기
+                          </button>
+                          <button onClick={() => { setScanState('idle'); setHasCustomImage(false); setOriginalImage(""); setBase64Image(null); }}
+                            className="px-5 py-2 bg-zinc-100 text-zinc-600 text-[10px] font-bold rounded-xl hover:bg-zinc-200 transition active:scale-95">
+                            새 사진 올리기
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-bold text-zinc-400 mb-2">AI 리뷰 대기 중</h3>
+                        <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed mb-6">
+                          왼쪽에 OOTD 사진을 업로드하면<br/>AI 스타일리스트가 분석을 시작합니다
+                        </p>
+                      </>
+                    )}
+                    {wardrobeCount === 0 && !isRateLimited && (
                       <div className="mt-2 px-5 py-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl text-center">
                         <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3">옷장이 비어 있어요<br/>AI 코디 추천을 받으려면 먼저 옷을 등록해야 해요</p>
                         <Link href="/add-clothes">
@@ -934,10 +969,10 @@ export default function Home() {
                     <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#F9F9F9] dark:from-[#0c0c0f] via-[#F9F9F9]/80 dark:via-[#0c0c0f]/80 to-transparent z-30 pointer-events-none" />
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
                       className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center gap-6 z-40">
-                      <button onClick={triggerGallery} className="w-14 h-14 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white dark:hover:bg-zinc-700 transition active:scale-95">
+                      <button onClick={!isRateLimited ? triggerGallery : undefined} disabled={isRateLimited} className="w-14 h-14 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white dark:hover:bg-zinc-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                         <ImagePlus className="w-6 h-6 text-zinc-700" strokeWidth={1.5} />
                       </button>
-                      <div className="relative flex items-center justify-center cursor-pointer" onClick={triggerCamera}>
+                      <div className={`relative flex items-center justify-center ${isRateLimited ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isRateLimited ? triggerCamera : undefined}>
                         <svg className="absolute w-[96px] h-[96px] -rotate-90 pointer-events-none">
                           <circle cx="48" cy="48" r="45" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
                           <motion.circle cx="48" cy="48" r="45" fill="none" stroke="#000000" strokeWidth="4"

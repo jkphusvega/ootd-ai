@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
+import { logEvent } from '../../lib/analytics';
 
 interface ExtractedItem {
   id: string;
@@ -394,6 +395,7 @@ export default function UnifiedSandboxPage() {
       const { error: dbError } = await supabase.from('clothes').insert({ category, name: `${category.toUpperCase()}`, image_url: publicUrl, user_id: user!.id });
       if (dbError) throw new Error('DB 저장 실패: ' + dbError.message);
 
+      logEvent(user!.id, 'clothes_added', { category, pipeline: 'single' });
       router.push('/wardrobe');
     } catch (e: unknown) {
       console.error('Supabase Error:', e);
@@ -429,6 +431,7 @@ export default function UnifiedSandboxPage() {
         if (dbError) throw new Error('DB 저장 실패: ' + dbError.message);
       }
 
+      logEvent(user!.id, 'clothes_added', { count: resultImages.length, pipeline: 'auto' });
       router.push('/wardrobe');
     } catch (e: unknown) {
       console.error('Supabase Error:', e);
@@ -639,6 +642,25 @@ export default function UnifiedSandboxPage() {
                                </select>
                             </div>
                          </div>
+                      ))}
+                      {/* 실패 아이템 */}
+                      {failedItems.map((item) => (
+                        <div key={item.id} className="relative flex items-center gap-3 bg-red-50/90 backdrop-blur-xl border border-red-200 p-2 rounded-2xl w-full shadow-lg">
+                          <div className="w-[80px] h-[80px] shrink-0 rounded-xl bg-red-100 flex items-center justify-center">
+                            <span className="text-2xl">⚠️</span>
+                          </div>
+                          <div className="flex flex-col flex-1 gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-bold bg-red-500 text-white px-2 py-0.5 rounded shadow uppercase">{item.category} 실패</span>
+                              <button onClick={() => setFailedItems(prev => prev.filter(f => f.id !== item.id))} className="text-[9px] text-zinc-500 font-bold px-2 py-1 bg-white/80 rounded hover:bg-white transition">제거</button>
+                            </div>
+                            <p className="text-[9px] text-red-600 font-medium leading-snug">{item.errorMsg}</p>
+                            <button onClick={() => retryFailedItem(item)} disabled={item.retrying || isProcessing}
+                              className="text-[9px] font-extrabold px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                              {item.retrying ? '재시도 중...' : '다시 시도'}
+                            </button>
+                          </div>
+                        </div>
                       ))}
                    </div>
                  )}

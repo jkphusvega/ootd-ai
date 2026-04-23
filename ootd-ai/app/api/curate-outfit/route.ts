@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '../../../lib/supabase/server';
 import { checkRateLimit } from '../../../lib/rateLimit';
+import { getUserBehaviorContext } from '../../../lib/behaviorContext';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
     }
 
     const { weatherInfo, userProfile } = await request.json();
+
+    // 행동 컨텍스트 (착용 이력, 스타일 패턴) — 실패해도 추천은 진행
+    const behaviorContext = await getUserBehaviorContext(supabase, user.id);
 
     // 사용자의 옷장에서 아이템 가져오기
     const { data: clothes, error } = await supabase
@@ -62,6 +66,7 @@ ${wardrobeDescription}
 
 Current weather: ${weatherInfo?.temperature || 20}°C, ${weatherInfo?.condition || 'Clear'}.
 ${profileContext}
+${behaviorContext.summary}
 
 Based on the ACTUAL items in their wardrobe, suggest ONE complete outfit combination for today's weather.
 Pick specific items from their wardrobe that go well together (you MUST use items they actually own).

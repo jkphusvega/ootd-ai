@@ -49,6 +49,9 @@ export default function OnboardingPage() {
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
   const [selectedShape, setSelectedShape] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<string>('');
+  const [height, setHeight] = useState<number>(170);
+  const [weight, setWeight] = useState<number>(60);
+  const [fitPreference, setFitPreference] = useState<'slim' | 'regular' | 'oversized'>('regular');
   const [isSaving, setIsSaving] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -106,9 +109,9 @@ export default function OnboardingPage() {
       const { error } = await supabase.from('user_profiles').upsert({
         user_id: user.id,
         nickname,
-        height: 170,
-        weight: 65,
-        fit_preference: 'regular',
+        height,
+        weight,
+        fit_preference: fitPreference,
         style_moods: [...selectedMoods, ...selectedContexts],
         body_shape: selectedShape,
         body_goal: selectedGoal,
@@ -288,6 +291,47 @@ export default function OnboardingPage() {
             </p>
 
             <div className="space-y-6 mb-8">
+              {/* 키 / 몸무게 */}
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { label: '키', unit: 'cm', value: height, setValue: setHeight, min: 140, max: 210 },
+                  { label: '몸무게', unit: 'kg', value: weight, setValue: setWeight, min: 35, max: 130 },
+                ] as const).map(({ label, unit, value, setValue, min, max }) => (
+                  <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col items-center gap-2">
+                    <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">{label}</span>
+                    <span className="text-2xl font-black text-zinc-900 dark:text-white">{value}<span className="text-sm font-bold text-zinc-400 ml-0.5">{unit}</span></span>
+                    <div className="flex items-center gap-3 mt-1">
+                      <button onClick={() => setValue(v => Math.max(min, v - 1))}
+                        className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 active:scale-90 transition">−</button>
+                      <button onClick={() => setValue(v => Math.min(max, v + 1))}
+                        className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 active:scale-90 transition">+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 핏 선호도 */}
+              <div>
+                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">선호하는 핏</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { id: 'slim', label: '슬림', desc: '몸에 딱 맞게' },
+                    { id: 'regular', label: '레귤러', desc: '적당히 편하게' },
+                    { id: 'oversized', label: '오버핏', desc: '여유 있게' },
+                  ] as const).map(fit => (
+                    <button key={fit.id} onClick={() => setFitPreference(fit.id)}
+                      className={`p-3 rounded-2xl text-center transition-all border ${
+                        fitPreference === fit.id
+                          ? 'bg-black text-white border-black shadow-md'
+                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
+                      }`}>
+                      <span className={`block font-bold text-sm ${fitPreference === fit.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{fit.label}</span>
+                      <span className={`block text-[10px] mt-0.5 ${fitPreference === fit.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{fit.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 체형 선택 */}
               <div>
                 <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">내 체형 타입</p>
@@ -342,9 +386,6 @@ export default function OnboardingPage() {
                 <>시작하기 <ArrowRight className="w-4 h-4" /></>
               )}
             </button>
-            <p className="text-center text-[10px] text-zinc-300 mt-4">
-              키·몸무게·핏은 나중에 설정에서 수정할 수 있어요
-            </p>
           </motion.main>
         )}
       </AnimatePresence>

@@ -7,6 +7,7 @@ import { useToast } from '../../components/ToastProvider';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useWeather } from '../../hooks/useWeather';
+import { logEvent } from '../../lib/analytics';
 
 interface CurationItem {
   category: string;
@@ -74,6 +75,7 @@ export default function CurationPage() {
       });
       if (error) throw error;
       setIsSaved(true);
+      if (user) logEvent(user.id, 'curation_saved', { style: curation?.style, colorTone: curation?.colorTone });
       toast('오늘의 코디가 저널에 저장됐어요!', 'success');
     } catch {
       toast('저장 중 오류가 발생했습니다.', 'error');
@@ -98,6 +100,7 @@ export default function CurationPage() {
       if (error) throw error;
       setIsWorn(true);
       setIsSaved(true);
+      if (user) logEvent(user.id, 'curation_worn', { style: curation?.style, colorTone: curation?.colorTone, items_count: curation?.items?.length });
       toast('오늘 착장으로 저널에 기록됐어요! 🎉', 'success');
     } catch {
       toast('저장 중 오류가 발생했습니다.', 'error');
@@ -130,6 +133,7 @@ export default function CurationPage() {
       const data = await res.json();
       if (res.ok) {
         setCuration(data);
+        if (user) logEvent(user.id, 'curation_generated', { style: data.style, colorTone: data.colorTone, items_count: data.items?.length });
       } else {
         setError(data.error || 'AI 큐레이션 오류');
       }
