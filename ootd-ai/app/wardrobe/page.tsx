@@ -375,12 +375,12 @@ export default function GalleryPage() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
                 onClick={() => setSelectedFeed(null)} />
-              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              <motion.div initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col">
-                {/* 핸들 */}
-                <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
-                <div className="flex-1 overflow-y-auto px-6 pb-10 [&::-webkit-scrollbar]:hidden">
+                className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col lg:bottom-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-lg lg:rounded-[2rem] lg:max-h-[80vh]">
+                {/* 핸들 (모바일 전용) */}
+                <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0 lg:hidden" />
+                <div className="flex-1 overflow-y-auto px-6 pb-10 lg:pt-8 [&::-webkit-scrollbar]:hidden">
                   {/* 이미지 + 점수 */}
                   <div className="relative mt-4 rounded-2xl overflow-hidden aspect-[3/2] mb-6">
                     <img src={selectedFeed.image} alt="OOTD" className="w-full h-full object-cover" />
