@@ -25,14 +25,30 @@ const CONTEXTS = [
   { id: 'ctx_home', label: '홈웨어', desc: '집에서 편하게' },
 ];
 
+const BODY_SHAPES = [
+  { id: 'triangle', label: '삼각형', desc: '하체가 발달한 체형' },
+  { id: 'inverted_triangle', label: '역삼각형', desc: '어깨/상체가 발달한 체형' },
+  { id: 'rectangle', label: '직사각형', desc: '어깨와 골반 너비가 비슷한 체형' },
+  { id: 'oval', label: '둥근형', desc: '복부가 발달한 체형' },
+];
+
+const BODY_GOALS = [
+  { id: 'taller', label: '키 커 보이기', desc: '비율이 좋아 보이게' },
+  { id: 'slimmer', label: '슬림해 보이기', desc: '체격을 커버하게' },
+  { id: 'broader', label: '체격 커 보이기', desc: '어깨가 넓어 보이게' },
+  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 보완하게' },
+];
+
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const { toast } = useToast();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
+  const [selectedShape, setSelectedShape] = useState<string>('');
+  const [selectedGoal, setSelectedGoal] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -64,16 +80,18 @@ export default function OnboardingPage() {
   };
 
   const handleNext = () => {
-    if (selectedMoods.length === 0) {
-      toast('스타일을 최소 1개 선택해주세요!', 'info');
-      return;
+    if (step === 1) {
+      if (selectedMoods.length === 0) { toast('스타일을 최소 1개 선택해주세요!', 'info'); return; }
+      setStep(2);
+    } else if (step === 2) {
+      if (selectedContexts.length === 0) { toast('착장 상황을 최소 1개 선택해주세요!', 'info'); return; }
+      setStep(3);
     }
-    setStep(2);
   };
 
   const handleFinish = async () => {
-    if (selectedContexts.length === 0) {
-      toast('착장 상황을 최소 1개 선택해주세요!', 'info');
+    if (!selectedShape || !selectedGoal) {
+      toast('체형과 보완 목표를 모두 선택해주세요!', 'info');
       return;
     }
     setIsSaving(true);
@@ -92,6 +110,8 @@ export default function OnboardingPage() {
         weight: 65,
         fit_preference: 'regular',
         style_moods: [...selectedMoods, ...selectedContexts],
+        body_shape: selectedShape,
+        body_goal: selectedGoal,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
@@ -120,7 +140,7 @@ export default function OnboardingPage() {
       {/* Progress bar */}
       <div className="relative z-10 pt-14 px-8 max-w-lg mx-auto w-full">
         <div className="flex gap-2 mb-8">
-          {[1, 2].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-500 ${s <= step ? 'bg-black dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-800'}`} />
           ))}
         </div>
@@ -242,8 +262,72 @@ export default function OnboardingPage() {
             </p>
 
             <button
+              onClick={handleNext}
+              disabled={selectedContexts.length === 0}
+              className="w-full flex items-center justify-center gap-2 py-5 bg-black text-white font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-40 shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:bg-zinc-800 transition-all active:scale-[0.98]"
+            >
+              다음 <ArrowRight className="w-4 h-4" />
+            </button>
+          </motion.main>
+        )}
+
+        {/* Step 3: 체형 & 콤플렉스 */}
+        {step === 3 && (
+          <motion.main key="step3"
+            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.3 }}
+            className="flex-1 flex flex-col justify-center px-8 pb-8 max-w-lg mx-auto w-full relative z-10">
+            <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+              <span className="text-xl">📏</span>
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-3">
+              나의 체형과<br />보완 목표는?
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed mb-8">
+              체형에 맞는 핏과 스타일링 팁을 AI가 조언해 드립니다.
+            </p>
+
+            <div className="space-y-6 mb-8">
+              {/* 체형 선택 */}
+              <div>
+                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">내 체형 타입</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {BODY_SHAPES.map(shape => (
+                    <button key={shape.id} onClick={() => setSelectedShape(shape.id)}
+                      className={`p-3 rounded-xl text-left transition-all border ${
+                        selectedShape === shape.id 
+                          ? 'bg-black text-white border-black shadow-md' 
+                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
+                      }`}>
+                      <span className={`block font-bold text-sm ${selectedShape === shape.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{shape.label}</span>
+                      <span className={`block text-[10px] mt-0.5 ${selectedShape === shape.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{shape.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 보완 목표 선택 */}
+              <div>
+                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">옷을 입을 때 바라는 점</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {BODY_GOALS.map(goal => (
+                    <button key={goal.id} onClick={() => setSelectedGoal(goal.id)}
+                      className={`p-3 rounded-xl text-left transition-all border ${
+                        selectedGoal === goal.id 
+                          ? 'bg-black text-white border-black shadow-md' 
+                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
+                      }`}>
+                      <span className={`block font-bold text-sm ${selectedGoal === goal.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{goal.label}</span>
+                      <span className={`block text-[10px] mt-0.5 ${selectedGoal === goal.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{goal.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
               onClick={handleFinish}
-              disabled={selectedContexts.length === 0 || isSaving}
+              disabled={!selectedShape || !selectedGoal || isSaving}
               className="w-full flex items-center justify-center gap-2 py-5 bg-black text-white font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-40 shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:bg-zinc-800 transition-all active:scale-[0.98]"
             >
               {isSaving ? (

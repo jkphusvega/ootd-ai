@@ -44,11 +44,12 @@ export async function POST(request: Request) {
     if (userProfile) {
       profileContext = `
 The user's body profile:
-- Height: ${userProfile.height}cm
-- Weight: ${userProfile.weight}kg
+- Height/Weight: ${userProfile.height}cm, ${userProfile.weight}kg
+- Body Shape: ${userProfile.body_shape || 'Not specified'}
+- Styling Goal (Body Flaw to Cover): ${userProfile.body_goal || 'Not specified'}
 - Preferred fit: ${userProfile.fit_preference}
 - Style preferences: ${userProfile.style_moods?.join(', ') || 'Not specified'}
-Take these into account when giving fit and styling advice.`;
+Focus heavily on how this outfit complements their body shape and styling goal.`;
     }
 
     const prompt = `You are a highly sought-after, trendy celebrity fashion stylist in Seoul. 

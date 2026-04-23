@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     let profileContext = '';
     if (userProfile) {
-      profileContext = `User profile: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
+      profileContext = `User profile: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Body shape: ${userProfile.body_shape || 'Not specified'}. Styling goal: ${userProfile.body_goal || 'Not specified'}. Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { temperature: 0.4 } });

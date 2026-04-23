@@ -19,6 +19,20 @@ const MOODS = [
   { id: 'vintage', label: '빈티지', emoji: '레트로' },
 ];
 
+const BODY_SHAPES = [
+  { id: 'triangle', label: '삼각형', desc: '하체 발달' },
+  { id: 'inverted_triangle', label: '역삼각형', desc: '상체 발달' },
+  { id: 'rectangle', label: '직사각형', desc: '슬림함' },
+  { id: 'oval', label: '둥근형', desc: '복부 발달' },
+];
+
+const BODY_GOALS = [
+  { id: 'taller', label: '키 커 보이기', desc: '비율 보완' },
+  { id: 'slimmer', label: '슬림해 보이기', desc: '체격 커버' },
+  { id: 'broader', label: '체격 커 보이기', desc: '어깨 보완' },
+  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인' },
+];
+
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -30,6 +44,8 @@ export default function SettingsPage() {
   const [weight, setWeight] = useState(70);
   const [fit, setFit] = useState('regular');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  const [bodyShape, setBodyShape] = useState('');
+  const [bodyGoal, setBodyGoal] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -65,6 +81,8 @@ export default function SettingsPage() {
           setWeight(data.weight || 70);
           setFit(data.fit_preference || 'regular');
           setSelectedMoods(data.style_moods || []);
+          setBodyShape(data.body_shape || '');
+          setBodyGoal(data.body_goal || '');
           setIsPublic(data.is_public || false);
           setShareId(data.share_id || '');
         }
@@ -97,6 +115,8 @@ export default function SettingsPage() {
           weight,
           fit_preference: fit,
           style_moods: selectedMoods,
+          body_shape: bodyShape,
+          body_goal: bodyGoal,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
 
@@ -280,11 +300,48 @@ export default function SettingsPage() {
                     className={`flex-1 py-3 rounded-xl text-[11px] font-bold tracking-widest uppercase transition-all ${
                       fit === f.toLowerCase()
                         ? 'bg-black text-white shadow-md'
-                        : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200'
                     }`}>
                     {f}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Body Shape & Goal */}
+            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 space-y-6">
+              <div>
+                <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-3">체형 타입</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {BODY_SHAPES.map(shape => (
+                    <button key={shape.id} onClick={() => setBodyShape(shape.id)}
+                      className={`py-3 px-4 rounded-xl text-left transition-all ${
+                        bodyShape === shape.id
+                          ? 'bg-black text-white shadow-md'
+                          : 'bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 hover:bg-zinc-100'
+                      }`}>
+                      <span className="block text-xs font-bold mb-0.5">{shape.label}</span>
+                      <span className="block text-[10px] opacity-70">{shape.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-3">체형 보완 목표</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {BODY_GOALS.map(goal => (
+                    <button key={goal.id} onClick={() => setBodyGoal(goal.id)}
+                      className={`py-3 px-4 rounded-xl text-left transition-all ${
+                        bodyGoal === goal.id
+                          ? 'bg-black text-white shadow-md'
+                          : 'bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 hover:bg-zinc-100'
+                      }`}>
+                      <span className="block text-xs font-bold mb-0.5">{goal.label}</span>
+                      <span className="block text-[10px] opacity-70">{goal.desc}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
