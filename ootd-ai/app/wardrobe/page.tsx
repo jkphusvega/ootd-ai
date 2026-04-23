@@ -179,8 +179,8 @@ export default function GalleryPage() {
           </div>
 
           {/* Segmented Control */}
-          <div className="px-6 mb-2 relative z-10">
-            <div className="flex p-1 bg-white/40 backdrop-blur-md border border-stone-800/10 rounded-full shadow-sm relative max-w-md lg:max-w-sm">
+          <div className="px-6 mb-2 relative z-10 flex justify-center">
+            <div className="flex p-1 bg-white/40 backdrop-blur-md border border-stone-800/10 rounded-full shadow-sm relative w-full max-w-xs">
               <motion.div
                 layoutId="activeTabIndicator"
                 className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-stone-900 rounded-full z-0 shadow-md"

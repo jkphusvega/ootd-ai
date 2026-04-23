@@ -84,7 +84,11 @@ Return JSON only:
 
 IMPORTANT: Only return raw JSON. No markdown. Write title, description, and reasons in Korean.`;
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(
+      prompt,
+      // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
+      { thinkingConfig: { thinkingBudget: 0 } }
+    );
     const responseText = result.response.text();
     const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);

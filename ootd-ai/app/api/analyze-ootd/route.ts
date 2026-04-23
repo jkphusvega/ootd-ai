@@ -1,76 +1,54 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '../../../lib/supabase/server';
 import { checkRateLimit } from '../../../lib/rateLimit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = process.env.GEMINI_API_KEY;
-
 const genAI = new GoogleGenerativeAI(apiKey || '');
-
-async function generateWithRetry(model: ReturnType<typeof genAI.getGenerativeModel>, parts: Parameters<typeof model.generateContent>[0], retries = 2): Promise<string> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const result = await model.generateContent(parts);
-      return result.response.text();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      const is503 = msg.includes('503') || msg.includes('Service Unavailable') || msg.includes('high demand');
-      if (is503 && i < retries) {
-        await new Promise(r => setTimeout(r, 2000 * (i + 1)));
-        continue;
-      }
-      if (is503) throw new Error('AI 서버가 잠시 과부하 상태예요. 잠깐 후 다시 시도해주세요 🙏');
-      throw err;
-    }
-  }
-  throw new Error('AI 분석에 실패했습니다.');
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 
   // Rate Limiting
   const { allowed, limit } = await checkRateLimit(user.id, 'analyze-ootd');
   if (!allowed) {
-    return NextResponse.json(
-      { error: `일일 분석 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
+    return new Response(
+      JSON.stringify({ error: `일일 분석 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` }),
       { status: 429 }
     );
   }
 
-  if (!apiKey) return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  if (!apiKey) return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 });
 
   try {
     const body = await request.json();
     const { imageBase64, weatherInfo, userProfile } = body;
 
     if (!imageBase64) {
-      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'No image provided' }), { status: 400 });
     }
 
     const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
-    
     const imagePart = {
-      inlineData: {
-        data: base64Data,
-        mimeType: "image/jpeg"
-      }
+      inlineData: { data: base64Data, mimeType: 'image/jpeg' as const }
     };
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { temperature: 0.4 } });
-    
-    // 사용자 프로필 정보를 프롬프트에 반영
+    // thinkingBudget: 0 → thinking 비활성화로 응답 속도 최적화
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: { temperature: 0.4 },
+    });
+
     let profileContext = '';
     if (userProfile) {
       profileContext = `
 The user's body profile:
 - Height: ${userProfile.height}cm
-- Weight: ${userProfile.weight}kg  
+- Weight: ${userProfile.weight}kg
 - Preferred fit: ${userProfile.fit_preference}
 - Style preferences: ${userProfile.style_moods?.join(', ') || 'Not specified'}
-Take these into account when giving fit and styling advice. For example, if they prefer oversized fits, don't criticize loose silhouettes. If they like minimal style, suggest clean, simple upgrades.`;
+Take these into account when giving fit and styling advice.`;
     }
 
     const prompt = `You are a highly sought-after, trendy celebrity fashion stylist in Seoul. 
@@ -85,46 +63,65 @@ Structure your JSON EXACTLY like this:
 {
   "score": <0-100 score strictly evaluated based on real-world trendy fashion standards>,
   "summary": "<A catchy, short headline. E.g., '깔끔하지만 한 끗의 포인트가 아쉬운 룩'>",
-  "weatherAdvice": "<How this fit handles the ${weatherInfo.temperature}°C weather. E.g., '14도엔 얇은 아우터가 필수예요. 지금 룩은 저녁에 꽤 쌀쌀할 수 있습니다.'>",
+  "weatherAdvice": "<How this fit handles the ${weatherInfo.temperature}°C weather.>",
   "fitAndColor": "<Honest critique on the silhouette and colors. Use friendly but professional fashion terms.>",
-  "stylistRecommendation": "<At least 2 highly specific, trendy recommendations to upgrade the look. E.g., '심심한 무지 양말 대신 트렌디한 버터 옐로우 컬러 양말로 포인트를 줘보세요', '신발을 볼드한 실루엣의 스니커즈로 바꾸면 비율이 훨씬 좋아 보일 거예요.'>"
+  "stylistRecommendation": "<At least 2 highly specific, trendy recommendations to upgrade the look.>"
 }
 Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and professional like a star's personal stylist. Return ONLY raw JSON string. No markdown brackets whatsoever.`;
 
-    const responseText = await generateWithRetry(model, [prompt, imagePart]);
+    // ── 스트리밍 응답 ──
+    const streamResult = await model.generateContentStream(
+      [prompt, imagePart],
+      // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
+      { thinkingConfig: { thinkingBudget: 0 } }
+    );
 
-    const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
-    let parsedData;
-    try {
-      parsedData = JSON.parse(jsonMatch[0]);
-    } catch {
-      throw new Error('AI 응답 JSON 파싱 실패');
-    }
-    if (typeof parsedData.score !== 'number' || !parsedData.summary) {
-      throw new Error('AI 응답 형식이 올바르지 않습니다.');
-    }
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        let fullText = '';
+        try {
+          for await (const chunk of streamResult.stream) {
+            const text = chunk.text();
+            fullText += text;
+            controller.enqueue(encoder.encode(text));
+          }
+        } finally {
+          controller.close();
+        }
 
-    // 분석 이력 자동 저장 (journal_entries) — stats 페이지 점수 추적에 사용
-    try {
-      await supabase.from('journal_entries').insert({
-        user_id: user.id,
-        score: parsedData.score ?? null,
-        weather_condition: weatherInfo?.condition ?? 'Clear',
-        temperature: String(weatherInfo?.temperature ?? ''),
-        memo: parsedData.summary ?? '',
-        tags: [],
-        image_url: '',
-      });
-    } catch {
-      // 비핵심 기능: 저장 실패해도 분석 결과는 정상 반환
-    }
+        // ── fire-and-forget: 응답 반환 후 DB 저장 (블로킹 없음) ──
+        try {
+          const cleaned = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            supabase.from('journal_entries').insert({
+              user_id: user.id,
+              score: parsed.score ?? null,
+              weather_condition: weatherInfo?.condition ?? 'Clear',
+              temperature: String(weatherInfo?.temperature ?? ''),
+              memo: parsed.summary ?? '',
+              tags: [],
+              image_url: '',
+            }).then(() => {/* no-op */}).catch(() => {/* 비핵심 기능: 저장 실패 무시 */});
+          }
+        } catch {
+          // 파싱 실패해도 무시
+        }
+      },
+    });
 
-    return NextResponse.json(parsedData);
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-cache',
+      },
+    });
   } catch (error: unknown) {
     console.error('API Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to process AI Evaluation';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 }

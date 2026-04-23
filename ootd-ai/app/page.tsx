@@ -62,6 +62,8 @@ export default function Home() {
   const [isCurating, setIsCurating] = useState(false);
   const [curationError, setCurationError] = useState<string | null>(null);
   const [wardrobeCount, setWardrobeCount] = useState(0);
+  const [partialCritique, setPartialCritique] = useState<Partial<FashionCritique> | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -115,6 +117,22 @@ export default function Home() {
     };
     if (!authLoading && user) fetchWardrobeCount();
   }, [user, authLoading, supabase]);
+
+  // 스트리밍 중 완성된 필드를 정규식으로 추출
+  const extractPartialFields = (text: string): Partial<FashionCritique> => {
+    const r: Partial<FashionCritique> = {};
+    const scoreM = text.match(/"score"\s*:\s*(\d+)/);
+    if (scoreM) r.score = parseInt(scoreM[1]);
+    const summaryM = text.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (summaryM) r.summary = summaryM[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    const weatherM = text.match(/"weatherAdvice"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (weatherM) r.weatherAdvice = weatherM[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    const fitM = text.match(/"fitAndColor"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (fitM) r.fitAndColor = fitM[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    const stylistM = text.match(/"stylistRecommendation"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (stylistM) r.stylistRecommendation = stylistM[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    return r;
+  };
 
   // AI 코디 큐레이션 생성
   const generateCuration = async () => {
@@ -184,6 +202,9 @@ export default function Home() {
     // API 전송용 압축 이미지 (1024px, WebP)
     const compressed = await compressImage(file);
     setScanState('scanning');
+    setPartialCritique(null);
+    setIsStreaming(false);
+    setCritique(null);
     
     try {
       const res = await fetch('/api/analyze-ootd', {
@@ -195,9 +216,33 @@ export default function Home() {
           userProfile: userProfile || null
         })
       });
-      const data = await res.json();
-      if (res.ok) { setCritique(data); setScanState('success'); }
-      else { toast(data.error || 'AI 분석 중 오류가 발생했습니다.', 'error'); setScanState('idle'); }
+      if (!res.ok || !res.body) {
+        const errData = await res.json().catch(() => ({ error: 'AI 분석 중 오류가 발생했습니다.' }));
+        toast(errData.error || 'AI 분석 중 오류가 발생했습니다.', 'error');
+        setScanState('idle');
+        return;
+      }
+      // 스트리밍: 청크마다 완성된 필드 추출 → 점진적 렌더링
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let panelOpened = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        const partial = extractPartialFields(fullText);
+        if (Object.keys(partial).length > 0) {
+          setPartialCritique(partial);
+          if (!panelOpened) { panelOpened = true; setIsStreaming(true); setScanState('success'); }
+        }
+      }
+      const cleaned = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) { toast('AI 응답을 읽을 수 없습니다. 다시 시도해주세요.', 'error'); setScanState('idle'); setIsStreaming(false); setPartialCritique(null); return; }
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.error) { toast(parsed.error, 'error'); setScanState('idle'); setIsStreaming(false); setPartialCritique(null); return; }
+      setCritique(parsed); setPartialCritique(null); setIsStreaming(false); setScanState('success');
     } catch { toast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error'); setScanState('idle'); }
   };
 
@@ -222,6 +267,9 @@ export default function Home() {
   const retryAnalysis = async () => {
     if (!base64Image) return;
     setScanState('scanning');
+    setPartialCritique(null);
+    setIsStreaming(false);
+    setCritique(null);
     try {
       const blob = await (await fetch(base64Image)).blob();
       const compressed = await compressImage(new File([blob], 'retry.jpg', { type: blob.type }));
@@ -230,9 +278,33 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: compressed, weatherInfo: weather || { temperature: 20, condition: 'Clear' }, userProfile: userProfile || null }),
       });
-      const data = await res.json();
-      if (res.ok) { setCritique(data); setScanState('success'); }
-      else { toast(data.error || 'AI 분석 중 오류가 발생했습니다.', 'error'); setScanState('idle'); }
+      if (!res.ok || !res.body) {
+        const errData = await res.json().catch(() => ({ error: 'AI 분석 중 오류가 발생했습니다.' }));
+        toast(errData.error || 'AI 분석 중 오류가 발생했습니다.', 'error');
+        setScanState('idle');
+        return;
+      }
+      // 스트리밍: 청크마다 완성된 필드 추출 → 점진적 렌더링
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let panelOpened = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        const partial = extractPartialFields(fullText);
+        if (Object.keys(partial).length > 0) {
+          setPartialCritique(partial);
+          if (!panelOpened) { panelOpened = true; setIsStreaming(true); setScanState('success'); }
+        }
+      }
+      const cleaned = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) { toast('AI 응답을 읽을 수 없습니다. 다시 시도해주세요.', 'error'); setScanState('idle'); setIsStreaming(false); setPartialCritique(null); return; }
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.error) { toast(parsed.error, 'error'); setScanState('idle'); setIsStreaming(false); setPartialCritique(null); return; }
+      setCritique(parsed); setPartialCritique(null); setIsStreaming(false); setScanState('success');
     } catch { toast('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error'); setScanState('idle'); }
   };
   const triggerGallery = () => { galleryInputRef.current?.click(); };
@@ -447,86 +519,97 @@ export default function Home() {
                   </motion.div>
                 )}
 
-                {(scanState === 'success' || critique) && critique && (
-                  <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }} className="flex flex-col gap-5">
-                    
-                    {/* Score + Summary */}
-                    <div className="flex justify-between items-start p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                      <div className="flex-1 pr-6">
-                        <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-2">AI Stylist Review</span>
-                        <h2 className="text-xl font-extrabold tracking-tight text-black dark:text-white leading-snug break-keep text-balance">
-                          "{critique.summary}"
-                        </h2>
-                      </div>
-                      <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-                        <svg className="absolute inset-0 w-full h-full -rotate-90">
-                          <circle cx="32" cy="32" r="28" fill="none" stroke="#f4f4f5" strokeWidth="4" />
-                          <motion.circle cx="32" cy="32" r="28" fill="none" stroke="#18181b" strokeWidth="4"
-                            initial={{ pathLength: 0 }} animate={{ pathLength: critique.score / 100 }} transition={{ duration: 1.5, ease: "easeOut" }} strokeDasharray="175" />
-                        </svg>
-                        <span className="text-xl font-black">{critique.score}</span>
-                      </div>
-                    </div>
+                {(() => {
+                  const d = critique ?? partialCritique;
+                  if (!d) return null;
+                  const Sk = ({ w = 'full', h = 3 }: { w?: string; h?: number }) => (
+                    <div className={`h-${h} w-${w} bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse`} />
+                  );
+                  return (
+                    <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }} className="flex flex-col gap-5">
 
-                    {/* Detail Cards */}
-                    <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Droplets className="w-4 h-4 text-zinc-400" />
-                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Weather Context</h3>
+                      {/* Score + Summary */}
+                      <div className="flex justify-between items-start p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                        <div className="flex-1 pr-6">
+                          <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-2">AI Stylist Review</span>
+                          {d.summary
+                            ? <h2 className="text-xl font-extrabold tracking-tight text-black dark:text-white leading-snug break-keep text-balance">"{d.summary}"</h2>
+                            : <div className="flex flex-col gap-2"><Sk /><Sk w="3/4" /></div>}
+                        </div>
+                        <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                          <svg className="absolute inset-0 w-full h-full -rotate-90">
+                            <circle cx="32" cy="32" r="28" fill="none" stroke="#f4f4f5" strokeWidth="4" />
+                            <motion.circle cx="32" cy="32" r="28" fill="none" stroke="#18181b" strokeWidth="4"
+                              initial={{ pathLength: 0 }} animate={{ pathLength: (d.score ?? 0) / 100 }}
+                              transition={{ duration: 1.2, ease: "easeOut" }} strokeDasharray="175" />
+                          </svg>
+                          <span className="text-xl font-black">{d.score ?? '—'}</span>
+                        </div>
                       </div>
-                      <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.weatherAdvice}</p>
-                    </div>
 
-                    <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <ScanLine className="w-4 h-4 text-zinc-400" />
-                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Fit & Color</h3>
+                      {/* Weather */}
+                      <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Droplets className="w-4 h-4 text-zinc-400" />
+                          <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Weather Context</h3>
+                        </div>
+                        {d.weatherAdvice
+                          ? <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{d.weatherAdvice}</p>
+                          : <div className="flex flex-col gap-2"><Sk /><Sk w="5/6" /></div>}
                       </div>
-                      <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.fitAndColor}</p>
-                    </div>
 
-                    <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Star className="w-4 h-4 text-yellow-400" />
-                        <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3>
+                      {/* Fit & Color */}
+                      <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <ScanLine className="w-4 h-4 text-zinc-400" />
+                          <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Fit & Color</h3>
+                        </div>
+                        {d.fitAndColor
+                          ? <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{d.fitAndColor}</p>
+                          : <div className="flex flex-col gap-2"><Sk /><Sk w="5/6" /></div>}
                       </div>
-                      <p className="text-[13px] text-white leading-relaxed font-medium">{critique.stylistRecommendation}</p>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-col gap-3 mt-2">
-                      <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-stone-800">
-                        <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
-                      </button>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <button onClick={() => { setScanState('idle'); setCritique(null); setHasCustomImage(false); setOriginalImage(""); }}
-                          className="py-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-50">
-                          다시 분석
-                        </button>
-                        <Link href="/wardrobe" className="block">
-                          <button className="w-full h-full py-3.5 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-200">
-                            옷장 가기
+                      {/* Stylist Pick */}
+                      <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Star className="w-4 h-4 text-yellow-400" />
+                          <h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3>
+                        </div>
+                        {d.stylistRecommendation
+                          ? <p className="text-[13px] text-white leading-relaxed font-medium">{d.stylistRecommendation}</p>
+                          : <div className="flex flex-col gap-2"><div className="h-3 w-full bg-zinc-700 rounded-full animate-pulse" /><div className="h-3 w-4/5 bg-zinc-700 rounded-full animate-pulse" /></div>}
+                      </div>
+
+                      {/* Action Buttons — 스트리밍 완료 후에만 표시 */}
+                      {critique && !isStreaming && (
+                        <div className="flex flex-col gap-3 mt-2">
+                          <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-stone-800">
+                            <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
                           </button>
-                        </Link>
-                        <Link href="/curation" className="block">
-                          <button className="w-full h-full py-3.5 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-purple-200 flex items-center justify-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" /> 코디 추천
-                          </button>
-                        </Link>
-                        <button onClick={() => {
-                          if (base64Image) {
-                            sessionStorage.setItem('ootd_transfer_image', base64Image);
-                            sessionStorage.setItem('ootd_auto_start', 'true');
-                            router.push('/add-clothes');
-                          }
-                        }} className="py-3.5 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5 hover:bg-zinc-800">
-                          AI 추출 <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <button onClick={() => { setScanState('idle'); setCritique(null); setHasCustomImage(false); setOriginalImage(""); }}
+                              className="py-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-50">
+                              다시 분석
+                            </button>
+                            <Link href="/wardrobe" className="block">
+                              <button className="w-full h-full py-3.5 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-zinc-200">옷장 가기</button>
+                            </Link>
+                            <Link href="/curation" className="block">
+                              <button className="w-full h-full py-3.5 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform hover:bg-purple-200 flex items-center justify-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5" /> 코디 추천
+                              </button>
+                            </Link>
+                            <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
+                              className="py-3.5 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5 hover:bg-zinc-800">
+                              AI 추출 <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })()}
               </AnimatePresence>
             </div>
           </div>
@@ -760,64 +843,79 @@ export default function Home() {
 
               {/* Mobile Result Bottom Sheet */}
               <AnimatePresence>
-                {scanState === 'success' && critique && (
-                  <motion.div key="success" initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-950 rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[75vh]">
-                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
-                    <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 [&::-webkit-scrollbar]:hidden">
-                      <div className="flex justify-between items-start mb-6">
-                        <div>
-                          <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Review</span>
-                          <h2 className="text-2xl font-black tracking-tight text-black dark:text-white leading-snug break-keep pr-4 text-balance">"{critique.summary}"</h2>
-                        </div>
-                        <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-                          <svg className="absolute inset-0 w-full h-full -rotate-90">
-                            <circle cx="32" cy="32" r="28" fill="none" stroke="#f4f4f5" strokeWidth="4" />
-                            <motion.circle cx="32" cy="32" r="28" fill="none" stroke="#18181b" strokeWidth="4"
-                              initial={{ pathLength: 0 }} animate={{ pathLength: critique.score / 100 }} transition={{ duration: 1.5, ease: "easeOut" }} strokeDasharray="175" />
-                          </svg>
-                          <span className="text-xl font-black">{critique.score}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
-                          <div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Weather Context</h3></div>
-                          <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.weatherAdvice}</p>
-                        </div>
-                        <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
-                          <div className="flex items-center gap-2 mb-1"><ScanLine className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Fit & Color</h3></div>
-                          <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{critique.fitAndColor}</p>
-                        </div>
-                        <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
-                          <div className="flex items-center gap-2 mb-1"><Star className="w-4 h-4 text-yellow-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3></div>
-                          <p className="text-[13px] text-white leading-relaxed font-medium">{critique.stylistRecommendation}</p>
-                        </div>
-                      </div>
-                      <div className="mt-8 flex flex-col gap-3">
-                        <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-                          <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
-                        </button>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            <button onClick={() => setScanState('idle')} className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">다시입기</button>
-                            <Link href="/wardrobe" className="block"><button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">옷장 가기</button></Link>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button onClick={() => setMobileTab('curation')}
-                              className="w-full h-full py-4 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1">
-                              <Sparkles className="w-3.5 h-3.5" /> 코디 추천
-                            </button>
-                            <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
-                              className="w-full py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
-                              AI 추출 <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                {scanState === 'success' && (critique || partialCritique) && (() => {
+                  const d = critique ?? partialCritique!;
+                  const Sk = ({ dark = false }: { dark?: boolean }) => (
+                    <div className={`flex flex-col gap-2`}>
+                      <div className={`h-3 w-full rounded-full animate-pulse ${dark ? 'bg-zinc-700' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+                      <div className={`h-3 w-4/5 rounded-full animate-pulse ${dark ? 'bg-zinc-700' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
                     </div>
-                  </motion.div>
-                )}
+                  );
+                  return (
+                    <motion.div key="success" initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      className="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-950 rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[75vh]">
+                      <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
+                      <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 [&::-webkit-scrollbar]:hidden">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="flex-1 pr-4">
+                            <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Review</span>
+                            {d.summary
+                              ? <h2 className="text-2xl font-black tracking-tight text-black dark:text-white leading-snug break-keep text-balance">"{d.summary}"</h2>
+                              : <div className="flex flex-col gap-2 mt-1"><div className="h-4 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" /><div className="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" /></div>}
+                          </div>
+                          <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                            <svg className="absolute inset-0 w-full h-full -rotate-90">
+                              <circle cx="32" cy="32" r="28" fill="none" stroke="#f4f4f5" strokeWidth="4" />
+                              <motion.circle cx="32" cy="32" r="28" fill="none" stroke="#18181b" strokeWidth="4"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: (d.score ?? 0) / 100 }}
+                                transition={{ duration: 1.2, ease: "easeOut" }} strokeDasharray="175" />
+                            </svg>
+                            <span className="text-xl font-black">{d.score ?? '—'}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+                            <div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Weather Context</h3></div>
+                            {d.weatherAdvice ? <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{d.weatherAdvice}</p> : <Sk />}
+                          </div>
+                          <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+                            <div className="flex items-center gap-2 mb-1"><ScanLine className="w-4 h-4 text-zinc-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-800 dark:text-zinc-300">Fit & Color</h3></div>
+                            {d.fitAndColor ? <p className="text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">{d.fitAndColor}</p> : <Sk />}
+                          </div>
+                          <div className="p-5 bg-black rounded-2xl border border-zinc-800 flex flex-col gap-2 shadow-xl">
+                            <div className="flex items-center gap-2 mb-1"><Star className="w-4 h-4 text-yellow-400" /><h3 className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3></div>
+                            {d.stylistRecommendation ? <p className="text-[13px] text-white leading-relaxed font-medium">{d.stylistRecommendation}</p> : <Sk dark />}
+                          </div>
+                        </div>
+                        {/* 버튼은 스트리밍 완료 후에만 */}
+                        {critique && !isStreaming && (
+                          <div className="mt-8 flex flex-col gap-3">
+                            <button onClick={handleSaveToFeed} className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                              <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
+                            </button>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => setScanState('idle')} className="w-full py-4 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">다시입기</button>
+                                <Link href="/wardrobe" className="block"><button className="w-full h-full py-4 bg-zinc-100 border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">옷장 가기</button></Link>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => setMobileTab('curation')}
+                                  className="w-full h-full py-4 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1">
+                                  <Sparkles className="w-3.5 h-3.5" /> 코디 추천
+                                </button>
+                                <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
+                                  className="w-full py-4 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
+                                  AI 추출 <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })()}
               </AnimatePresence>
 
               {/* Mobile Bottom Dock */}

@@ -90,10 +90,7 @@ export default function Navigation() {
 
       {/* ============ MOBILE: Bottom Tab Bar (lg 미만) ============ */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
-        {/* Gradient fade */}
-        <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
-        
-        <div className="bg-white/85 dark:bg-zinc-950/85 backdrop-blur-2xl border-t border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+        <div className="bg-white/85 dark:bg-zinc-950/90 backdrop-blur-2xl border-t border-zinc-200/60 dark:border-zinc-800/40 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">
           <div className="flex items-center justify-around px-1 pt-2 pb-[max(env(safe-area-inset-bottom,6px),6px)]">
             {MOBILE_NAV.map((item) => {
               const isActive = pathname === item.href;

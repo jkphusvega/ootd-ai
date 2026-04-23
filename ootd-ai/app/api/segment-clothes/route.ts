@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (!apiKey) throw new Error("Gemini API Key가 설정되지 않았습니다.");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // Y-range only 접근: Gemini에 세로 위치 비율만 요청 (가로는 전체 사용)
     const prompt = `Analyze this full-body photo of a person wearing clothes.
@@ -69,7 +69,11 @@ Return ONLY raw JSON (no markdown, no code fences):
       }
     };
 
-    const result = await model.generateContent([prompt, imagePart]);
+    const result = await model.generateContent(
+      [prompt, imagePart],
+      // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
+      { thinkingConfig: { thinkingBudget: 0 } }
+    );
     let responseText = result.response.text().trim();
     
 
