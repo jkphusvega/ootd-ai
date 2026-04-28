@@ -2,27 +2,24 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
-import { Home, Shirt, Zap, BookOpen, Sparkles, Settings, CalendarDays, BarChart3, ShoppingBag, Share2 } from 'lucide-react';
+import { Home, Shirt, Zap, Sparkles, Settings, BarChart3, ShoppingBag, Share2 } from 'lucide-react';
 
 // 데스크탑 사이드바에 표시될 항목
 const DESKTOP_NAV = [
   { href: '/', label: '홈', icon: Home },
   { href: '/wardrobe', label: '옷장', icon: Shirt },
   { href: '/curation', label: '큐레이션', icon: Zap },
-  { href: '/journal', label: '저널', icon: BookOpen },
-  { href: '/calendar', label: '캘린더', icon: CalendarDays },
   { href: '/stats', label: '통계', icon: BarChart3 },
   { href: '/shopping', label: 'AI 쇼핑', icon: ShoppingBag },
   { href: '/share', label: '옷장 공유', icon: Share2 },
   { href: '/settings', label: '설정', icon: Settings },
 ];
 
-// 모바일 하단 탭바에 표시될 항목 (5개 제한 — 핵심 기능만)
+// 모바일 하단 탭바에 표시될 항목
 const MOBILE_NAV = [
   { href: '/', label: '홈', icon: Home },
   { href: '/wardrobe', label: '옷장', icon: Shirt },
   { href: '/curation', label: '코디', icon: Sparkles },
-  { href: '/journal', label: '저널', icon: BookOpen },
   { href: '/settings', label: '설정', icon: Settings },
 ];
 

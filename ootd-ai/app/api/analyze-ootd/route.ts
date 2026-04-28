@@ -42,33 +42,30 @@ export async function POST(request: Request) {
 
     let profileContext = '';
     if (userProfile) {
-      profileContext = `
-The user's body profile:
-- Height/Weight: ${userProfile.height}cm, ${userProfile.weight}kg
-- Body Shape: ${userProfile.body_shape || 'Not specified'}
-- Styling Goal (Body Flaw to Cover): ${userProfile.body_goal || 'Not specified'}
-- Preferred fit: ${userProfile.fit_preference}
-- Style preferences: ${userProfile.style_moods?.join(', ') || 'Not specified'}
-Focus heavily on how this outfit complements their body shape and styling goal.`;
+      const parts = [
+        userProfile.height && userProfile.weight ? `${userProfile.height}cm ${userProfile.weight}kg` : '',
+        userProfile.body_shape || '',
+        userProfile.body_goal || '',
+        userProfile.fit_preference ? `${userProfile.fit_preference} fit` : '',
+        userProfile.style_moods?.length ? userProfile.style_moods.join(', ') : '',
+      ].filter(Boolean);
+      if (parts.length) profileContext = `User: ${parts.join(' · ')}`;
     }
 
-    const prompt = `You are a highly sought-after, trendy celebrity fashion stylist in Seoul. 
-You are extremely sensitive to current fashion trends (like Y2K, Gorpcore, Minimal, Old Money, etc.) and know exactly how to make anyone look effortlessly stylish.
-Analyze this user's OOTD (Outfit of the Day) carefully. The current weather is ${weatherInfo.temperature}°C, ${weatherInfo.condition}.
-${profileContext}
+    const prompt = `Seoul fashion stylist. Analyze this OOTD. Weather: ${weatherInfo.temperature}°C ${weatherInfo.condition}.${profileContext ? ' ' + profileContext : ''}
 
-Provide warm but honest, sharp styling advice. Do not use overly difficult avant-garde fashion jargon that normal people can't understand. Use trendy but accessible brand/fit terms (e.g., "와이드 팬츠", "레더 자켓", "고프코어 감성", "아식스 스니커즈", "실버 악세서리", "크롭 기장", "톤온톤").
-If the outfit is too generic or boring, tell them exactly how to elevate it with a 1-2 point items (like a specific color or a trendy accessory).
-
-Structure your JSON EXACTLY like this:
+Return JSON only — no markdown:
 {
-  "score": <0-100 score strictly evaluated based on real-world trendy fashion standards>,
-  "summary": "<A catchy, short headline. E.g., '깔끔하지만 한 끗의 포인트가 아쉬운 룩'>",
-  "weatherAdvice": "<How this fit handles the ${weatherInfo.temperature}°C weather.>",
-  "fitAndColor": "<Honest critique on the silhouette and colors. Use friendly but professional fashion terms.>",
-  "stylistRecommendation": "<At least 2 highly specific, trendy recommendations to upgrade the look.>"
+  "score": <0-100, strict>,
+  "headline": "<10자 이내 한 줄 평가. 예: '깔끔하지만 포인트가 아쉬운 룩'>",
+  "tips": ["<구체적 개선팁 1>", "<구체적 개선팁 2>", "<구체적 개선팁 3>"]
 }
-Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and professional like a star's personal stylist. Return ONLY raw JSON string. No markdown brackets whatsoever.`;
+
+Rules:
+- headline: punchy, 10 chars max, Korean
+- tips: 3 items, each under 30 chars, specific (item name + action), Korean
+- tips must reference weather or body profile if relevant
+- Return ONLY raw JSON`;
 
     // ── 스트리밍 응답 ──
     const streamResult = await model.generateContentStream(
@@ -124,7 +121,7 @@ Write EVERYTHING in Korean. Keep the tone friendly, incredibly trendy, and profe
                 score: parsed.score ?? null,
                 weather_condition: weatherInfo?.condition ?? 'Clear',
                 temperature: String(weatherInfo?.temperature ?? ''),
-                memo: parsed.summary ?? '',
+                memo: parsed.headline ?? '',
                 tags: [],
                 image_url: publicUrl,
               });
