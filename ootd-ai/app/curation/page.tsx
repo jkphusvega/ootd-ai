@@ -173,23 +173,31 @@ export default function CurationPage() {
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-3.5 h-3.5 text-zinc-400" />
               <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">Seoul</span>
+              {weather && (
+                <>
+                  <span className="text-zinc-300 dark:text-zinc-600">·</span>
+                  <div className="flex items-center gap-1 text-zinc-400">
+                    <WeatherIcon />
+                    <span className="text-[10px] font-bold tracking-wider">{Math.round(weather.temperature)}°</span>
+                  </div>
+                </>
+              )}
             </div>
             <h1 className="text-3xl font-black tracking-tight text-black dark:text-white mb-1">
               Today's<br className="lg:hidden" /> AI Curation
             </h1>
             {weather && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-xl rounded-full border border-black/5 mt-2 shadow-sm">
-                <WeatherIcon />
-                <span className="text-[10px] font-bold tracking-widest text-zinc-500">{weather.temperature}°C {weather.condition.toUpperCase()}</span>
-              </div>
+              <p className="text-[11px] text-zinc-400 font-medium mt-1">
+                {weather.condition === 'Rain' ? '🌧️ 비 오는 날씨에 맞는 코디' : weather.condition === 'Snow' ? '❄️ 눈 오는 날씨에 맞는 코디' : `${Math.round(weather.temperature)}°C 날씨에 맞는 코디`}
+              </p>
             )}
           </div>
           <button
             onClick={generateCuration}
             disabled={isLoading}
-            className="w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
+            className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
           >
-            <RefreshCw className={`w-5 h-5 text-white ${isLoading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
+            <RefreshCw className={`w-5 h-5 text-white dark:text-black ${isLoading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
           </button>
         </div>
       </header>
@@ -295,32 +303,43 @@ export default function CurationPage() {
                 
                 {/* Items Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-8 lg:mb-0">
-                  {curation.items.map((item, idx) => (
+                {curation.items.map((item, idx) => (
                     <motion.div
                       key={idx}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1, duration: 0.4 }}
-                      className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all"
+                      className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800/60 shadow-sm overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                     >
-                      <div className="aspect-square overflow-hidden bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center p-3">
-                        <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110" draggable={false}
-                          style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
+                      {/* Edge-to-edge image */}
+                      <div className="relative aspect-[4/5] overflow-hidden bg-zinc-50 dark:bg-zinc-800">
+                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" draggable={false} />
+                        {/* Category badge overlay */}
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="text-[8px] font-extrabold tracking-widest text-white/90 uppercase px-2 py-1 bg-black/40 backdrop-blur-md rounded-full">{item.category}</span>
+                        </div>
+                        {/* Weather badge overlay (first card only) */}
+                        {idx === 0 && weather && (
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-1 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full">
+                            <WeatherIcon />
+                            <span className="text-[9px] font-bold text-zinc-700 dark:text-zinc-200">{Math.round(weather.temperature)}°</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-4">
-                        <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-1">{item.category}</span>
-                        <p className="text-sm font-bold text-zinc-800 mb-2 line-clamp-1">{item.name}</p>
-                        <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2 mb-3">{item.reason}</p>
-                        <div className="flex gap-2">
+                      {/* Compact info */}
+                      <div className="p-3.5">
+                        <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100 mb-1 line-clamp-1">{item.name}</p>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed line-clamp-2 mb-3">{item.reason}</p>
+                        <div className="flex gap-1.5">
                           <a href={getSearchUrls(item.name).musinsa} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-900 rounded-lg hover:bg-zinc-700 transition">
-                            <ExternalLink className="w-2.5 h-2.5 text-white" />
-                            <span className="text-[9px] font-bold text-white">무신사</span>
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-900 dark:bg-white rounded-lg hover:opacity-80 transition">
+                            <ExternalLink className="w-2.5 h-2.5 text-white dark:text-zinc-900" />
+                            <span className="text-[9px] font-bold text-white dark:text-zinc-900">무신사</span>
                           </a>
                           <a href={getSearchUrls(item.name).cm29} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition">
-                            <ExternalLink className="w-2.5 h-2.5 text-zinc-600" />
-                            <span className="text-[9px] font-bold text-zinc-700">29CM</span>
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
+                            <ExternalLink className="w-2.5 h-2.5 text-zinc-600 dark:text-zinc-400" />
+                            <span className="text-[9px] font-bold text-zinc-700 dark:text-zinc-300">29CM</span>
                           </a>
                         </div>
                       </div>
@@ -330,16 +349,16 @@ export default function CurationPage() {
 
                 {/* Info Panel */}
                 <div className="flex flex-col gap-5">
-                  <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
-                    <h2 className="text-2xl font-black tracking-tight mb-3">{curation.title}</h2>
-                    <p className="text-sm text-zinc-600 leading-relaxed mb-5">{curation.description}</p>
-                    <div className="flex gap-3 flex-wrap">
-                      <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50">
-                        <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-500">Style</span>
+                  <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800/60 p-6 shadow-sm">
+                    <h2 className="text-2xl font-black tracking-tight mb-2 dark:text-white">{curation.title}</h2>
+                    <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed mb-5">{curation.description}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="px-4 py-2 border border-zinc-100 dark:border-zinc-800 rounded-full flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/50">
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-400">Style</span>
                         <span className="text-[10px] font-bold text-black dark:text-white">{curation.style}</span>
                       </div>
-                      <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50">
-                        <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-500">Color</span>
+                      <div className="px-4 py-2 border border-zinc-100 dark:border-zinc-800 rounded-full flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/50">
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-400">Color</span>
                         <span className="text-[10px] font-bold text-black dark:text-white">{curation.colorTone}</span>
                       </div>
                     </div>

@@ -569,26 +569,26 @@ export default function Home() {
                       transition={{ duration: 0.4, ease: 'easeOut' }} className="flex flex-col gap-4">
 
                       {/* Score + Headline */}
-                      <div className="flex items-center gap-5 p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                        {/* 점수 링 */}
-                        <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-                          <svg className="absolute inset-0 w-full h-full -rotate-90">
-                            <circle cx="40" cy="40" r="34" fill="none" stroke="#f4f4f5" strokeWidth="5" />
-                            <motion.circle cx="40" cy="40" r="34" fill="none"
+                      <div className="flex items-start gap-6 p-7 bg-zinc-50/80 dark:bg-zinc-900/60 rounded-3xl border border-zinc-100 dark:border-zinc-800/60 backdrop-blur-sm">
+                        {/* 점수 링 — enlarged for visual impact */}
+                        <div className="relative w-28 h-28 shrink-0 flex items-center justify-center">
+                          <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 112 112">
+                            <circle cx="56" cy="56" r="48" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-100 dark:text-zinc-800" />
+                            <motion.circle cx="56" cy="56" r="48" fill="none"
                               stroke={d.score != null ? (d.score >= 80 ? '#22c55e' : d.score >= 60 ? '#eab308' : '#ef4444') : '#18181b'}
                               strokeWidth="5" strokeLinecap="round"
                               initial={{ pathLength: 0 }} animate={{ pathLength: (d.score ?? 0) / 100 }}
-                              transition={{ duration: 1.0, ease: "easeOut" }} strokeDasharray="213" />
+                              transition={{ duration: 1.2, ease: "easeOut" }} />
                           </svg>
                           <div className="flex flex-col items-center">
-                            <span className="text-2xl font-black leading-none">{d.score ?? '—'}</span>
-                            <span className="text-[9px] font-bold text-zinc-400 tracking-wider">SCORE</span>
+                            <span className="text-4xl font-black leading-none tracking-tight">{d.score ?? '—'}</span>
+                            <span className="text-[8px] font-bold text-zinc-400/70 tracking-[0.2em] uppercase mt-0.5">SCORE</span>
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1.5">AI Stylist</span>
+                        <div className="flex-1 pt-2">
+                          <span className="text-[9px] font-bold tracking-[0.25em] text-zinc-400/60 uppercase block mb-2">AI Stylist Verdict</span>
                           {d.headline
-                            ? <h2 className="text-xl font-extrabold tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
+                            ? <h2 className="text-2xl font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
                             : <div className="flex flex-col gap-2"><Sk /><Sk w="3/4" /></div>}
                         </div>
                       </div>
@@ -884,23 +884,23 @@ export default function Home() {
                       <div className="flex-1 overflow-y-auto px-6 pt-5 pb-24 [&::-webkit-scrollbar]:hidden">
 
                         {/* Score + Headline */}
-                        <div className="flex items-center gap-4 mb-5">
-                          <div className="relative w-[72px] h-[72px] shrink-0 flex items-center justify-center">
-                            <svg className="absolute inset-0 w-full h-full -rotate-90">
-                              <circle cx="36" cy="36" r="30" fill="none" stroke="#f4f4f5" strokeWidth="5" />
-                              <motion.circle cx="36" cy="36" r="30" fill="none"
+                        <div className="flex items-start gap-5 mb-6">
+                          <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
+                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 96 96">
+                              <circle cx="48" cy="48" r="42" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-100 dark:text-zinc-800" />
+                              <motion.circle cx="48" cy="48" r="42" fill="none"
                                 stroke={d.score != null ? (d.score >= 80 ? '#22c55e' : d.score >= 60 ? '#eab308' : '#ef4444') : '#18181b'}
                                 strokeWidth="5" strokeLinecap="round"
                                 initial={{ pathLength: 0 }} animate={{ pathLength: (d.score ?? 0) / 100 }}
-                                transition={{ duration: 1.0, ease: "easeOut" }} strokeDasharray="188" />
+                                transition={{ duration: 1.2, ease: "easeOut" }} />
                             </svg>
                             <div className="flex flex-col items-center">
-                              <span className="text-xl font-black leading-none">{d.score ?? '—'}</span>
-                              <span className="text-[8px] font-bold text-zinc-400 tracking-wider">SCORE</span>
+                              <span className="text-3xl font-black leading-none tracking-tight">{d.score ?? '—'}</span>
+                              <span className="text-[7px] font-bold text-zinc-400/70 tracking-[0.2em] uppercase mt-0.5">SCORE</span>
                             </div>
                           </div>
-                          <div className="flex-1">
-                            <span className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist</span>
+                          <div className="flex-1 pt-1">
+                            <span className="text-[9px] font-bold tracking-[0.25em] text-zinc-400/60 uppercase block mb-1.5">AI Stylist Verdict</span>
                             {d.headline
                               ? <h2 className="text-xl font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
                               : <div className="flex flex-col gap-2"><div className="h-4 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" /><div className="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" /></div>}

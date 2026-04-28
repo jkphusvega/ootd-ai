@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
+/* Tailwind v4: use class-based dark mode instead of prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
 html.dark {
-  --background: #1c1d23;
+  --background: #111113;
   --foreground: #e4e4e7;
   color-scheme: dark;
 }
@@ -27,16 +30,22 @@ body {
 }
 
 /* ================================================================
-   DARK MODE v4 — Antigravity Style Improved
+   DARK MODE v5 — Premium Dark Gray Palette
+   
+   3-layer system for depth:
+   - Base:    #111113  (near-black, main background)
+   - Surface: #18181b  (zinc-900, cards & sections)
+   - Raised:  #1f1f23  (elevated elements, hover states)
+   - Accent:  #27272a  (borders, active states)
    ================================================================ */
 
 /* ── Global ── */
 html.dark body {
-  background-color: #1c1d23 !important;
+  background-color: #111113 !important;
   color: #e4e4e7 !important;
 }
 
-/* ── Page Backgrounds ── */
+/* ── Page Backgrounds: deepest layer ── */
 html.dark [class*="bg-[#FAFAFA]"],
 html.dark [class*="bg-[#FDFDFC]"],
 html.dark [class*="bg-[#f8f9fa]"],
@@ -44,68 +53,72 @@ html.dark [class*="bg-[#F9F9F9]"],
 html.dark [class*="bg-white"]:not(button):not(section):not(article),
 html.dark main,
 html.dark .min-h-screen {
-  background-color: #1c1d23 !important;
+  background-color: #111113 !important;
 }
 
-/* ── Card & Section Backgrounds ── */
+/* ── Card & Section Backgrounds: surface layer ── */
 html.dark section[class*="bg-white"],
 html.dark article[class*="bg-white"],
 html.dark div[class*="bg-white"]:not(main):not(.min-h-screen),
 html.dark [class*="bg-zinc-50"] {
-  background-color: #252830 !important;
+  background-color: #18181b !important;
 }
 
 html.dark [class*="bg-zinc-100"] {
-  background-color: #2e3038 !important;
+  background-color: #1f1f23 !important;
 }
 
 /* ── Headers ── */
 html.dark header[class*="bg-[#FDFDFC]"],
 html.dark header[class*="bg-white"] {
-  background-color: #1c1d23 !important;
+  background-color: #111113 !important;
 }
 
-/* ── Text - Brighter for Dark Mode ── */
+/* ── Text - Clean contrast hierarchy ── */
 html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6,
 html.dark [class*="text-black"],
 html.dark [class*="text-zinc-900"],
 html.dark [class*="text-stone-900"] {
-  color: #ffffff !important;
+  color: #fafafa !important;
 }
 
 html.dark [class*="text-zinc-800"],
 html.dark [class*="text-stone-800"] {
-  color: #eeeef2 !important;
+  color: #e4e4e7 !important;
 }
 
 html.dark [class*="text-zinc-700"],
 html.dark [class*="text-stone-700"] {
-  color: #e4e4e7 !important;
-}
-
-html.dark [class*="text-zinc-600"] {
   color: #d4d4d8 !important;
 }
 
-html.dark [class*="text-zinc-500"] {
+html.dark [class*="text-zinc-600"] {
   color: #a1a1aa !important;
 }
 
-html.dark [class*="text-zinc-400"] {
+html.dark [class*="text-zinc-500"] {
   color: #8b8b95 !important;
 }
 
-/* ── Borders ── */
+html.dark [class*="text-zinc-400"] {
+  color: #71717a !important;
+}
+
+/* ── Borders: subtle separation ── */
 html.dark [class*="border-zinc-200"],
 html.dark [class*="border-stone-200"],
 html.dark [class*="border-zinc-100"] {
-  border-color: #33333a !important;
+  border-color: #27272a !important;
 }
 
 /* ── Specific Overrides ── */
 html.dark [class*="bg-white/90"],
 html.dark [class*="bg-white/80"] {
-  background-color: rgba(28, 29, 35, 0.9) !important;
+  background-color: rgba(17, 17, 19, 0.92) !important;
+}
+
+html.dark [class*="bg-white/60"] {
+  background-color: rgba(17, 17, 19, 0.75) !important;
 }
 
 /* ── Gradient overlays: hide light-mode decorative gradients ── */
@@ -115,8 +128,8 @@ html.dark .bg-gradient-to-b {
 
 /* ── Sidebar & Navigation ── */
 html.dark aside {
-  background-color: #1c1d23 !important;
-  border-color: #2e3038 !important;
+  background-color: #111113 !important;
+  border-color: #1f1f23 !important;
 }
 
 /* ── Sidebar logo: force invert to white ── */
@@ -124,11 +137,21 @@ html.dark aside img {
   filter: invert(1) !important;
 }
 
-/* ── Buttons ── */
+/* ── Primary Buttons: inverted for dark mode ── */
 html.dark button[class*="bg-zinc-900"],
 html.dark button[class*="bg-black"] {
-  background-color: #ffffff !important;
-  color: #1c1d23 !important;
+  background-color: #fafafa !important;
+  color: #111113 !important;
+}
+
+/* ── Input/Slider accents ── */
+html.dark input[type="range"] {
+  accent-color: #fafafa;
+}
+
+/* ── Bottom sheet & modal surfaces ── */
+html.dark [class*="rounded-t-["] {
+  background-color: #18181b !important;
 }
 
 /* ============ END DARK MODE ============ */
@@ -138,12 +161,13 @@ html.dark button[class*="bg-black"] {
   padding-bottom: env(safe-area-inset-bottom, 8px);
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* Custom scrollbar — thinner, more subtle */
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
-html.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.2); }
+html.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.06); }
+html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.12); }
 
 /* Skeleton loading animation */
 @keyframes skeleton-pulse {
@@ -156,6 +180,6 @@ html.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
   background-size: 200% 100%;
 }
 html.dark .skeleton {
-  background: linear-gradient(90deg, #2a2b34 25%, #383a46 50%, #2a2b34 75%);
+  background: linear-gradient(90deg, #1f1f23 25%, #27272a 50%, #1f1f23 75%);
   background-size: 200% 100%;
 }
