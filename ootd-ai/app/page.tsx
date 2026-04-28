@@ -659,13 +659,13 @@ export default function Home() {
 
         {/* Top HUD */}
         <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-center z-20">
-          <button className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0 overflow-hidden">
+          <Link href="/settings" className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0 overflow-hidden">
             {userProfile?.profile_image || user?.user_metadata?.avatar_url ? (
               <img src={userProfile?.profile_image || user?.user_metadata?.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <User className="w-4 h-4" />
             )}
-          </button>
+          </Link>
 
           {/* 탭 스위처 */}
           <div className="flex p-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-xl">

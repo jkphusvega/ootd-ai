@@ -65,7 +65,7 @@ export default function SignupPage() {
       >
         <div className="text-center mb-10">
           <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-black tracking-tight text-black mb-2 flex items-center justify-center gap-2">
+            <h1 className="text-4xl font-black tracking-tight text-black dark:text-white mb-2 flex items-center justify-center gap-2">
               <span className="bg-black text-white px-3 py-1 rounded-xl">OOTD</span> AI
             </h1>
           </Link>
@@ -147,7 +147,7 @@ export default function SignupPage() {
         
         <div className="text-center mt-6">
           <p className="text-xs text-zinc-500 font-medium">
-            이미 계정이 있으신가요? <Link href="/login" className="text-black font-extrabold hover:underline ml-1">로그인하기</Link>
+            이미 계정이 있으신가요? <Link href="/login" className="text-black dark:text-white font-extrabold hover:underline ml-1">로그인하기</Link>
           </p>
         </div>
       </motion.div>

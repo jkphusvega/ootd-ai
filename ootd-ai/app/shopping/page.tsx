@@ -102,7 +102,7 @@ export default function ShoppingPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-black">AI 쇼핑 추천</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">AI 쇼핑 추천</h1>
             <p className="text-[10px] text-zinc-400 tracking-widest uppercase mt-1">Smart Shopping Advisor</p>
           </div>
           {result && (

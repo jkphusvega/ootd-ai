@@ -24,6 +24,14 @@ interface CurationResult {
   items: CurationItem[];
 }
 
+const OCCASIONS = [
+  { id: 'daily', label: '일상', emoji: '☀️' },
+  { id: 'work', label: '출근', emoji: '💼' },
+  { id: 'date', label: '데이트', emoji: '🌹' },
+  { id: 'outdoor', label: '야외활동', emoji: '🏃' },
+  { id: 'formal', label: '격식있는 자리', emoji: '🎩' },
+];
+
 export default function CurationPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -35,6 +43,7 @@ export default function CurationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isWorn, setIsWorn] = useState(false);
+  const [occasion, setOccasion] = useState('daily');
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -128,6 +137,7 @@ export default function CurationPage() {
         body: JSON.stringify({
           weatherInfo: weather || { temperature: 20, condition: 'Clear' },
           userProfile: profile || null,
+          occasion,
         }),
       });
       const data = await res.json();
@@ -164,7 +174,7 @@ export default function CurationPage() {
               <MapPin className="w-3.5 h-3.5 text-zinc-400" />
               <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">Seoul</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-black mb-1">
+            <h1 className="text-3xl font-black tracking-tight text-black dark:text-white mb-1">
               Today's<br className="lg:hidden" /> AI Curation
             </h1>
             {weather && (
@@ -191,25 +201,51 @@ export default function CurationPage() {
           {/* Initial State: No curation yet */}
           {!curation && !isLoading && !error && (
             <motion.div key="initial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-16 lg:py-24 text-center">
-              <div className="w-20 h-20 bg-white border border-zinc-200 rounded-3xl flex items-center justify-center mb-6 shadow-lg">
+              className="flex flex-col items-center justify-center py-12 lg:py-20 text-center">
+              <div className="w-20 h-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-3xl flex items-center justify-center mb-6 shadow-lg">
                 <Sparkles className="w-9 h-9 text-zinc-300" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-500 mb-3">AI 코디 추천 받기</h2>
-              <p className="text-sm text-zinc-400 leading-relaxed mb-2">
-                내 옷장에 등록된 <span className="font-bold text-zinc-600">{wardrobeCount}개의 아이템</span>과<br />
-                오늘의 날씨를 고려해서 AI가 코디를 추천합니다
+              <h2 className="text-xl font-bold text-zinc-700 dark:text-zinc-200 mb-2">오늘 어디 가세요?</h2>
+              <p className="text-sm text-zinc-400 mb-8">상황에 맞는 코디를 추천해드릴게요</p>
+
+              {/* Occasion chips */}
+              <div className="flex flex-wrap justify-center gap-2 mb-8">
+                {OCCASIONS.map(o => (
+                  <button key={o.id} onClick={() => setOccasion(o.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${
+                      occasion === o.id
+                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-md scale-105'
+                        : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400'
+                    }`}>
+                    <span>{o.emoji}</span> {o.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-xs text-zinc-400 leading-relaxed mb-6">
+                내 옷장의 <span className="font-bold text-zinc-600 dark:text-zinc-300">{wardrobeCount}개 아이템</span>과 오늘 날씨를 분석해 추천해요
               </p>
-              {wardrobeCount === 0 && (
-                <p className="text-xs text-amber-500 font-bold mt-2">⚠️ 먼저 옷장에 아이템을 등록해주세요</p>
+
+              {wardrobeCount === 0 ? (
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-4 py-2.5 rounded-xl">
+                    옷장에 아이템이 없으면 추천이 어려워요
+                  </p>
+                  <Link href="/add-clothes">
+                    <button className="px-6 py-3 bg-black dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-extrabold tracking-widest text-xs uppercase shadow-xl hover:opacity-80 transition flex items-center gap-2">
+                      <span>👕</span> 지금 옷 등록하러 가기
+                    </button>
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={generateCuration}
+                  disabled={isLoading}
+                  className="px-8 py-4 bg-black dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-extrabold tracking-widest text-xs uppercase shadow-xl hover:opacity-80 transition flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" /> AI 코디 추천받기
+                </button>
               )}
-              <button
-                onClick={generateCuration}
-                disabled={isLoading || wardrobeCount === 0}
-                className="mt-8 px-8 py-4 bg-black text-white rounded-2xl font-extrabold tracking-widest text-xs uppercase shadow-xl hover:bg-zinc-800 transition disabled:opacity-40 flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" /> AI 큐레이션 시작
-              </button>
             </motion.div>
           )}
 
@@ -239,7 +275,21 @@ export default function CurationPage() {
           {curation && !isLoading && (
             <motion.div key="result" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}>
-              
+
+              {/* Occasion chips (compact, re-selectable) */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {OCCASIONS.map(o => (
+                  <button key={o.id} onClick={() => setOccasion(o.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      occasion === o.id
+                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    }`}>
+                    {o.emoji} {o.label}
+                  </button>
+                ))}
+              </div>
+
               {/* ── Desktop: Side by Side ── */}
               <div className="lg:grid lg:grid-cols-2 lg:gap-10">
                 
@@ -286,11 +336,11 @@ export default function CurationPage() {
                     <div className="flex gap-3 flex-wrap">
                       <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50">
                         <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-500">Style</span>
-                        <span className="text-[10px] font-bold text-black">{curation.style}</span>
+                        <span className="text-[10px] font-bold text-black dark:text-white">{curation.style}</span>
                       </div>
                       <div className="px-4 py-2 border border-zinc-200 rounded-full flex items-center gap-2 bg-zinc-50">
                         <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-500">Color</span>
-                        <span className="text-[10px] font-bold text-black">{curation.colorTone}</span>
+                        <span className="text-[10px] font-bold text-black dark:text-white">{curation.colorTone}</span>
                       </div>
                     </div>
                   </div>

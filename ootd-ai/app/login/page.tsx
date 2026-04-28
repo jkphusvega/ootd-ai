@@ -141,7 +141,7 @@ export default function LoginPage() {
         
         <div className="text-center mt-6">
           <p className="text-xs text-zinc-500 font-medium">
-            아직 계정이 없으신가요? <Link href="/signup" className="text-black font-extrabold hover:underline ml-1">이메일로 가입하기</Link>
+            아직 계정이 없으신가요? <Link href="/signup" className="text-black dark:text-white font-extrabold hover:underline ml-1">이메일로 가입하기</Link>
           </p>
         </div>
       </motion.div>

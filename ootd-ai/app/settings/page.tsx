@@ -219,7 +219,7 @@ export default function SettingsPage() {
 
         {/* Header */}
         <div className="mb-10">
-          <h1 className="text-3xl font-extrabold tracking-tight text-black">설정</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-black dark:text-white">설정</h1>
           <p className="text-sm text-zinc-400 mt-1">프로필과 스타일 정보를 관리합니다</p>
         </div>
 
@@ -273,7 +273,7 @@ export default function SettingsPage() {
             <div>
               <div className="flex justify-between items-end mb-3">
                 <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">키</span>
-                <span className="text-2xl font-black text-black">{height}<span className="text-sm text-zinc-400 ml-1">cm</span></span>
+                <span className="text-2xl font-black text-black dark:text-white">{height}<span className="text-sm text-zinc-400 ml-1">cm</span></span>
               </div>
               <input type="range" min="150" max="200" value={height}
                 onChange={(e) => setHeight(Number(e.target.value))}
@@ -284,7 +284,7 @@ export default function SettingsPage() {
             <div>
               <div className="flex justify-between items-end mb-3">
                 <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400">몸무게</span>
-                <span className="text-2xl font-black text-black">{weight}<span className="text-sm text-zinc-400 ml-1">kg</span></span>
+                <span className="text-2xl font-black text-black dark:text-white">{weight}<span className="text-sm text-zinc-400 ml-1">kg</span></span>
               </div>
               <input type="range" min="40" max="120" value={weight}
                 onChange={(e) => setWeight(Number(e.target.value))}

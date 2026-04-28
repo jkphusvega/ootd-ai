@@ -43,6 +43,7 @@ const STRATEGIES: ExtractionStrategy[] = [
 
 const CATEGORY_LABELS: Record<string, string> = {
   outer: '아우터', tops: '상의', bottoms: '하의', shoes: '신발', socks: '양말',
+  bag: '가방', accessory: '액세서리',
 };
 
 type Step = 'upload' | 'extracting' | 'confirm';
@@ -63,11 +64,15 @@ export default function AddClothesPage() {
   const [base64Original, setBase64Original] = useState<string | null>(null);
   const [resultItems, setResultItems] = useState<ExtractedItem[]>([]);
   const [failedCount, setFailedCount] = useState(0);
-  const [progressText, setProgressText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [stickerMode] = useState(true);
+
+  // 단계별 진행 상태
+  const [extractPhase, setExtractPhase] = useState<1 | 2 | 3>(1);
+  const [extractCurrent, setExtractCurrent] = useState(0);
+  const [extractTotal, setExtractTotal] = useState(0);
 
   // ── 유틸 ──
   const blobToBase64 = (blob: Blob): Promise<string> =>
@@ -156,34 +161,17 @@ export default function AddClothesPage() {
     throw new Error('추출 실패');
   };
 
-  // 추출 완료 후 비동기로 AI 이름 붙이기
-  const fetchName = async (id: string, image: string, category: string) => {
-    try {
-      const res = await fetch('/api/name-clothes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image, category }),
-      });
-      const data = await res.json();
-      const name = data.name || CATEGORY_LABELS[category] || category;
-      setResultItems(prev =>
-        prev.map(item => item.id === id ? { ...item, name, nameLoading: false } : item)
-      );
-    } catch {
-      setResultItems(prev =>
-        prev.map(item => item.id === id ? { ...item, name: CATEGORY_LABELS[category] || category, nameLoading: false } : item)
-      );
-    }
-  };
-
   const handleScan = async () => {
     if (!originalImage || !base64Original) return;
     setStep('extracting');
     setResultItems([]);
     setFailedCount(0);
+    setExtractPhase(1);
+    setExtractCurrent(0);
+    setExtractTotal(0);
 
     try {
-      setProgressText('AI가 옷 위치를 분석하는 중...');
+      // Phase 1: segment API
       const res = await fetch('/api/segment-clothes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,25 +188,22 @@ export default function AddClothesPage() {
       const newItems: ExtractedItem[] = [];
       let failed = 0;
 
+      // Phase 2: background removal per item
+      setExtractPhase(2);
+      setExtractTotal(total);
+      setExtractCurrent(0);
+
       for (let i = 0; i < total; i++) {
         const item = data.items[i];
-        setProgressText(`${i + 1} / ${total} 추출 중...`);
         try {
           const image = await extractSingleItem(originalImage, item.category, item.y_start, item.y_end);
           const id = Math.random().toString(36).slice(2);
-          const extracted: ExtractedItem = {
-            id, category: item.category, image,
-            name: CATEGORY_LABELS[item.category] || item.category,
-            nameLoading: true,
-          };
-          newItems.push(extracted);
-          setResultItems([...newItems]);
-          // 이름 생성은 백그라운드에서
-          fetchName(id, image, item.category);
+          newItems.push({ id, category: item.category, image, name: CATEGORY_LABELS[item.category] || item.category, nameLoading: true });
         } catch {
           failed++;
           setFailedCount(failed);
         }
+        setExtractCurrent(i + 1);
       }
 
       if (newItems.length === 0) {
@@ -227,6 +212,29 @@ export default function AddClothesPage() {
         return;
       }
 
+      // Phase 3: AI naming (awaited)
+      setExtractPhase(3);
+      setExtractTotal(newItems.length);
+      setExtractCurrent(0);
+
+      for (let i = 0; i < newItems.length; i++) {
+        const item = newItems[i];
+        try {
+          const res = await fetch('/api/name-clothes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: item.image, category: item.category }),
+          });
+          const nameData = await res.json();
+          item.name = nameData.name || CATEGORY_LABELS[item.category] || item.category;
+        } catch {
+          item.name = CATEGORY_LABELS[item.category] || item.category;
+        }
+        item.nameLoading = false;
+        setExtractCurrent(i + 1);
+      }
+
+      setResultItems(newItems);
       setStep('confirm');
     } catch (e) {
       toast(e instanceof Error ? e.message : '오류가 발생했어요.', 'error');
@@ -360,14 +368,43 @@ export default function AddClothesPage() {
         {/* ── STEP: EXTRACTING ── */}
         {step === 'extracting' && (
           <motion.div key="extracting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="min-h-screen flex flex-col items-center justify-center gap-6 px-8">
+            className="min-h-screen flex flex-col items-center justify-center gap-8 px-8">
+
+            {/* Active spinner */}
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               className="w-12 h-12 border-2 border-zinc-200 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white rounded-full" />
-            <div className="text-center">
-              <p className="text-sm font-bold text-zinc-800 dark:text-white">{progressText}</p>
-              {resultItems.length > 0 && (
-                <p className="text-xs text-zinc-400 mt-1">{resultItems.length}개 추출됨</p>
-              )}
+
+            {/* Step rows */}
+            <div className="flex flex-col gap-3 w-full max-w-[240px]">
+              {([
+                { phase: 1, label: '위치 분석', detail: '' },
+                { phase: 2, label: '배경 제거', detail: extractPhase === 2 && extractTotal > 0 ? `${extractCurrent}/${extractTotal}` : '' },
+                { phase: 3, label: '이름 생성', detail: extractPhase === 3 && extractTotal > 0 ? `${extractCurrent}/${extractTotal}` : '' },
+              ] as { phase: number; label: string; detail: string }[]).map(({ phase, label, detail }) => {
+                const done = extractPhase > phase;
+                const active = extractPhase === phase;
+                return (
+                  <div key={phase} className="flex items-center gap-3">
+                    {/* State icon */}
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${
+                      done ? 'bg-black dark:bg-white' : active ? 'border-2 border-zinc-900 dark:border-white' : 'border-2 border-zinc-300 dark:border-zinc-700'
+                    }`}>
+                      {done ? <Check className="w-3 h-3 text-white dark:text-black" /> : (
+                        <span className={active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}>{phase}</span>
+                      )}
+                    </div>
+                    {/* Label */}
+                    <div className="flex-1">
+                      <span className={`text-sm font-bold ${done ? 'text-zinc-400 dark:text-zinc-500' : active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                        {label}
+                      </span>
+                      {detail && <span className="ml-1.5 text-xs text-zinc-400">{detail}</span>}
+                    </div>
+                    {/* Phase indicator */}
+                    <span className={`text-[10px] font-bold ${done || active ? 'text-zinc-400' : 'text-zinc-300 dark:text-zinc-700'}`}>{phase}/3</span>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}

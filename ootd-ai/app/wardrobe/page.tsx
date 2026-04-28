@@ -24,11 +24,12 @@ interface CategoryInfo {
 
 const WARDROBE_DATA: CategoryInfo[] = [
   { id: 'outer', title: 'OUTER', items: [] },
-  { id: 'top', title: 'TOPS', items: [] },
-  { id: 'bottom', title: 'BOTTOMS', items: [] },
+  { id: 'tops', title: 'TOPS', items: [] },
+  { id: 'bottoms', title: 'BOTTOMS', items: [] },
   { id: 'shoes', title: 'SHOES', items: [] },
   { id: 'bag', title: 'BAGS', items: [] },
   { id: 'accessory', title: 'ACCESSORIES', items: [] },
+  { id: 'socks', title: 'SOCKS', items: [] },
 ];
 
 const ITEMS_PER_CATEGORY = 8;
@@ -80,26 +81,23 @@ export default function GalleryPage() {
   // Loading Skeleton
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#dcc4a3] pb-28 lg:pb-8">
-        <div className="fixed inset-0 pointer-events-none bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center opacity-60 mix-blend-multiply z-0" />
+      <div className="min-h-screen bg-white dark:bg-zinc-950 pb-28 lg:pb-8">
         <div className="relative z-10 pt-20 max-w-6xl mx-auto px-6">
-          {/* Skeleton Header */}
           <div className="flex justify-between items-center mb-10">
-            <div className="w-40 h-8 bg-white/20 rounded-xl animate-pulse" />
-            <div className="w-10 h-10 bg-white/20 rounded-full animate-pulse" />
+            <div className="w-40 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
+            <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full animate-pulse" />
           </div>
-          {/* Skeleton Categories */}
           {[1, 2, 3].map(i => (
             <div key={i} className="mb-14">
               <div className="flex justify-between items-end mb-6">
-                <div className="w-32 h-10 bg-white/15 rounded-xl animate-pulse" />
-                <div className="w-20 h-5 bg-white/10 rounded-full animate-pulse" />
+                <div className="w-32 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
+                <div className="w-20 h-5 bg-zinc-100 dark:bg-zinc-800 rounded-full animate-pulse" />
               </div>
               <div className="flex gap-5 lg:grid lg:grid-cols-5">
                 {[1, 2, 3, 4].map(j => (
                   <div key={j} className="shrink-0 w-[140px] lg:w-auto">
-                    <div className="w-[140px] lg:w-full aspect-square bg-white/15 rounded-2xl animate-pulse" />
-                    <div className="mt-3 w-20 h-3 bg-white/10 rounded-full animate-pulse mx-auto" />
+                    <div className="w-[140px] lg:w-full aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-2xl animate-pulse" />
+                    <div className="mt-3 w-20 h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full animate-pulse mx-auto" />
                   </div>
                 ))}
               </div>
@@ -144,10 +142,7 @@ export default function GalleryPage() {
   const totalItems = localItems.filter(i => i.categoryId !== 'ootd_feed').length;
 
   return (
-    <div className="min-h-screen bg-[#dcc4a3] text-stone-900 pb-28 lg:pb-8 font-sans selection:bg-stone-300 relative">
-      
-      {/* Wood Texture Background */}
-      <div className="fixed inset-0 pointer-events-none bg-[url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=100&w=2400&auto=format&fit=crop')] bg-cover bg-center opacity-60 mix-blend-multiply z-0" />
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 pb-28 lg:pb-8 font-sans">
       <style>{`
         .sticker-effect {
           filter: drop-shadow(0px -3px 0px rgba(255,255,255,1)) drop-shadow(0px 3px 0px rgba(255,255,255,1)) drop-shadow(3px 0px 0px rgba(255,255,255,1)) drop-shadow(-3px 0px 0px rgba(255,255,255,1)) drop-shadow(0 15px 25px rgba(0,0,0,0.1));
@@ -155,47 +150,46 @@ export default function GalleryPage() {
       `}</style>
 
       {/* Header */}
-      <header className="pt-12 lg:pt-8 pb-6 sticky top-0 bg-[#dcc4a3]/80 backdrop-blur-xl z-40 border-b border-stone-800/10 shadow-[0_10px_30px_rgba(120,90,50,0.1)]">
+      <header className="pt-12 lg:pt-8 pb-6 sticky top-0 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl z-40 border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-6xl mx-auto">
           {/* Top bar */}
-          <div className="flex justify-between items-center mb-6 px-6 relative z-10">
-            {/* Home button: mobile only (desktop has sidebar) */}
+          <div className="flex justify-between items-center mb-6 px-6">
             <Link href="/" className="lg:hidden">
-              <button className="w-10 h-10 rounded-full border border-stone-800/20 bg-white/50 backdrop-blur flex items-center justify-center text-stone-800 shadow-md hover:bg-white/80 transition active:scale-95">
+              <button className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 transition active:scale-95">
                 <Home className="w-4 h-4" />
               </button>
             </Link>
             <div className="hidden lg:block" />
 
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-black tracking-[0.3em] uppercase text-stone-900 drop-shadow-sm">MY CLOSET</h1>
-              <span className="hidden lg:inline-flex text-[10px] font-bold bg-black/20 text-white px-2.5 py-1 rounded-full tracking-widest">
+              <h1 className="text-xl font-black tracking-[0.3em] uppercase text-zinc-900 dark:text-white">MY CLOSET</h1>
+              <span className="hidden lg:inline-flex text-[10px] font-bold bg-zinc-900 dark:bg-zinc-700 text-white px-2.5 py-1 rounded-full tracking-widest">
                 {totalItems} ITEMS
               </span>
             </div>
-            
-            <button onClick={() => setEditMode(!editMode)} className={`w-10 h-10 rounded-full border flex items-center justify-center transition shadow-md shrink-0 ${editMode ? 'bg-red-500 border-red-600 text-white' : 'bg-white/50 backdrop-blur border-stone-800/20 text-stone-800 hover:bg-white/80'}`}>
+
+            <button onClick={() => setEditMode(!editMode)} className={`w-10 h-10 rounded-full border flex items-center justify-center transition shrink-0 ${editMode ? 'bg-red-500 border-red-600 text-white' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100'}`}>
               {editMode ? <X className="w-5 h-5" strokeWidth={2.5} /> : <Trash2 className="w-4 h-4" />}
             </button>
           </div>
 
           {/* Segmented Control */}
-          <div className="px-6 mb-2 relative z-10 flex justify-center">
-            <div className="flex p-1 bg-white/40 backdrop-blur-md border border-stone-800/10 rounded-full shadow-sm relative w-full max-w-xs">
+          <div className="px-6 mb-2 flex justify-center">
+            <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-full relative w-full max-w-xs">
               <motion.div
                 layoutId="activeTabIndicator"
-                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-stone-900 rounded-full z-0 shadow-md"
+                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-zinc-900 dark:bg-white rounded-full z-0 shadow-sm"
                 initial={false}
                 animate={{ x: activeTab === 'wardrobe' ? 0 : '100%' }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
-              <button 
+              <button
                 onClick={() => setActiveTab('wardrobe')}
-                className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'wardrobe' ? 'text-white' : 'text-stone-700 hover:text-stone-900'}`}
+                className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'wardrobe' ? 'text-white dark:text-zinc-900' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
               >Wardrobe</button>
-              <button 
+              <button
                 onClick={() => setActiveTab('memories')}
-                className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'memories' ? 'text-white' : 'text-stone-700 hover:text-stone-900'}`}
+                className={`flex-1 py-3 text-[11px] font-bold tracking-widest uppercase z-10 transition-colors ${activeTab === 'memories' ? 'text-white dark:text-zinc-900' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
               >OOTD Feeds</button>
             </div>
           </div>
@@ -203,25 +197,47 @@ export default function GalleryPage() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 pt-4 max-w-6xl mx-auto">
+      <main className="pt-4 max-w-6xl mx-auto">
         <AnimatePresence mode="wait">
           
           {/* TAB 1: WARDROBE */}
           {activeTab === 'wardrobe' && (
             <motion.div key="wardrobe" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3, ease: 'easeOut' }} className="flex flex-col gap-14 mt-6">
+
+              {/* 빈 옷장 온보딩 메시지 */}
+              {totalItems === 0 && (
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                  className="mx-6 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 flex flex-col items-center text-center gap-4">
+                  <div className="text-4xl">👗</div>
+                  <div>
+                    <h3 className="text-lg font-black text-zinc-900 dark:text-white mb-1">아직 옷장이 비어있어요</h3>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                      옷을 등록할수록 AI 코디 추천이 정확해져요.<br />
+                      전신샷 한 장이면 AI가 옷을 자동으로 분리해서 등록해줘요.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full max-w-xs">
+                    <Link href="/add-clothes">
+                      <button className="w-full py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-extrabold text-xs tracking-widest uppercase shadow-lg hover:opacity-80 transition flex items-center justify-center gap-2">
+                        <span>✨</span> AI로 옷 등록하기
+                      </button>
+                    </Link>
+                    <p className="text-[10px] text-zinc-400">전신샷 1장 → AI가 아이템별로 자동 분리</p>
+                  </div>
+                </motion.div>
+              )}
+
               {displayCategories.map(category => (
                 <section key={category.id} className="relative">
-                  <div className="flex justify-between items-end px-6 mb-4 z-20 relative">
-                    <h2 className="text-4xl font-serif italic text-stone-100 tracking-tight drop-shadow-md">{category.title}</h2>
-                    <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase leading-relaxed bg-black/40 border border-white/10 px-2 py-0.5 rounded-full">
+                  <div className="flex justify-between items-end px-6 mb-4">
+                    <h2 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">{category.title}</h2>
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-500 dark:text-zinc-400 uppercase">
                       {String(category.items.length).padStart(2, '0')} ITEMS
                     </span>
                   </div>
-                  
+
                   <div className="relative">
-                    {/* Metal Rail */}
-                    <div className="absolute top-[16px] z-0 left-0 right-0 mx-6 h-[4px] bg-gradient-to-r from-stone-700 via-stone-500 to-stone-700 shadow-[0_5px_5px_rgba(0,0,0,0.5)] rounded-full" />
                     
                     {/* ── MOBILE: Horizontal Scroll ── */}
                     {(() => {
@@ -240,10 +256,10 @@ export default function GalleryPage() {
                             ))}
                             {hasMore && (
                               <div className="snap-center shrink-0 w-[100px] h-[160px] mt-[20px] flex flex-col items-center justify-center cursor-pointer group" onClick={() => toggleCategory(category.id)}>
-                                <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition shadow-sm">
-                                  <span className="text-white/60 text-lg font-black">{isExpanded ? '−' : '+'}</span>
+                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition">
+                                  <span className="text-zinc-500 text-lg font-black">{isExpanded ? '−' : '+'}</span>
                                 </div>
-                                <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase mt-3 text-center">
+                                <span className="text-[9px] font-bold text-zinc-400 tracking-widest uppercase mt-3 text-center">
                                   {isExpanded ? '접기' : `+${category.items.length - ITEMS_PER_CATEGORY}개`}
                                 </span>
                               </div>
@@ -261,20 +277,20 @@ export default function GalleryPage() {
                                 onCancelDelete={() => setPendingDeleteId(null)} />
                             ))}
                             <Link href="/add-clothes">
-                              <div className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
-                                <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
-                                  <Plus className="w-6 h-6 text-white/50" />
+                              <div className="aspect-square rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all">
+                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition">
+                                  <Plus className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
                                 </div>
-                                <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">ADD NEW</span>
+                                <span className="text-[10px] font-bold text-zinc-400 tracking-widest uppercase">ADD NEW</span>
                               </div>
                             </Link>
                             {hasMore && (
                               <button onClick={() => toggleCategory(category.id)}
-                                className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-white/40 hover:bg-white/5 transition-all">
-                                <div className="w-12 h-12 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition">
-                                  <span className="text-white/60 text-xl font-black">{isExpanded ? '−' : '+'}</span>
+                                className="aspect-square rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all">
+                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition">
+                                  <span className="text-zinc-500 text-xl font-black">{isExpanded ? '−' : '+'}</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">
+                                <span className="text-[10px] font-bold text-zinc-400 tracking-widest uppercase">
                                   {isExpanded ? '접기' : `${category.items.length - ITEMS_PER_CATEGORY}개 더보기`}
                                 </span>
                               </button>
@@ -304,7 +320,7 @@ export default function GalleryPage() {
                 return (
                   <motion.div key={memory.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                     onClick={() => setSelectedFeed(memory)}
-                    className="relative group cursor-pointer rounded-[1.5rem] overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-stone-200">
+                    className="relative group cursor-pointer rounded-[1.5rem] overflow-hidden bg-white dark:bg-zinc-900 shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-zinc-200 dark:border-zinc-800">
                     <div className="aspect-[3/4] relative">
                       <img src={memory.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
@@ -343,7 +359,7 @@ export default function GalleryPage() {
               })}
               {localItems.filter(i => i.categoryId === 'ootd_feed').length === 0 && (
                 <div className="col-span-full">
-                  <p className="text-stone-600/70 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-white/20 rounded-xl border border-stone-500/10">
+                  <p className="text-zinc-400 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
                     등록된 과거 OOTD 스크랩이 아직 없습니다.
                   </p>
                 </div>
@@ -356,7 +372,7 @@ export default function GalleryPage() {
       {/* FAB */}
       <div className="fixed bottom-24 lg:bottom-8 right-6 z-50">
         <Link href="/add-clothes">
-          <button className="w-14 h-14 bg-stone-900 rounded-full flex items-center justify-center text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-all outline-none pb-0.5 border border-stone-700">
+          <button className="w-14 h-14 bg-zinc-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-zinc-900 shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:scale-105 active:scale-95 transition-all outline-none">
             <Plus className="w-7 h-7" strokeWidth={2.5} />
           </button>
         </Link>
@@ -377,7 +393,7 @@ export default function GalleryPage() {
                 onClick={() => setSelectedFeed(null)} />
               <motion.div initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col lg:bottom-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-lg lg:rounded-[2rem] lg:max-h-[80vh]">
+                className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col lg:bottom-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-lg lg:rounded-[2rem] lg:max-h-[80vh]">
                 {/* 핸들 (모바일 전용) */}
                 <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0 lg:hidden" />
                 <div className="flex-1 overflow-y-auto px-6 pb-10 lg:pt-8 [&::-webkit-scrollbar]:hidden">
@@ -405,35 +421,32 @@ export default function GalleryPage() {
                   {/* Summary */}
                   {c.summary && (
                     <div className="mb-5">
-                      <p className="text-[10px] font-extrabold tracking-[0.2em] text-stone-400 uppercase mb-2">AI Stylist Review</p>
-                      <h2 className="text-xl font-black text-stone-900 leading-snug break-keep">"{c.summary}"</h2>
+                      <p className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase mb-2">AI Stylist Review</p>
+                      <h2 className="text-xl font-black text-zinc-900 dark:text-white leading-snug break-keep">"{c.summary}"</h2>
                     </div>
                   )}
 
                   <div className="flex flex-col gap-3">
-                    {/* Weather */}
                     {c.weatherAdvice && (
-                      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
                         <div className="flex items-center gap-2 mb-2">
-                          <Droplets className="w-4 h-4 text-stone-400" />
-                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-stone-600">Weather Context</h3>
+                          <Droplets className="w-4 h-4 text-zinc-400" />
+                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">Weather Context</h3>
                         </div>
-                        <p className="text-[13px] text-stone-600 leading-relaxed font-medium">{c.weatherAdvice}</p>
+                        <p className="text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">{c.weatherAdvice}</p>
                       </div>
                     )}
-                    {/* Fit & Color */}
                     {c.fitAndColor && (
-                      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
                         <div className="flex items-center gap-2 mb-2">
-                          <ScanLine className="w-4 h-4 text-stone-400" />
-                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-stone-600">Fit & Color</h3>
+                          <ScanLine className="w-4 h-4 text-zinc-400" />
+                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">Fit & Color</h3>
                         </div>
-                        <p className="text-[13px] text-stone-600 leading-relaxed font-medium">{c.fitAndColor}</p>
+                        <p className="text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">{c.fitAndColor}</p>
                       </div>
                     )}
-                    {/* Stylist Pick */}
                     {c.stylistRecommendation && (
-                      <div className="p-4 bg-stone-900 rounded-2xl">
+                      <div className="p-4 bg-zinc-900 dark:bg-zinc-700 rounded-2xl">
                         <div className="flex items-center gap-2 mb-2">
                           <Star className="w-4 h-4 text-yellow-400" />
                           <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3>
@@ -441,9 +454,8 @@ export default function GalleryPage() {
                         <p className="text-[13px] text-white/90 leading-relaxed font-medium">{c.stylistRecommendation}</p>
                       </div>
                     )}
-                    {/* 구형 데이터 안내 */}
                     {!c.weatherAdvice && !c.fitAndColor && !c.stylistRecommendation && (
-                      <p className="text-center text-stone-400 text-xs py-6">새로 저장한 OOTD부터 상세 분석이 표시됩니다.</p>
+                      <p className="text-center text-zinc-400 text-xs py-6">새로 저장한 OOTD부터 상세 분석이 표시됩니다.</p>
                     )}
                   </div>
                 </div>
@@ -471,33 +483,28 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
     <div className="snap-center shrink-0 w-[150px] cursor-pointer group flex flex-col items-center relative">
       {editMode && !isPending && (
         <button onClick={() => onRequestDelete(item.id)}
-          className="absolute -top-2 -right-1 z-50 bg-red-500 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(239,68,68,0.5)] border-[3px] border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform">
+          className="absolute -top-2 -right-1 z-50 bg-red-500 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(239,68,68,0.5)] border-[3px] border-white dark:border-zinc-950 hover:scale-110 active:scale-90 transition-transform">
           <X className="w-5 h-5" strokeWidth={3} />
         </button>
       )}
       {isPending && (
         <div className="absolute -top-3 -right-3 z-50 flex gap-1">
           <button onClick={() => onConfirmDelete(item.id)}
-            className="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-red-600 transition">
+            className="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-white dark:border-zinc-950 hover:bg-red-600 transition">
             삭제
           </button>
           <button onClick={onCancelDelete}
-            className="bg-white text-zinc-700 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-zinc-100 transition">
+            className="bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-white dark:border-zinc-950 hover:bg-zinc-100 transition">
             취소
           </button>
         </div>
       )}
       <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3">
-        <div className="text-white/30 -mb-5 relative z-20 drop-shadow-[0_4px_2px_rgba(0,0,0,0.3)]">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 14 l8-6 l8 6Z"/><path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
-          </svg>
-        </div>
         <div className="w-[140px] h-[160px] relative flex items-center justify-center">
-          <img src={item.image} alt={item.name} loading="lazy" className="max-w-[100%] max-h-[100%] object-contain mt-2 transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
+          <img src={item.image} alt={item.name} loading="lazy" className="max-w-[100%] max-h-[100%] object-contain transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
         </div>
-        <div className="mt-5 px-3 py-1.5 bg-white/90 backdrop-blur border border-stone-200 rounded-lg shadow-md">
-          <p className="text-[9px] font-black tracking-widest text-stone-800 uppercase text-center">{item.name}</p>
+        <div className="mt-3 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+          <p className="text-[9px] font-black tracking-widest text-zinc-800 dark:text-zinc-200 uppercase text-center">{item.name}</p>
         </div>
       </div>
     </div>
@@ -517,27 +524,27 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
     <div className="relative group cursor-pointer">
       {editMode && !isPending && (
         <button onClick={() => onRequestDelete(item.id)}
-          className="absolute -top-2 -right-2 z-50 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-[#dcc4a3] hover:scale-110 active:scale-90 transition-transform">
+          className="absolute -top-2 -right-2 z-50 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-950 hover:scale-110 active:scale-90 transition-transform">
           <X className="w-4 h-4" strokeWidth={3} />
         </button>
       )}
       {isPending && (
         <div className="absolute -top-3 -right-3 z-50 flex gap-1">
           <button onClick={() => onConfirmDelete(item.id)}
-            className="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-red-600 transition">
+            className="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-white dark:border-zinc-950 hover:bg-red-600 transition">
             삭제
           </button>
           <button onClick={onCancelDelete}
-            className="bg-white text-zinc-700 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-[#dcc4a3] hover:bg-zinc-100 transition">
+            className="bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-white dark:border-zinc-950 hover:bg-zinc-100 transition">
             취소
           </button>
         </div>
       )}
-      <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:bg-white/20 group-hover:shadow-xl group-hover:-translate-y-1">
+      <div className="aspect-square bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-1">
         <img src={item.image} alt={item.name} loading="lazy" className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
       </div>
       <div className="mt-3 text-center">
-        <p className="text-[10px] font-black tracking-widest text-white/80 uppercase">{item.name}</p>
+        <p className="text-[10px] font-black tracking-widest text-zinc-700 dark:text-zinc-300 uppercase">{item.name}</p>
       </div>
     </div>
   );
@@ -546,16 +553,11 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
 function AddNewCard() {
   return (
     <Link href="/add-clothes">
-      <div className="snap-center shrink-0 w-[140px] h-[160px] mt-[20px] flex flex-col items-center justify-start cursor-pointer group transition">
-        <div className="text-white/10 mb-4 group-hover:text-white/30 transition-colors">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 14 l8-6 l8 6Z"/><path d="M12 8V4 c0-1.5 1.5-2 2-1 s1.5 2 .5 2"/>
-          </svg>
+      <div className="snap-center shrink-0 w-[140px] h-[160px] flex flex-col items-center justify-center cursor-pointer group transition gap-3">
+        <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition shadow-sm">
+          <Plus className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
         </div>
-        <div className="w-10 h-10 rounded-full bg-black/20 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition shadow-sm">
-          <Plus className="w-5 h-5 text-white/50" />
-        </div>
-        <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase mt-4">ADD NEW</span>
+        <span className="text-[9px] font-bold text-zinc-400 tracking-widest uppercase">ADD NEW</span>
       </div>
     </Link>
   );

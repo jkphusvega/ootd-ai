@@ -51,10 +51,10 @@ export default function StatsPage() {
   }, [user, authLoading]);
 
   // 카테고리별 아이템 수
-  const categoryStats = ['outer', 'top', 'bottom', 'shoes', 'bag', 'accessory'].map(cat => ({
+  const categoryStats = ['outer', 'tops', 'bottoms', 'shoes', 'bag', 'accessory', 'socks'].map(cat => ({
     category: cat,
     count: clothes.filter(c => c.category === cat).length,
-    label: cat === 'outer' ? '아우터' : cat === 'top' ? '상의' : cat === 'bottom' ? '하의' : cat === 'shoes' ? '신발' : cat === 'bag' ? '가방' : '액세서리',
+    label: cat === 'outer' ? '아우터' : cat === 'tops' ? '상의' : cat === 'bottoms' ? '하의' : cat === 'shoes' ? '신발' : cat === 'bag' ? '가방' : cat === 'socks' ? '양말' : '액세서리',
   }));
   const maxCount = Math.max(...categoryStats.map(c => c.count), 1);
 
@@ -163,7 +163,7 @@ export default function StatsPage() {
               <div className={`w-8 h-8 ${card.color} rounded-xl flex items-center justify-center mb-3`}>
                 <card.icon className="w-4 h-4 text-white" />
               </div>
-              <p className="text-2xl font-black text-black tracking-tight">{card.value}</p>
+              <p className="text-2xl font-black text-black dark:text-white tracking-tight">{card.value}</p>
               <p className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase mt-1">{card.label}</p>
             </motion.div>
           ))}
@@ -240,7 +240,7 @@ export default function StatsPage() {
             {weatherStats.map((w) => (
               <div key={w.condition} className="text-center">
                 <p className="text-2xl mb-1">{w.label.split(' ')[0]}</p>
-                <p className="text-lg font-black text-black">{w.count}</p>
+                <p className="text-lg font-black text-black dark:text-white">{w.count}</p>
                 <p className="text-[9px] font-bold text-zinc-400">{w.label.split(' ')[1]}</p>
               </div>
             ))}

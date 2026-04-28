@@ -114,7 +114,7 @@ export default function SharePage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-extrabold tracking-tight text-black">옷장 공유</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">옷장 공유</h1>
           <p className="text-[10px] text-zinc-400 tracking-widest uppercase mt-1">Share Wardrobe</p>
         </div>
 
@@ -155,7 +155,7 @@ export default function SharePage() {
                 </div>
               )}
               <div>
-                <p className="font-bold text-sm text-black">{isPublic ? '공개 상태' : '비공개 상태'}</p>
+                <p className="font-bold text-sm text-black dark:text-white">{isPublic ? '공개 상태' : '비공개 상태'}</p>
                 <p className="text-[10px] text-zinc-400">{isPublic ? '링크를 아는 누구나 볼 수 있어요' : '나만 볼 수 있습니다'}</p>
               </div>
             </div>
