@@ -174,7 +174,7 @@ export default function CalendarPage() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         <span className="absolute bottom-1 left-1.5 text-[10px] font-black text-white drop-shadow">{day}</span>
                         {entry.score && (
-                          <span className="absolute top-1 right-1 bg-white/90 text-[8px] font-black text-black px-1 rounded shadow-sm">
+                          <span className="absolute top-1 right-1 bg-white/90 text-[8px] font-black text-black dark:text-white px-1 rounded shadow-sm">
                             {entry.score}
                           </span>
                         )}

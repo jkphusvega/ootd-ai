@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import { Check, Sparkles, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
@@ -243,10 +243,20 @@ export default function OnboardingPage() {
       {/* Progress */}
       <div className="pt-14 px-8 max-w-2xl mx-auto w-full">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex gap-1.5">
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <div key={i} className={`h-1 w-8 rounded-full transition-all duration-500 ${i < step ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-800'}`} />
-            ))}
+          <div className="flex items-center gap-3">
+            {step > 1 && (
+              <button
+                onClick={() => setStep(s => (s - 1) as 1 | 2 | 3)}
+                className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-90 transition"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+              </button>
+            )}
+            <div className="flex gap-1.5">
+              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+                <div key={i} className={`h-1 w-8 rounded-full transition-all duration-500 ${i < step ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-800'}`} />
+              ))}
+            </div>
           </div>
           <span className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase">
             스타일 프로필 {completionPct}% 완료
