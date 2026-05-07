@@ -147,9 +147,23 @@ export default function OnboardingPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // [PREVIEW MODE] 즉시 표시
-    setIsChecking(false);
-  }, []);
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    supabase
+      .from('user_profiles')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          router.replace('/');
+        } else {
+          setIsChecking(false);
+        }
+      });
+  }, [user, router, supabase]);
 
   const togglePhoto = (id: string) => {
     setSelectedPhotos(prev =>
