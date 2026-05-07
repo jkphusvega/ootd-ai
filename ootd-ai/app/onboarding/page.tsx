@@ -415,16 +415,22 @@ export default function OnboardingPage() {
               {/* 키 / 몸무게 */}
               <div className="grid grid-cols-2 gap-3">
                 {([
-                  { label: '키', unit: 'cm', value: height, setValue: setHeight, min: 140, max: 210 },
-                  { label: '몸무게', unit: 'kg', value: weight, setValue: setWeight, min: 35, max: 130 },
-                ] as const).map(({ label, unit, value, setValue, min, max }) => (
+                  { label: '키', unit: 'cm', value: height, set: setHeight, min: 140, max: 210 },
+                  { label: '몸무게', unit: 'kg', value: weight, set: setWeight, min: 35, max: 130 },
+                ]).map(({ label, unit, value, set, min, max }) => (
                   <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col items-center gap-2">
                     <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">{label}</span>
                     <span className="text-2xl font-black">{value}<span className="text-sm font-bold text-zinc-400 ml-0.5">{unit}</span></span>
+                    <input
+                      type="range"
+                      min={min} max={max} value={value}
+                      onChange={e => set(Number(e.target.value))}
+                      className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-zinc-900 dark:accent-white bg-zinc-200 dark:bg-zinc-700"
+                    />
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setValue(v => Math.max(min, v - 1))}
+                      <button onClick={() => set(v => Math.max(min, v - 1))}
                         className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-bold hover:bg-zinc-200 active:scale-90 transition">−</button>
-                      <button onClick={() => setValue(v => Math.min(max, v + 1))}
+                      <button onClick={() => set(v => Math.min(max, v + 1))}
                         className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-bold hover:bg-zinc-200 active:scale-90 transition">+</button>
                     </div>
                   </div>
