@@ -152,7 +152,10 @@ export default function AddClothesPage() {
         const sYmin = Math.max(0, ymin - strategy.yExpand);
         const sYmax = Math.min(1, ymax + strategy.yExpand);
         const cropped = await getSegmentedBlob(imgSrc, sXmin, sYmin, sXmax, sYmax, strategy);
-        const removed = await removeBackground(cropped);
+        const removed = await Promise.race([
+          removeBackground(cropped),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000)),
+        ]);
         return await blobToBase64(removed);
       } catch {
         await new Promise(r => setTimeout(r, 800));
@@ -270,15 +273,25 @@ export default function AddClothesPage() {
     }
   };
 
-  // 이미지 업로드
+  // 이미지 업로드 — API 전송용은 최대 1024px로 리사이즈 (Vercel 4.5MB 한도)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (originalImage?.startsWith('blob:')) URL.revokeObjectURL(originalImage);
-    setOriginalImage(URL.createObjectURL(file));
-    const reader = new FileReader();
-    reader.onloadend = () => setBase64Original(reader.result as string);
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    setOriginalImage(objectUrl);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+      setBase64Original(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = objectUrl;
   };
 
   // sessionStorage 자동 시작 (OOTD → AI 추출 연동)
