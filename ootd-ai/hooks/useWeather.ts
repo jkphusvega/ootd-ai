@@ -48,14 +48,15 @@ export function useWeather() {
       }
     };
 
+    // 서울 기본값 즉시 가져오고, 위치 정보 오면 덮어씀
+    fetchWeather();
+
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => fetchWeather(),
+        () => { /* 위치 거부 시 서울 기본값 유지 */ },
         { timeout: 8000, maximumAge: 5 * 60 * 1000 }
       );
-    } else {
-      fetchWeather();
     }
   }, []);
 
