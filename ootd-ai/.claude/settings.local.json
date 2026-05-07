@@ -5,7 +5,10 @@
       "Bash(git add:*)",
       "Bash(git commit -m ':*)",
       "Bash(git push:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(xargs grep *)",
+      "WebSearch",
+      "WebFetch(domain:unsplash.com)"
     ]
   }
 }
