@@ -32,7 +32,6 @@ export async function POST(req: Request) {
     if (!apiKey) throw new Error("Gemini API Key가 설정되지 않았습니다.");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // Y-range only 접근: Gemini에 세로 위치 비율만 요청 (가로는 전체 사용)
     const prompt = `Analyze this full-body photo of a person wearing clothes.
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
 Your job: identify each visible clothing item and tell me WHERE it is vertically in the image.
 
 For each item, provide:
-- "category": one of "tops", "outer", "bottoms", "shoes"  
+- "category": one of "tops", "outer", "bottoms", "shoes"
 - "y_start": where the item starts vertically (0.0 = very top of image, 1.0 = very bottom)
 - "y_end": where the item ends vertically
 
@@ -69,12 +68,33 @@ Return ONLY raw JSON (no markdown, no code fences):
       }
     };
 
-    const result = await model.generateContent(
-      [prompt, imagePart],
-      // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
-      { thinkingConfig: { thinkingBudget: 0 } }
-    );
-    let responseText = result.response.text().trim();
+    // 2.5-flash 과부하 시 1.5-flash로 fallback, 각 모델 최대 2회 재시도
+    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    let responseText = '';
+    let lastError: unknown;
+
+    outer: for (const modelName of MODELS) {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const result = await model.generateContent(
+            [prompt, imagePart],
+            // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
+            { thinkingConfig: { thinkingBudget: 0 } }
+          );
+          responseText = result.response.text().trim();
+          break outer;
+        } catch (e: unknown) {
+          lastError = e;
+          const msg = e instanceof Error ? e.message : '';
+          const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
+          if (!isOverloaded) break;
+          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+    }
+
+    if (!responseText) throw lastError;
     
 
 
