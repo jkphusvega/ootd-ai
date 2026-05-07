@@ -62,16 +62,37 @@ export async function POST(request: Request) {
       `- ${item.category}: "${item.name}" (이미지: ${item.image_url})`
     ).join('\n');
 
+    const FIT_LABEL: Record<string, string> = {
+      slim: 'slim-fitting (body-hugging silhouette)',
+      regular: 'regular fit (comfortable, not too loose or tight)',
+      oversized: 'oversized/relaxed fit (loose, roomy silhouette)',
+    };
+    const GOAL_LABEL: Record<string, string> = {
+      taller:     'make legs look longer and proportions taller — prioritize high-waisted bottoms, monochrome, vertical lines',
+      broader:    'make shoulders look wider — prioritize structured tops, horizontal stripes, layering on top',
+      slimmer:    'create a slimmer overall silhouette — prioritize dark tones, vertical lines, well-fitted pieces',
+      cover_legs: 'cover the leg line — prioritize longer outer layers, wide-leg or straight-leg bottoms, midi lengths',
+    };
+
     let profileContext = '';
     if (userProfile) {
       const embedding = userProfile.style_embedding;
+      const fitPref = userProfile.fit_preference;
+      const bodyGoal = userProfile.body_goal;
       const styleDesc = embedding
-        ? `Style profile: ${embedding.dominant_styles?.join(', ')} aesthetic · prefers ${embedding.fit_tendency} fit · color palette: ${embedding.dominant_colors?.join(', ')} · vibes: ${embedding.dominant_vibes?.join(', ')}.`
+        ? `Style aesthetic: ${embedding.dominant_styles?.join(', ')} · color palette: ${embedding.dominant_colors?.join(', ')} · vibes: ${embedding.dominant_vibes?.join(', ')}.`
         : `Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
-      profileContext = `User's body: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Body shape: ${userProfile.body_shape || 'not specified'}. Styling goal: ${userProfile.body_goal || 'not specified'}. ${styleDesc}`;
+
+      profileContext = [
+        `USER PROFILE:`,
+        `- Height: ${userProfile.height}cm, Weight: ${userProfile.weight}kg`,
+        fitPref ? `- Fit preference: ${FIT_LABEL[fitPref] || fitPref} → YOU MUST select items that match this fit` : '',
+        bodyGoal ? `- Styling goal: ${GOAL_LABEL[bodyGoal] || bodyGoal} → YOU MUST apply this styling strategy when choosing items` : '',
+        `- ${styleDesc}`,
+      ].filter(Boolean).join('\n');
     }
 
-    const prompt = `You are a trendy top fashion stylist in Seoul.
+    const prompt = `You are a top fashion stylist in Seoul who specializes in personalized styling.
 The user has these items in their wardrobe:
 ${wardrobeDescription}
 
@@ -80,14 +101,19 @@ Current weather: ${weatherInfo?.temperature || 20}°C, ${weatherInfo?.condition 
 ${profileContext}
 ${behaviorContext.summary}
 
-Based on the ACTUAL items in their wardrobe, suggest ONE complete outfit combination perfectly suited for "${occasionLabel}" in today's weather.
-Pick specific items from their wardrobe that go well together (you MUST use items they actually own).
-The outfit MUST be appropriate for the occasion — e.g. for work: neat and polished; for a date: stylish and put-together; for outdoor: comfortable and functional.
+Your task: suggest ONE complete outfit from their wardrobe that:
+1. Uses ONLY items they actually own (listed above)
+2. Is perfectly suited for "${occasionLabel}" and today's weather
+3. STRICTLY follows their fit preference — do not pick items that contradict it
+4. STRICTLY applies their styling goal strategy — explain in the description how the outfit achieves it
+5. Reflects their style aesthetic
+
+The occasion style guide: work → neat and polished; date → stylish and put-together; outdoor → comfortable and functional; formal → semi-formal or above; daily → relaxed but coordinated.
 
 Return JSON only:
 {
   "title": "<catchy Korean title for the outfit, e.g. '비 오는 날의 시크한 레이어드 룩'>",
-  "description": "<2-3 sentences in Korean describing why this combination works for the occasion and today's weather>",
+  "description": "<2-3 sentences in Korean: why this combination works for the occasion AND how it achieves the user's styling goal>",
   "style": "<style keyword, e.g. 'Minimal', 'Street', 'Casual'>",
   "colorTone": "<color description, e.g. 'Monotone', 'Earth Tone', 'Pastel'>",
   "items": [
@@ -95,7 +121,7 @@ Return JSON only:
       "category": "<outer/tops/bottoms/shoes/socks>",
       "name": "<item name from wardrobe>",
       "image_url": "<item image_url from wardrobe>",
-      "reason": "<why this item suits the occasion, 1 sentence in Korean>"
+      "reason": "<1 sentence in Korean: why this specific item fits the occasion AND supports the styling goal>"
     }
   ]
 }
