@@ -12,75 +12,75 @@ import { useToast } from '../../components/ToastProvider';
 const STYLE_PHOTOS = [
   {
     id: 'minimal-1',
-    url: 'https://images.unsplash.com/photo-1613728455120-d00493b5e77e?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1761896902115-49793a359daf?w=400&h=600&fit=crop&q=80',
     style: 'minimal', styleLabel: '미니멀',
-    tags: { colors: ['black', 'white', 'neutral'], fit: 'slim', formality: 'smart-casual', vibe: ['clean', 'modern', 'quiet'] },
+    tags: { colors: ['white', 'neutral', 'beige'], fit: 'slim', formality: 'smart-casual', vibe: ['clean', 'modern', 'quiet'] },
   },
   {
     id: 'minimal-2',
-    url: 'https://images.unsplash.com/photo-1629922948950-08e61289569b?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1589557313308-3b0dde4a7103?w=400&h=600&fit=crop&q=80',
     style: 'minimal', styleLabel: '미니멀',
-    tags: { colors: ['black', 'white'], fit: 'slim', formality: 'smart-casual', vibe: ['clean', 'polished', 'modern'] },
+    tags: { colors: ['white', 'gold', 'neutral'], fit: 'slim', formality: 'smart-casual', vibe: ['clean', 'polished', 'modern'] },
   },
   {
     id: 'street-1',
-    url: 'https://images.unsplash.com/photo-1660486044177-45cd45bb5e99?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1576188973526-0e5d7047b0cf?w=400&h=600&fit=crop&q=80',
     style: 'street', styleLabel: '스트리트',
-    tags: { colors: ['black', 'grey', 'bold'], fit: 'oversized', formality: 'casual', vibe: ['hype', 'urban', 'edgy'] },
+    tags: { colors: ['black', 'grey', 'pink'], fit: 'oversized', formality: 'casual', vibe: ['hype', 'urban', 'edgy'] },
   },
   {
     id: 'street-2',
-    url: 'https://images.unsplash.com/photo-1523398002811-999ca8dec234?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1739384879592-79903b12b2a6?w=400&h=600&fit=crop&q=80',
     style: 'street', styleLabel: '스트리트',
-    tags: { colors: ['black', 'grey'], fit: 'oversized', formality: 'casual', vibe: ['hype', 'urban'] },
+    tags: { colors: ['blue', 'denim', 'white'], fit: 'oversized', formality: 'casual', vibe: ['hype', 'urban', 'casual'] },
   },
   {
     id: 'oldmoney-1',
-    url: 'https://images.unsplash.com/photo-1691154928997-5d839847e4e7?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1761896904104-334cad0f5d3b?w=400&h=600&fit=crop&q=80',
     style: 'oldmoney', styleLabel: '올드머니',
-    tags: { colors: ['white', 'beige', 'cream'], fit: 'tailored', formality: 'business-casual', vibe: ['classic', 'elegant', 'quiet-luxury'] },
+    tags: { colors: ['cream', 'beige', 'brown'], fit: 'tailored', formality: 'business-casual', vibe: ['classic', 'elegant', 'quiet-luxury'] },
   },
   {
     id: 'oldmoney-2',
-    url: 'https://images.unsplash.com/photo-1692191798521-f146083a283d?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1761896898277-5141377f2a12?w=400&h=600&fit=crop&q=80',
     style: 'oldmoney', styleLabel: '올드머니',
-    tags: { colors: ['neutral', 'beige', 'earth'], fit: 'tailored', formality: 'business-casual', vibe: ['classic', 'refined', 'quiet-luxury'] },
+    tags: { colors: ['grey', 'neutral', 'black'], fit: 'tailored', formality: 'business-casual', vibe: ['classic', 'refined', 'quiet-luxury'] },
   },
   {
     id: 'gorpcore-1',
-    url: 'https://images.unsplash.com/photo-1603920351464-8f79cb4e5dcc?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1754666104611-ff0464cef605?w=400&h=600&fit=crop&q=80',
     style: 'gorpcore', styleLabel: '고프코어',
     tags: { colors: ['olive', 'brown', 'earth'], fit: 'regular', formality: 'casual', vibe: ['outdoor', 'functional', 'rugged'] },
   },
   {
     id: 'gorpcore-2',
-    url: 'https://images.unsplash.com/photo-1598721172588-6a690043bc3f?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1585365341416-307e4fa22402?w=400&h=600&fit=crop&q=80',
     style: 'gorpcore', styleLabel: '고프코어',
-    tags: { colors: ['olive', 'black', 'grey'], fit: 'regular', formality: 'casual', vibe: ['outdoor', 'adventure', 'layered'] },
+    tags: { colors: ['yellow', 'olive', 'earth'], fit: 'regular', formality: 'casual', vibe: ['outdoor', 'adventure', 'functional'] },
   },
   {
     id: 'amekaji-1',
-    url: 'https://images.unsplash.com/photo-1582234248658-1c965dbbec6c?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1708523842501-800cd1c7505e?w=400&h=600&fit=crop&q=80',
     style: 'amekaji', styleLabel: '아메카지',
     tags: { colors: ['denim', 'indigo', 'white'], fit: 'regular', formality: 'casual', vibe: ['workwear', 'vintage', 'rugged'] },
   },
   {
     id: 'amekaji-2',
-    url: 'https://images.unsplash.com/photo-1634133118577-d70216e68eae?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1708523842501-1619478cea1f?w=400&h=600&fit=crop&q=80',
     style: 'amekaji', styleLabel: '아메카지',
-    tags: { colors: ['denim', 'white', 'neutral'], fit: 'regular', formality: 'casual', vibe: ['classic', 'workwear', 'americana'] },
+    tags: { colors: ['denim', 'blue', 'indigo'], fit: 'regular', formality: 'casual', vibe: ['classic', 'workwear', 'americana'] },
   },
   {
     id: 'y2k-1',
-    url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1632469188022-b5db09a70fbc?w=400&h=600&fit=crop&q=80',
     style: 'y2k', styleLabel: 'Y2K',
-    tags: { colors: ['yellow', 'bright', 'bold'], fit: 'regular', formality: 'casual', vibe: ['retro', 'playful', 'bold'] },
+    tags: { colors: ['brown', 'warm', 'earth'], fit: 'regular', formality: 'casual', vibe: ['retro', 'cozy', 'playful'] },
   },
   {
     id: 'y2k-2',
-    url: 'https://images.unsplash.com/photo-1761979680036-38a7f85b2f0b?w=400&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=400&h=600&fit=crop&q=80',
     style: 'y2k', styleLabel: 'Y2K',
-    tags: { colors: ['blue', 'plaid', 'mixed'], fit: 'regular', formality: 'casual', vibe: ['retro', 'fun', 'trendy'] },
+    tags: { colors: ['khaki', 'denim', 'mixed'], fit: 'regular', formality: 'casual', vibe: ['retro', 'eclectic', 'layered'] },
   },
 ];
 
@@ -120,25 +120,18 @@ const CONTEXTS = [
   { id: 'ctx_formal', label: '격식·행사', desc: '세미포멀 이상' },
 ];
 
-const BODY_SHAPES = [
-  { id: 'pear',       label: '서양배형', desc: '하체가 발달한 체형',     emoji: '🍐' },
-  { id: 'strawberry', label: '딸기형',   desc: '상체/어깨가 발달한 체형', emoji: '🍓' },
-  { id: 'banana',     label: '바나나형', desc: '슬림하고 곧은 체형',     emoji: '🍌' },
-  { id: 'apple',      label: '사과형',   desc: '복부가 발달한 체형',     emoji: '🍎' },
-];
-
 const BODY_GOALS = [
-  { id: 'taller',     label: '비율 깡패', desc: '다리가 길어 보이게',    emoji: '📏' },
-  { id: 'broader',    label: '어깨 깡패', desc: '어깨가 넓어 보이게',    emoji: '🏋️' },
-  { id: 'slimmer',    label: '슬림 핏',   desc: '전체적으로 갸름해 보이게', emoji: '🕴️' },
-  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 가리게',    emoji: '👖' },
+  { id: 'taller',     label: '비율 깡패', desc: '다리가 길어 보이게',      emoji: '📏' },
+  { id: 'broader',    label: '어깨 강조', desc: '어깨가 넓어 보이게',      emoji: '🏋️' },
+  { id: 'slimmer',    label: '슬림하게',  desc: '전체적으로 갸름해 보이게', emoji: '🕴️' },
+  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 가리게',      emoji: '👖' },
 ];
 
 const TOTAL_STEPS = 3;
 const COMPLETION_PCT = [33, 66, 100];
 
 export default function OnboardingPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const { toast } = useToast();
@@ -146,7 +139,6 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
-  const [selectedShape, setSelectedShape] = useState('');
   const [selectedGoal, setSelectedGoal] = useState('');
   const [height, setHeight] = useState(170);
   const [weight, setWeight] = useState(60);
@@ -184,8 +176,8 @@ export default function OnboardingPage() {
   };
 
   const handleFinish = async () => {
-    if (!selectedShape || !selectedGoal) {
-      toast('체형과 보완 목표를 모두 선택해주세요!', 'info');
+    if (!selectedGoal) {
+      toast('스타일 목표를 선택해주세요!', 'info');
       return;
     }
     setIsSaving(true);
@@ -205,7 +197,6 @@ export default function OnboardingPage() {
         weight,
         fit_preference: fitPreference,
         style_moods: styleEmbedding?.dominant_styles || [],
-        body_shape: selectedShape,
         body_goal: selectedGoal,
         style_embedding: styleEmbedding,
         style_contexts: selectedContexts,
@@ -414,10 +405,10 @@ export default function OnboardingPage() {
               <span className="text-xl">📏</span>
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight mb-2">
-              나의 체형과<br />보완 목표는?
+              핏과 스타일<br />목표를 알려주세요
             </h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed mb-6">
-              체형에 맞는 핏과 스타일링 팁을 AI가 조언해 드립니다.
+              AI가 체형에 맞는 핏과 코디를 추천해 드려요.
             </p>
 
             <div className="space-y-5 mb-6">
@@ -462,30 +453,9 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* 체형 */}
+              {/* 스타일 목표 */}
               <div>
-                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">내 체형 타입</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {BODY_SHAPES.map(shape => (
-                    <button key={shape.id} onClick={() => setSelectedShape(shape.id)}
-                      className={`p-4 rounded-2xl text-left transition-all border flex gap-3 items-center ${
-                        selectedShape === shape.id
-                          ? 'bg-black dark:bg-white border-black dark:border-white shadow-md'
-                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-                      }`}>
-                      <span className="text-2xl shrink-0">{shape.emoji}</span>
-                      <div>
-                        <span className={`block font-bold text-sm ${selectedShape === shape.id ? 'text-white dark:text-zinc-900' : 'text-zinc-800 dark:text-zinc-200'}`}>{shape.label}</span>
-                        <span className={`block text-[10px] mt-0.5 ${selectedShape === shape.id ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-400'}`}>{shape.desc}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 보완 목표 */}
-              <div>
-                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">옷을 입을 때 바라는 점</p>
+                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">옷을 입을 때 가장 원하는 것</p>
                 <div className="grid grid-cols-2 gap-2">
                   {BODY_GOALS.map(goal => (
                     <button key={goal.id} onClick={() => setSelectedGoal(goal.id)}
@@ -507,7 +477,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={handleFinish}
-              disabled={!selectedShape || !selectedGoal || isSaving}
+              disabled={!selectedGoal || isSaving}
               className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-30 shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
             >
               {isSaving ? (
