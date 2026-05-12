@@ -78,10 +78,10 @@ export default function DesktopLayout({
               </div>
             ) : weather ? (
               <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
-                <WeatherIcon condition={weather.condition} />
+                <WeatherIcon condition={(weather as any).condition} />
                 <div>
-                  <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{weather.temperature}°C</span>
-                  <span className="text-xs text-zinc-400 ml-2 font-semibold">{weather.condition}</span>
+                  <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{(weather as any).temperature}°C</span>
+                  <span className="text-xs text-zinc-400 ml-2 font-semibold">{(weather as any).condition}</span>
                 </div>
               </div>
             ) : null}
