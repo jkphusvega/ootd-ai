@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun, Trash2, AlertTriangle, Bell, BellOff, Share2, Copy } from 'lucide-react';
+import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun, Trash2, AlertTriangle, Bell, BellOff, Share2, Copy, MessageSquare, Send } from 'lucide-react';
 import { usePushNotification } from '../../hooks/usePushNotification';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -25,6 +25,9 @@ const BODY_GOALS = [
   { id: 'slimmer', label: '슬림 핏 (전체적으로 갸름하게)', emoji: '🕴️' },
 ];
 
+// 서비스 전용 문의 이메일 (개인 이메일 대신 서비스용 이메일 사용)
+const SUPPORT_EMAIL = 'ootdai.help@gmail.com';
+
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -45,6 +48,8 @@ export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const { state: pushState, subscribe: subscribePush, unsubscribe: unsubscribePush } = usePushNotification(user?.id);
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSending, setContactSending] = useState(false);
 
   // 비로그인 차단
   useEffect(() => {
@@ -192,6 +197,26 @@ export default function SettingsPage() {
     const link = `${window.location.origin}/shared/${shareId}`;
     navigator.clipboard.writeText(link);
     toast('링크가 복사되었습니다.', 'success');
+  };
+
+  const handleContactSubmit = async () => {
+    if (!contactMessage.trim()) return;
+    setContactSending(true);
+    try {
+      // 이메일 앱으로 문의 내용 전송
+      const subject = encodeURIComponent('[OOTD AI 문의]');
+      const body = encodeURIComponent(
+        `사용자 이메일: ${user?.email || '비로그인'}\n\n문의 내용:\n${contactMessage}`
+      );
+      window.open(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`, '_self');
+      
+      setContactMessage('');
+      toast('이메일 앱이 열렸습니다. 전송해주세요!', 'success');
+    } catch {
+      toast('문의 전송에 실패했습니다.', 'error');
+    } finally {
+      setContactSending(false);
+    }
   };
 
   if (isLoading) {
@@ -455,6 +480,54 @@ export default function SettingsPage() {
               />
             </button>
           </div>
+        </motion.section>
+
+        {/* Contact / Inquiry */}
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6 shadow-sm">
+          
+          <div className="flex items-center gap-2 mb-6">
+            <MessageSquare className="w-4 h-4 text-zinc-400" />
+            <span className="text-[11px] font-extrabold tracking-widest uppercase text-zinc-400">문의하기</span>
+          </div>
+
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4 leading-relaxed">
+            서비스 이용 중 불편한 점이나 건의사항이 있으시면 아래에 남겨주세요.
+            이메일로도 문의하실 수 있습니다.
+          </p>
+
+          <textarea
+            value={contactMessage}
+            onChange={(e) => setContactMessage(e.target.value)}
+            placeholder="문의 내용을 입력해주세요..."
+            rows={4}
+            className="w-full p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition resize-none mb-4"
+          />
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleContactSubmit}
+              disabled={contactSending || !contactMessage.trim()}
+              className="flex-1 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold text-xs tracking-wide hover:bg-zinc-800 dark:hover:bg-zinc-200 transition disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              {contactSending ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 전송 중...</>
+              ) : (
+                <><Send className="w-3.5 h-3.5" /> 문의 보내기</>
+              )}
+            </button>
+            
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=[OOTD AI 문의] &body=사용자 이메일: ${user?.email || ''}%0A%0A문의 내용:%0A`}
+              className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-xl font-bold text-xs tracking-wide hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-700"
+            >
+              <MessageSquare className="w-3.5 h-3.5" /> 이메일로 문의
+            </a>
+          </div>
+
+          <p className="text-[10px] text-zinc-400 mt-3 text-center">
+            문의 이메일: {SUPPORT_EMAIL}
+          </p>
         </motion.section>
 
         {/* Save Button */}

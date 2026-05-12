@@ -1,205 +1,213 @@
 'use client';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Sparkles, ChevronRight, LayoutDashboard, CloudSun, Shirt } from 'lucide-react';
 
 const FEATURES = [
   {
-    icon: '📸',
-    title: 'OOTD 분석',
-    desc: '사진 한 장으로 AI 스타일리스트의 점수와 솔직한 피드백을 받아보세요.',
-    tag: '0-100점',
+    icon: <Sparkles className="w-5 h-5 text-indigo-500" />,
+    title: 'OOTD 객관적 분석',
+    desc: '오늘의 코디 사진을 올리면 AI 스타일리스트가 0-100점 점수와 함께 구체적인 피드백을 제공합니다.',
+    tag: '실시간 점수',
   },
   {
-    icon: '✨',
-    title: 'AI 코디 추천',
-    desc: '내 옷장 × 오늘 날씨 × 내 무드. AI가 완성 코디를 바로 골라줍니다.',
-    tag: '매일 새 코디',
+    icon: <CloudSun className="w-5 h-5 text-amber-500" />,
+    title: '날씨 기반 코디 추천',
+    desc: '내 옷장에 등록된 아이템들을 활용하여 오늘의 날씨와 기온에 딱 맞는 완성된 코디를 제안합니다.',
+    tag: '매일 아침 추천',
   },
   {
-    icon: '🛍️',
-    title: 'AI 쇼핑 추천',
-    desc: '옷장에서 부족한 것만 골라 무신사·29CM 링크와 함께 추천합니다.',
-    tag: '무신사 · 29CM',
+    icon: <Shirt className="w-5 h-5 text-emerald-500" />,
+    title: '옷장 분석 & 아이템 큐레이션',
+    desc: '내 옷장에 부족한 필수 아이템을 분석하고, 무신사 및 29CM 등에서 바로 구매할 수 있는 링크를 제공합니다.',
+    tag: '스마트 쇼핑',
   },
 ];
 
 export default function LandingContent() {
   return (
-    <div className="min-h-screen bg-[#080808] font-sans text-white overflow-x-hidden">
-
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-zinc-200 dark:selection:bg-zinc-800 overflow-x-hidden">
+      
       {/* ── NAV ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#080808]/80 backdrop-blur-xl border-b border-white/5">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800/50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <img src="/logo.png" alt="OOTD AI" className="h-7 w-auto object-contain invert" />
-          <Link href="/login">
-            <button className="px-5 py-2.5 bg-white text-black text-[11px] font-extrabold tracking-widest uppercase rounded-full hover:bg-zinc-200 transition active:scale-95">
-              시작하기
-            </button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white dark:text-black" />
+            </div>
+            <span className="font-extrabold text-[15px] tracking-tight">OOTD AI</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/login">
+              <button className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white text-[13px] font-bold rounded-full transition-colors active:scale-95 shadow-sm">
+                로그인 / 시작하기
+              </button>
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-white/[0.03] rounded-full blur-[100px]" />
-          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px]" />
-          <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-[80px]" />
-        </div>
-
-        {/* Grid overlay */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      <section className="pt-40 pb-20 px-6 text-center max-w-4xl mx-auto flex flex-col items-center">
+        {/* Subtle background glow */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-zinc-100 dark:bg-zinc-800/20 rounded-full blur-[100px] pointer-events-none -z-10" />
 
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 max-w-4xl"
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col items-center w-full"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 mb-8"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-extrabold tracking-[0.3em] uppercase text-white/50">Powered by Gemini AI</span>
-          </motion.div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 mb-8 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[12px] font-bold text-zinc-600 dark:text-zinc-400">Gemini 2.5 AI 엔진 가동 중</span>
+          </div>
 
-          <h1 className="text-6xl lg:text-[96px] font-black tracking-tight leading-[1] mb-6">
-            <span className="block text-white">오늘</span>
-            <span className="block text-white/20">뭐</span>
-            <span className="block text-white">입지?</span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-zinc-900 dark:text-white mb-6 max-w-3xl leading-[1.15] tracking-tight">
+            당신의 옷장을 가장 완벽하게<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-600 to-zinc-900 dark:from-zinc-400 dark:to-white">
+              활용하는 방법
+            </span>
           </h1>
 
-          <p className="text-lg lg:text-xl text-white/40 leading-relaxed mb-12 max-w-lg mx-auto">
-            AI 스타일리스트가 날씨·무드·내 옷장을 보고<br />
-            매일 딱 맞는 코디를 추천해드립니다.
+          <p className="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 mb-10 max-w-xl mx-auto leading-relaxed font-medium">
+            사진 한 장으로 코디 점수를 받고, 날씨에 맞는 옷차림을 매일 추천받으세요. 나만의 개인 AI 스타일리스트가 지금 대기 중입니다.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
             <Link href="/login">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="px-8 py-4 bg-white text-black text-[12px] font-extrabold tracking-widest uppercase rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)] transition-shadow"
-              >
-                무료로 시작하기 →
-              </motion.button>
+              <button className="w-full sm:w-auto px-8 py-3.5 bg-black dark:bg-white text-white dark:text-black text-[15px] font-extrabold rounded-2xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                무료로 시작하기 <ChevronRight className="w-4 h-4" />
+              </button>
             </Link>
-            <span className="text-xs text-white/25 font-medium">스타일리스트 비용 0원</span>
           </div>
-        </motion.div>
-
-        {/* Scroll hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-px h-10 bg-gradient-to-b from-white/20 to-transparent mx-auto"
-          />
         </motion.div>
       </section>
 
-      {/* ── FEATURES ── */}
-      <section className="py-32 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-20">
-            <span className="text-[10px] font-extrabold tracking-[0.3em] uppercase text-white/25">Features</span>
-            <h2 className="text-4xl lg:text-5xl font-black tracking-tight mt-4 text-white">
-              세 가지로<br />해결합니다
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {FEATURES.map((f, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1, duration: 0.6 }}
-                className="relative group rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-3xl pointer-events-none" />
-                <span className="text-4xl mb-6 block">{f.icon}</span>
-                <span className="inline-block text-[8px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-full border border-white/10 text-white/30 mb-4">{f.tag}</span>
-                <h3 className="text-xl font-extrabold text-white mb-3">{f.title}</h3>
-                <p className="text-sm text-white/35 leading-relaxed">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+      {/* ── FEATURES GRID ── */}
+      <section className="py-24 px-6 max-w-5xl mx-auto">
+        <div className="mb-12 text-center md:text-left">
+          <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-2">핵심 기능</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">OOTD AI가 제공하는 스마트한 스타일링 경험</p>
         </div>
-      </section>
 
-      {/* ── STATS ── */}
-      <section className="py-24 px-6 border-y border-white/5">
-        <div className="max-w-4xl mx-auto grid grid-cols-3 gap-8 text-center">
-          {[
-            { num: 'AI', label: 'Gemini 2.5 Flash 기반' },
-            { num: '3초', label: '분석 결과까지' },
-            { num: '무료', label: '지금 당장 시작' },
-          ].map((s, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {FEATURES.map((f, idx) => (
             <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+              key={idx}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: idx * 0.1, duration: 0.5 }}
+              className="rounded-3xl p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow"
             >
-              <p className="text-4xl lg:text-5xl font-black text-white mb-2">{s.num}</p>
-              <p className="text-[11px] font-bold text-white/30 tracking-widest uppercase">{s.label}</p>
+              <div className="flex justify-between items-start mb-2">
+                <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center shadow-sm border border-zinc-100 dark:border-zinc-700/50">
+                  {f.icon}
+                </div>
+                <span className="px-2.5 py-1 bg-zinc-200/50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-extrabold rounded-lg tracking-wide">
+                  {f.tag}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">{f.title}</h3>
+                <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">{f.desc}</p>
+              </div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* ── CTA ── */}
-      <section className="py-40 px-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-white/[0.03] rounded-full blur-[80px]" />
+      {/* ── UI PREVIEW SECTION ── */}
+      <section className="py-24 px-6 max-w-4xl mx-auto border-t border-zinc-100 dark:border-zinc-800/50">
+        <div className="mb-10 text-center">
+          <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-2">지금 바로 경험해보세요</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">간단한 구글 로그인 후 모든 기능을 무료로 사용할 수 있습니다.</p>
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }}
+          whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="relative z-10 max-w-xl mx-auto"
+          className="rounded-[32px] p-8 md:p-12 bg-zinc-50 dark:bg-zinc-900/80 shadow-xl border border-zinc-200 dark:border-zinc-800 max-w-2xl mx-auto relative overflow-hidden"
         >
-          <h2 className="text-5xl lg:text-6xl font-black tracking-tight mb-6 text-white">
-            지금 바로<br />시작해보세요
-          </h2>
-          <p className="text-white/30 text-base mb-12">구글 계정 하나면 됩니다. 30초면 충분해요.</p>
-          <Link href="/login">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="px-10 py-5 bg-white text-black text-[12px] font-extrabold tracking-widest uppercase rounded-2xl shadow-[0_0_60px_rgba(255,255,255,0.1)] hover:shadow-[0_0_80px_rgba(255,255,255,0.2)] transition-shadow"
-            >
-              무료로 시작하기 →
-            </motion.button>
-          </Link>
-          <p className="mt-8 text-[11px] text-white/20">
-            이미 계정이 있나요?{' '}
-            <Link href="/login" className="text-white/40 font-bold underline underline-offset-2 hover:text-white/60 transition">로그인</Link>
-          </p>
+          {/* Decorative elements */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-zinc-300 dark:via-zinc-600 to-transparent opacity-50" />
+          
+          <div className="flex flex-col items-center text-center gap-6 relative z-10">
+            <div className="w-16 h-16 bg-white dark:bg-zinc-800 rounded-3xl flex items-center justify-center shadow-sm border border-zinc-100 dark:border-zinc-700 mb-2">
+              <LayoutDashboard className="w-8 h-8 text-zinc-700 dark:text-zinc-300" />
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-extrabold text-zinc-900 dark:text-white mb-2">나만의 패션 대시보드</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
+                날씨 확인, OOTD 업로드, AI 피드백, 그리고 옷장 관리까지.
+                하나의 대시보드에서 패션에 관한 모든 것을 해결하세요.
+              </p>
+            </div>
+
+            <Link href="/login" className="w-full sm:w-auto mt-4">
+              <button className="w-full sm:w-auto px-10 py-3.5 bg-black dark:bg-white text-white dark:text-black text-[14px] font-extrabold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-md active:scale-95">
+                대시보드 입장하기
+              </button>
+            </Link>
+          </div>
         </motion.div>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-white/5 py-8 px-6 text-center">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-[11px] text-white/20">
-          <span>© 2026 OOTD AI</span>
-          <span className="hidden sm:block">·</span>
-          <Link href="/privacy" className="hover:text-white/40 transition">개인정보 처리방침</Link>
-          <span className="hidden sm:block">·</span>
-          <Link href="/terms" className="hover:text-white/40 transition">이용약관</Link>
+      <footer className="py-12 px-6 border-t border-zinc-100 dark:border-zinc-800/50 bg-white dark:bg-[#0a0a0a]">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 text-white dark:text-black" />
+                </div>
+                <span className="font-extrabold text-[16px] tracking-tight text-zinc-900 dark:text-white">OOTD AI</span>
+              </div>
+              <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-sm">
+                AI 기술을 통해 당신의 옷장을 디지털화하고,<br />
+                매일 최적의 스타일을 찾아드리는 개인 패션 어시스턴트입니다.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-[13px]">
+              <div className="space-y-3">
+                <h4 className="font-bold text-zinc-900 dark:text-white">서비스</h4>
+                <ul className="space-y-2 text-zinc-500 dark:text-zinc-400">
+                  <li><Link href="/wardrobe" className="hover:text-zinc-900 dark:hover:text-white transition-colors">디지털 옷장</Link></li>
+                  <li><Link href="/curation" className="hover:text-zinc-900 dark:hover:text-white transition-colors">AI 코디 추천</Link></li>
+                  <li><Link href="/shopping" className="hover:text-zinc-900 dark:hover:text-white transition-colors">AI 쇼핑</Link></li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-bold text-zinc-900 dark:text-white">법적 고지</h4>
+                <ul className="space-y-2 text-zinc-500 dark:text-zinc-400">
+                  <li><Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-white transition-colors">개인정보 처리방침</Link></li>
+                  <li><Link href="/terms" className="hover:text-zinc-900 dark:hover:text-white transition-colors">이용약관</Link></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Service</p>
+              <div className="text-[12px] text-zinc-500 dark:text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
+                <span>상호: OOTD AI</span>
+                <span>문의: ootdai.help@gmail.com</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-2">© 2026 OOTD AI. All rights reserved.</p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                <p className="text-[10px] font-extrabold text-zinc-500 dark:text-zinc-400">SYSTEM STATUS: OPERATIONAL</p>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

@@ -54,30 +54,31 @@ export default function DesktopLayout({
   );
 
   return (
-    <div className="hidden lg:block">
-      <div className="max-w-6xl mx-auto px-8 py-8">
+    <div className="hidden lg:block min-h-screen">
+      <div className="max-w-6xl mx-auto px-8 py-12 pb-24">
 
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex items-start justify-between mb-12">
           <div className="pt-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white mb-2">
-              {greeting}
-            </h1>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+                {greeting}
+              </h1>
+              <button onClick={onLogout} className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-full transition-colors active:scale-95" title="로그아웃">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
             <p className="text-zinc-400 dark:text-zinc-500 text-sm font-medium">
               오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요
             </p>
           </div>
           
-          <div className="flex flex-col items-end gap-3">
-            <button onClick={onLogout} className="text-[11px] px-3 py-1.5 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-full font-extrabold tracking-widest uppercase transition flex items-center gap-1.5 shadow-sm active:scale-95">
-              <LogOut className="w-3 h-3" /> 로그아웃
-            </button>
-            
+          <div className="flex items-start gap-3">
             {weather && 'hourly' in weather ? (
               <div className="w-[320px]">
                 <WeatherDashboard weather={weather} />
               </div>
             ) : weather ? (
-              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
                 <WeatherIcon condition={(weather as any).condition} />
                 <div>
                   <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{(weather as any).temperature}°C</span>
@@ -120,7 +121,9 @@ export default function DesktopLayout({
                   <div className="text-center">
                     <p className="text-sm font-bold text-zinc-600 mb-1">{isDragging ? '여기에 놓으세요!' : '사진을 드래그하거나 클릭하세요'}</p>
                     <p className="text-xs text-zinc-400">오늘의 OOTD 전신 사진을 올려주세요</p>
-                    <p className="text-[10px] text-zinc-300 mt-1">사진은 AI 분석에만 사용되며 서버에 저장되지 않습니다</p>
+                    <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-2 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg inline-block">
+                      🔒 사진은 AI 분석에만 사용되며 서버에 저장되지 않습니다
+                    </p>
                   </div>
                 </div>
               )}
@@ -164,8 +167,19 @@ export default function DesktopLayout({
                     </>
                   ) : (
                     <>
-                      <h3 className="text-lg font-bold text-zinc-400 mb-2">AI 리뷰 대기 중</h3>
-                      <p className="text-sm text-zinc-300 dark:text-zinc-600 leading-relaxed mb-6">왼쪽에 OOTD 사진을 업로드하면<br />AI 스타일리스트가 분석을 시작합니다</p>
+                      <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">AI 리뷰 대기 중</h3>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mb-6">왼쪽에 OOTD 사진을 업로드하면<br />AI 스타일리스트가 분석을 시작합니다</p>
+                      
+                      <div className="w-full max-w-[340px] mt-4 p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 text-left flex items-start gap-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer shadow-sm group" onClick={() => router.push('/curation')}>
+                        <div className="w-12 h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700 group-hover:scale-105 transition-transform">
+                          <Sparkles className="w-5 h-5 text-indigo-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-extrabold text-zinc-900 dark:text-white mb-1">오늘의 코디 추천받기</h4>
+                          <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">옷장 아이템으로 완벽한 코디 제안</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-zinc-300 dark:text-zinc-600 self-center group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </>
                   )}
                   {wardrobeCount === 0 && !isRateLimited && (
