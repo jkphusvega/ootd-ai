@@ -4,6 +4,7 @@ const DAILY_LIMITS: Record<string, number> = {
   'analyze-ootd': 20,    // OOTD 분석: 하루 20회
   'segment-clothes': 30, // 옷 추출: 하루 30회
   'curate-outfit': 15,   // 코디 추천: 하루 15회
+  'shopping': 10,        // 쇼핑 추천: 하루 10회
 };
 
 /**

@@ -1,18 +1,22 @@
 'use client';
-import { motion } from 'framer-motion';
-import { Sparkles, MapPin, RefreshCw, ExternalLink, Shirt } from 'lucide-react';
+import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { Sparkles, RefreshCw, ExternalLink, Shirt, ThumbsUp, ThumbsDown, Check } from 'lucide-react';
 import Link from 'next/link';
-import type { CurationResult } from '../../hooks/useMobileCuration';
-
-interface WeatherInfo { temperature: number; condition: string; }
+import WeatherDashboard from './WeatherDashboard';
+import type { CurationResult, FeedbackType } from '../../hooks/useMobileCuration';
+import type { WeatherData } from '../../hooks/useWeather';
 
 interface Props {
-  weather: WeatherInfo | null;
+  weather: WeatherData | null;
   wardrobeCount: number;
   curation: CurationResult | null;
   isCurating: boolean;
   curationError: string | null;
+  feedback: FeedbackType;
+  isSavingFeedback: boolean;
+  pastSimilarOutfits?: Array<{ image_url: string; title: string; style: string }>;
   generateCuration: () => void;
+  submitFeedback: (type: 'like' | 'dislike' | 'worn') => void;
 }
 
 const getSearchUrls = (name: string) => {
@@ -23,7 +27,28 @@ const getSearchUrls = (name: string) => {
   };
 };
 
-export default function MobileCurationTab({ weather, wardrobeCount, curation, isCurating, curationError, generateCuration }: Props) {
+export default function MobileCurationTab({
+  weather, wardrobeCount, curation, isCurating, curationError,
+  feedback, isSavingFeedback, pastSimilarOutfits,
+  generateCuration, submitFeedback,
+}: Props) {
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-10, 10]);
+  const dragOpacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+
+  const likeOpacity = useTransform(x, [20, 100], [0, 1]);
+  const nopeOpacity = useTransform(x, [-20, -100], [0, 1]);
+
+  const handleDragEnd = (e: any, info: PanInfo) => {
+    if (feedback || isSavingFeedback) return;
+    if (info.offset.x > 100) {
+      submitFeedback('like');
+    } else if (info.offset.x < -100) {
+      submitFeedback('dislike');
+      setTimeout(() => generateCuration(), 300);
+    }
+  };
+
   return (
     <motion.div
       key="curation-tab"
@@ -31,12 +56,7 @@ export default function MobileCurationTab({ weather, wardrobeCount, curation, is
       className="absolute inset-0 flex flex-col pt-32 pb-28 px-6 overflow-y-auto [&::-webkit-scrollbar]:hidden"
     >
       {weather && (
-        <div className="flex justify-center mb-6">
-          <div className="px-4 py-2 bg-white/80 backdrop-blur-md border border-black/5 rounded-full flex items-center gap-2 shadow-md">
-            <MapPin className="w-3 h-3 text-zinc-400" />
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500">{weather.temperature}°C {weather.condition.toUpperCase()}</span>
-          </div>
-        </div>
+        <WeatherDashboard weather={weather} />
       )}
 
       {wardrobeCount === 0 && !isCurating && (
@@ -73,6 +93,30 @@ export default function MobileCurationTab({ weather, wardrobeCount, curation, is
           >
             <Sparkles className="w-4 h-4" /> AI 코디 추천받기
           </button>
+
+          {/* 과거 비슷한 날씨 착장 (Phase 2-3) */}
+          {pastSimilarOutfits && pastSimilarOutfits.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="w-full mt-8 text-left"
+            >
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <span className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase">과거 비슷한 날씨의 코디</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden -mx-6 px-6">
+                {pastSimilarOutfits.map((outfit, idx) => (
+                  <div key={idx} className="shrink-0 w-32 snap-center">
+                    <div className="aspect-[3/4] rounded-2xl overflow-hidden mb-2 shadow-sm border border-black/5 dark:border-white/5 relative">
+                      <img src={outfit.image_url} alt={outfit.title} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                    </div>
+                    <p className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 truncate px-1">{outfit.title}</p>
+                    <p className="text-[9px] text-zinc-400 truncate px-1 mt-0.5">{outfit.style}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       )}
 
@@ -95,7 +139,30 @@ export default function MobileCurationTab({ weather, wardrobeCount, curation, is
       )}
 
       {curation && !isCurating && (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 16 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          style={{ x, rotate, opacity: dragOpacity }}
+          drag={!feedback ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.7}
+          onDragEnd={handleDragEnd}
+          className="flex flex-col gap-4 relative touch-none"
+        >
+          {/* Swipe Overlays */}
+          <motion.div 
+            style={{ opacity: likeOpacity }}
+            className="absolute top-10 left-6 z-50 border-4 border-emerald-500 text-emerald-500 font-black text-4xl tracking-widest px-4 py-2 rounded-2xl -rotate-12 pointer-events-none"
+          >
+            LIKE
+          </motion.div>
+          <motion.div 
+            style={{ opacity: nopeOpacity }}
+            className="absolute top-10 right-6 z-50 border-4 border-red-500 text-red-500 font-black text-4xl tracking-widest px-4 py-2 rounded-2xl rotate-12 pointer-events-none"
+          >
+            NOPE
+          </motion.div>
+
           <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-md">
             <h2 className="text-lg font-extrabold text-zinc-900 dark:text-white mb-1">{curation.title}</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mb-3">{curation.description}</p>
@@ -136,6 +203,57 @@ export default function MobileCurationTab({ weather, wardrobeCount, curation, is
               </motion.div>
             ))}
           </div>
+
+          {/* ── 피드백 버튼 ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="flex gap-3 mt-1"
+          >
+            <button
+              onClick={() => submitFeedback('dislike')}
+              disabled={!!feedback || isSavingFeedback}
+              className={`flex-1 py-3.5 rounded-2xl text-[11px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-2 transition active:scale-95 ${
+                feedback === 'dislike'
+                  ? 'bg-red-500 text-white shadow-lg'
+                  : feedback
+                    ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed'
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-red-300 hover:text-red-500'
+              }`}
+            >
+              <ThumbsDown className="w-4 h-4" />
+              {feedback === 'dislike' ? '별로에요' : '별로'}
+            </button>
+
+            <button
+              onClick={() => submitFeedback('like')}
+              disabled={!!feedback || isSavingFeedback}
+              className={`flex-1 py-3.5 rounded-2xl text-[11px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-2 transition active:scale-95 ${
+                feedback === 'like'
+                  ? 'bg-emerald-500 text-white shadow-lg'
+                  : feedback
+                    ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed'
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-emerald-300 hover:text-emerald-500'
+              }`}
+            >
+              <ThumbsUp className="w-4 h-4" />
+              {feedback === 'like' ? '좋아요!' : '좋아요'}
+            </button>
+          </motion.div>
+
+          {/* 착용 확정 버튼 */}
+          <motion.button
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            onClick={() => submitFeedback('worn')}
+            disabled={feedback === 'worn' || isSavingFeedback}
+            className={`w-full py-4 rounded-2xl text-[11px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-2 transition active:scale-95 ${
+              feedback === 'worn'
+                ? 'bg-black text-white shadow-xl'
+                : 'bg-black/90 text-white hover:bg-black shadow-xl'
+            }`}
+          >
+            {feedback === 'worn' ? <Check className="w-4 h-4" /> : <span>👕</span>}
+            {feedback === 'worn' ? '오늘의 착장 기록 완료!' : '오늘 이 코디 입었어요'}
+          </motion.button>
 
           <button onClick={generateCuration} disabled={isCurating}
             className="w-full py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2">

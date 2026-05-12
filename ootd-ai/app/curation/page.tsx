@@ -71,22 +71,26 @@ export default function CurationPage() {
     if (!user || !curation || isSaved) return;
     setIsSaving(true);
     try {
-      const memo = worn
-        ? `✅ 오늘 착용\n${curation.title}\n${curation.description}`
-        : `${curation.title}\n${curation.description}`;
-      const tags = [curation.style, curation.colorTone, ...(worn ? ['착용확정'] : [])].filter(Boolean);
-      const { error } = await supabase.from('journal_entries').insert({
+      const meta = {
+        title: curation.title,
+        description: curation.description,
+        style: curation.style,
+        colorTone: curation.colorTone,
+        worn,
+        weather: weather ? `${Math.round(weather.temperature)}° ${weather.condition}` : '',
+        items: curation.items.map(i => i.name),
+      };
+      const { error } = await supabase.from('clothes').insert({
         user_id: user.id,
+        category: 'ootd_feed',
+        name: JSON.stringify(meta),
         image_url: curation.items[0]?.image_url || '',
-        temperature: weather ? `${Math.round(weather.temperature)}°` : '',
-        weather_condition: weather?.condition || 'Clear',
-        tags, score: null, memo,
       });
       if (error) throw error;
       setIsSaved(true);
       if (worn) setIsWorn(true);
       logEvent(user.id, worn ? 'curation_worn' : 'curation_saved', { style: curation.style, colorTone: curation.colorTone });
-      toast(worn ? '오늘 착장으로 저널에 기록됐어요! 🎉' : '오늘의 코디가 저널에 저장됐어요!', 'success');
+      toast(worn ? '오늘 착장으로 기록됐어요! 🎉' : '오늘의 코디가 저장됐어요!', 'success');
     } catch {
       toast('저장 중 오류가 발생했습니다.', 'error');
     } finally {
@@ -220,11 +224,11 @@ export default function CurationPage() {
                   <button onClick={() => saveToJournal(false)} disabled={isSaving || isSaved}
                     className={`w-full py-4 rounded-2xl font-extrabold tracking-widest text-xs uppercase transition flex items-center justify-center gap-2 ${isSaved ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'}`}>
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                    {isSaved ? '저장 완료!' : '저널에 저장하기'}
+                    {isSaved ? '저장 완료!' : '코디 저장하기'}
                   </button>
                   {isSaved && (
-                    <Link href="/journal" className="w-full py-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
-                      저널에서 보기 <ArrowRight className="w-3.5 h-3.5" />
+                    <Link href="/wardrobe" className="w-full py-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+                      옷장에서 보기 <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   )}
                   <button onClick={generateCuration} disabled={isLoading}

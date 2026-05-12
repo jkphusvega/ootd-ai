@@ -38,6 +38,14 @@ export default function Home() {
     }
   }, []);
 
+  // Weather notification (Phase 2-2)
+  useEffect(() => {
+    if (user && weather && 'weatherTip' in weather && weather.weatherTip && !sessionStorage.getItem('ootd_weather_notified')) {
+      toast(`☁️ 오늘의 날씨 코디 팁\n${weather.weatherTip}`, 'info');
+      sessionStorage.setItem('ootd_weather_notified', 'true');
+    }
+  }, [user, weather, toast]);
+
   // Fetch user profile, redirect to onboarding if missing
   useEffect(() => {
     if (authLoading || !user) return;
@@ -131,6 +139,8 @@ export default function Home() {
               weather={weather} wardrobeCount={curation.wardrobeCount}
               curation={curation.curation} isCurating={curation.isCurating}
               curationError={curation.curationError} generateCuration={curation.generateCuration}
+              feedback={curation.feedback} isSavingFeedback={curation.isSavingFeedback}
+              submitFeedback={curation.submitFeedback} pastSimilarOutfits={curation.pastSimilarOutfits}
             />
           )}
           {mobileTab === 'analysis' && (

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 
-interface JournalEntry {
+interface CalendarEntry {
   id: string;
   image_url: string;
   temperature: string;
@@ -24,9 +24,9 @@ export default function CalendarPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<CalendarEntry | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -43,14 +43,31 @@ export default function CalendarPage() {
       const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
       const { data } = await supabase
-        .from('journal_entries')
-        .select('*')
+        .from('clothes')
+        .select('id, name, image_url, created_at')
         .eq('user_id', user.id)
+        .eq('category', 'ootd_feed')
         .gte('created_at', startOfMonth)
         .lte('created_at', endOfMonth)
         .order('created_at', { ascending: true });
 
-      setEntries(data || []);
+      // ootd_feed의 name 필드에서 메타데이터 파싱
+      const parsed: CalendarEntry[] = (data || []).map(item => {
+        let meta: { weather?: string; score?: number; title?: string; description?: string } = {};
+        try { meta = JSON.parse(item.name); } catch { /* skip */ }
+        const weatherParts = (meta.weather || '').split(' ');
+        return {
+          id: item.id,
+          image_url: item.image_url || '',
+          temperature: weatherParts[0] || '',
+          weather_condition: weatherParts[1] || 'Clear',
+          score: meta.score ?? null,
+          memo: meta.title || meta.description || '',
+          created_at: item.created_at,
+        };
+      });
+
+      setEntries(parsed);
       setIsLoading(false);
     };
     if (!authLoading && user) fetchEntries();
@@ -62,7 +79,7 @@ export default function CalendarPage() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
 
-  const getEntryForDay = (day: number): JournalEntry | undefined => {
+  const getEntryForDay = (day: number): CalendarEntry | undefined => {
     return entries.find(e => {
       const d = new Date(e.created_at);
       return d.getDate() === day;

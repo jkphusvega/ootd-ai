@@ -57,9 +57,13 @@ export async function POST(request: Request) {
       });
     }
 
+    const parseName = (name: string) => {
+      try { return JSON.parse(name).n || name; }
+      catch { return name; }
+    };
     // 옷장 아이템 정보를 텍스트로 변환
     const wardrobeDescription = clothes.map(item => 
-      `- ${item.category}: "${item.name}" (이미지: ${item.image_url})`
+      `- ${item.category}: "${parseName(item.name)}" (이미지: ${item.image_url})`
     ).join('\n');
 
     const FIT_LABEL: Record<string, string> = {
@@ -92,12 +96,24 @@ export async function POST(request: Request) {
       ].filter(Boolean).join('\n');
     }
 
+    // 날씨 정보 구성 (Phase 2: 시간별 예보 포함)
+    let weatherContext = `Current weather: ${weatherInfo?.temperature || 20}°C, ${weatherInfo?.condition || 'Clear'}.`;
+    if (weatherInfo?.tempMin !== undefined && weatherInfo?.tempMax !== undefined) {
+      weatherContext += `\nToday's range: ${weatherInfo.tempMin}°C ~ ${weatherInfo.tempMax}°C.`;
+    }
+    if (weatherInfo?.precipitationProbability > 0) {
+      weatherContext += `\nRain probability: ${weatherInfo.precipitationProbability}%.`;
+    }
+    if (weatherInfo?.weatherTip) {
+      weatherContext += `\nStyling tip: ${weatherInfo.weatherTip}`;
+    }
+
     const prompt = `You are a top fashion stylist in Seoul who specializes in personalized styling.
 The user has these items in their wardrobe:
 ${wardrobeDescription}
 
 Today's situation: ${occasionLabel}
-Current weather: ${weatherInfo?.temperature || 20}°C, ${weatherInfo?.condition || 'Clear'}.
+${weatherContext}
 ${profileContext}
 ${behaviorContext.summary}
 

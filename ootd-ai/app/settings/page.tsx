@@ -19,18 +19,10 @@ const MOODS = [
   { id: 'vintage', label: '빈티지', emoji: '레트로' },
 ];
 
-const BODY_SHAPES = [
-  { id: 'pear', label: '서양배형', desc: '하체가 발달한 체형', emoji: '🍐' },
-  { id: 'strawberry', label: '딸기형', desc: '상체/어깨가 발달한 체형', emoji: '🍓' },
-  { id: 'banana', label: '바나나형', desc: '슬림하고 곧은 체형', emoji: '🍌' },
-  { id: 'apple', label: '사과형', desc: '복부가 발달한 체형', emoji: '🍎' },
-];
-
 const BODY_GOALS = [
-  { id: 'taller', label: '비율 깡패', desc: '다리가 길어 보이게', emoji: '📏' },
-  { id: 'broader', label: '어깨 깡패', desc: '어깨가 넓어 보이게', emoji: '🏋️‍♂️' },
-  { id: 'slimmer', label: '슬림 핏', desc: '전체적으로 갸름해 보이게', emoji: '🕴️' },
-  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 가리게', emoji: '👖' },
+  { id: 'taller', label: '비율 보완 (다리가 길어보이게)', emoji: '📏' },
+  { id: 'broader', label: '체형 보완 (어깨/상체 커버)', emoji: '🏋️' },
+  { id: 'slimmer', label: '슬림 핏 (전체적으로 갸름하게)', emoji: '🕴️' },
 ];
 
 export default function SettingsPage() {
@@ -44,7 +36,6 @@ export default function SettingsPage() {
   const [weight, setWeight] = useState(70);
   const [fit, setFit] = useState('regular');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
-  const [bodyShape, setBodyShape] = useState('');
   const [bodyGoal, setBodyGoal] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -81,7 +72,6 @@ export default function SettingsPage() {
           setWeight(data.weight || 70);
           setFit(data.fit_preference || 'regular');
           setSelectedMoods(data.style_moods || []);
-          setBodyShape(data.body_shape || '');
           setBodyGoal(data.body_goal || '');
           setIsPublic(data.is_public || false);
           setShareId(data.share_id || '');
@@ -115,7 +105,6 @@ export default function SettingsPage() {
           weight,
           fit_preference: fit,
           style_moods: selectedMoods,
-          body_shape: bodyShape,
           body_goal: bodyGoal,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
@@ -308,46 +297,23 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Body Shape & Goal */}
-            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 space-y-6">
-              <div>
-                <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-3">체형 타입</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {BODY_SHAPES.map(shape => (
-                    <button key={shape.id} onClick={() => setBodyShape(shape.id)}
-                      className={`py-3 px-4 rounded-2xl text-left transition-all flex gap-3 items-center border ${
-                        bodyShape === shape.id
-                          ? 'bg-black text-white border-black shadow-md'
-                          : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}>
-                      <span className="text-xl shrink-0">{shape.emoji}</span>
-                      <div>
-                        <span className={`block text-xs font-bold mb-0.5 ${bodyShape === shape.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{shape.label}</span>
-                        <span className={`block text-[10px] ${bodyShape === shape.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{shape.desc}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-3">체형 보완 목표</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {BODY_GOALS.map(goal => (
-                    <button key={goal.id} onClick={() => setBodyGoal(goal.id)}
-                      className={`py-3 px-4 rounded-2xl text-left transition-all flex gap-3 items-center border ${
-                        bodyGoal === goal.id
-                          ? 'bg-black text-white border-black shadow-md'
-                          : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}>
-                      <span className="text-xl shrink-0">{goal.emoji}</span>
-                      <div>
-                        <span className={`block text-xs font-bold mb-0.5 ${bodyGoal === goal.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>{goal.label}</span>
-                        <span className={`block text-[10px] ${bodyGoal === goal.id ? 'text-zinc-300' : 'text-zinc-400'}`}>{goal.desc}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            {/* Styling Goal */}
+            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800">
+              <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-400 block mb-3">체형 보완 목표</span>
+              <div className="flex flex-col gap-2">
+                {BODY_GOALS.map(goal => (
+                  <button key={goal.id} onClick={() => setBodyGoal(goal.id)}
+                    className={`py-3.5 px-4 rounded-xl text-left transition-all flex gap-3 items-center border ${
+                      bodyGoal === goal.id
+                        ? 'bg-black text-white border-black shadow-md'
+                        : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                    }`}>
+                    <span className="text-xl shrink-0">{goal.emoji}</span>
+                    <span className={`block text-xs font-bold ${bodyGoal === goal.id ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'}`}>
+                      {goal.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>

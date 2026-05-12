@@ -84,52 +84,11 @@ Rules:
             fullText += text;
             controller.enqueue(encoder.encode(text));
           }
-        } finally {
-          controller.close();
+        } catch (e) {
+          console.error('Stream error:', e);
         }
 
-        // ── fire-and-forget: 응답 반환 후 DB 저장 (블로킹 없음) ──
-        (async () => {
-          try {
-            const cleaned = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-
-              // 1. 이미지 백그라운드 업로드
-              let publicUrl = '';
-              try {
-                const base64Data = imageBase64.split(',')[1];
-                const buffer = Buffer.from(base64Data, 'base64');
-                const fileName = `journal_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
-                
-                const { error: uploadError } = await supabase.storage
-                  .from('clothes')
-                  .upload(fileName, buffer, { contentType: 'image/webp' });
-                
-                if (!uploadError) {
-                  const { data } = supabase.storage.from('clothes').getPublicUrl(fileName);
-                  publicUrl = data.publicUrl;
-                }
-              } catch (e) {
-                console.error('Background image upload error:', e);
-              }
-
-              // 2. 저널 DB 인서트
-              await supabase.from('journal_entries').insert({
-                user_id: user.id,
-                score: parsed.score ?? null,
-                weather_condition: weatherInfo?.condition ?? 'Clear',
-                temperature: String(weatherInfo?.temperature ?? ''),
-                memo: parsed.headline ?? '',
-                tags: [],
-                image_url: publicUrl,
-              });
-            }
-          } catch (e) {
-            console.error('Background processing error:', e);
-          }
-        })();
+        controller.close();
       },
     });
 

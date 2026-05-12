@@ -4,12 +4,12 @@ import { Sparkles, ImagePlus, RefreshCw, Star, Bookmark, ChevronRight, Sun, Clou
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
-
-interface WeatherInfo { temperature: number; condition: string; }
+import type { WeatherData } from '../../hooks/useWeather';
+import WeatherDashboard from './WeatherDashboard';
 interface UserProfile { nickname?: string; [key: string]: unknown; }
 
 interface Props {
-  weather: WeatherInfo | null;
+  weather: WeatherData | null;
   userProfile: UserProfile | null;
   greeting: string;
   scanState: 'idle' | 'scanning' | 'success' | 'error';
@@ -57,25 +57,35 @@ export default function DesktopLayout({
     <div className="hidden lg:block">
       <div className="max-w-6xl mx-auto px-8 py-8">
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">{greeting}</h1>
-              <button onClick={onLogout} className="text-xs px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full font-bold transition flex items-center gap-1">
-                <LogOut className="w-3 h-3" /> 로그아웃
-              </button>
-            </div>
-            <p className="text-zinc-400 dark:text-zinc-500 text-sm font-medium">오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요</p>
+        <div className="flex items-start justify-between mb-8">
+          <div className="pt-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white mb-2">
+              {greeting}
+            </h1>
+            <p className="text-zinc-400 dark:text-zinc-500 text-sm font-medium">
+              오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요
+            </p>
           </div>
-          {weather && (
-            <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
-              <WeatherIcon condition={weather.condition} />
-              <div>
-                <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{weather.temperature}°C</span>
-                <span className="text-xs text-zinc-400 ml-2 font-semibold">{weather.condition}</span>
+          
+          <div className="flex flex-col items-end gap-3">
+            <button onClick={onLogout} className="text-[11px] px-3 py-1.5 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-full font-extrabold tracking-widest uppercase transition flex items-center gap-1.5 shadow-sm active:scale-95">
+              <LogOut className="w-3 h-3" /> 로그아웃
+            </button>
+            
+            {weather && 'hourly' in weather ? (
+              <div className="w-[320px]">
+                <WeatherDashboard weather={weather} />
               </div>
-            </div>
-          )}
+            ) : weather ? (
+              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+                <WeatherIcon condition={weather.condition} />
+                <div>
+                  <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{weather.temperature}°C</span>
+                  <span className="text-xs text-zinc-400 ml-2 font-semibold">{weather.condition}</span>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-8 items-start">

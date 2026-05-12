@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { allowed, limit } = await checkRateLimit(user.id, 'curate-outfit');
+    const { allowed, limit } = await checkRateLimit(user.id, 'shopping');
     if (!allowed) {
       return NextResponse.json(
         { error: `일일 쇼핑 추천 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
@@ -31,8 +31,12 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .neq('category', 'ootd_feed');
 
+    const parseName = (name: string) => {
+      try { return JSON.parse(name).n || name; }
+      catch { return name; }
+    };
     const wardrobeDescription = (clothes || []).map(item =>
-      `- ${item.category}: "${item.name}"`
+      `- ${item.category}: "${parseName(item.name)}"`
     ).join('\n');
 
     let profileContext = '';

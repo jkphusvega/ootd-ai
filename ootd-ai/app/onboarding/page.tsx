@@ -121,10 +121,9 @@ const CONTEXTS = [
 ];
 
 const BODY_GOALS = [
-  { id: 'taller',     label: '비율 깡패', desc: '다리가 길어 보이게',      emoji: '📏' },
-  { id: 'broader',    label: '어깨 강조', desc: '어깨가 넓어 보이게',      emoji: '🏋️' },
-  { id: 'slimmer',    label: '슬림하게',  desc: '전체적으로 갸름해 보이게', emoji: '🕴️' },
-  { id: 'cover_legs', label: '하체 커버', desc: '다리 라인을 가리게',      emoji: '👖' },
+  { id: 'taller', label: '비율 보완 (다리가 길어보이게)', emoji: '📏' },
+  { id: 'broader', label: '체형 보완 (어깨/상체 커버)', emoji: '🏋️' },
+  { id: 'slimmer', label: '슬림 핏 (전체적으로 갸름하게)', emoji: '🕴️' },
 ];
 
 const TOTAL_STEPS = 3;
@@ -219,7 +218,7 @@ export default function OnboardingPage() {
 
       if (error) throw error;
       localStorage.setItem('ootd_onboarded', 'true');
-      router.push('/add-clothes');
+      router.push('/');
     } catch {
       toast('저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
     } finally {
@@ -485,8 +484,8 @@ export default function OnboardingPage() {
 
               {/* 스타일 목표 */}
               <div>
-                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">옷을 입을 때 가장 원하는 것</p>
-                <div className="grid grid-cols-2 gap-2">
+                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">옷을 입을 때 가장 신경쓰는 부분</p>
+                <div className="flex flex-col gap-2">
                   {BODY_GOALS.map(goal => (
                     <button key={goal.id} onClick={() => setSelectedGoal(goal.id)}
                       className={`p-4 rounded-2xl text-left transition-all border flex gap-3 items-center ${
@@ -494,11 +493,10 @@ export default function OnboardingPage() {
                           ? 'bg-black dark:bg-white border-black dark:border-white shadow-md'
                           : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
                       }`}>
-                      <span className="text-2xl shrink-0">{goal.emoji}</span>
-                      <div>
-                        <span className={`block font-bold text-sm ${selectedGoal === goal.id ? 'text-white dark:text-zinc-900' : 'text-zinc-800 dark:text-zinc-200'}`}>{goal.label}</span>
-                        <span className={`block text-[10px] mt-0.5 ${selectedGoal === goal.id ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-400'}`}>{goal.desc}</span>
-                      </div>
+                      <span className="text-xl shrink-0">{goal.emoji}</span>
+                      <span className={`block font-bold text-sm ${selectedGoal === goal.id ? 'text-white dark:text-zinc-900' : 'text-zinc-800 dark:text-zinc-200'}`}>
+                        {goal.label}
+                      </span>
                     </button>
                   ))}
                 </div>

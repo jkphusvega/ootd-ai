@@ -14,10 +14,10 @@ interface ClothItem {
   image_url: string;
 }
 
-interface JournalEntry {
+interface OotdFeedItem {
   id: string;
-  score: number | null;
-  weather_condition: string;
+  name: string;
+  image_url: string;
   created_at: string;
 }
 
@@ -26,7 +26,7 @@ export default function StatsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [clothes, setClothes] = useState<ClothItem[]>([]);
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [feedItems, setFeedItems] = useState<OotdFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,17 +38,23 @@ export default function StatsPage() {
       if (!user) return;
       setIsLoading(true);
 
-      const [clothesRes, entriesRes] = await Promise.all([
+      const [clothesRes, feedRes] = await Promise.all([
         supabase.from('clothes').select('*').eq('user_id', user.id).neq('category', 'ootd_feed'),
-        supabase.from('journal_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('clothes').select('id, name, image_url, created_at').eq('user_id', user.id).eq('category', 'ootd_feed').order('created_at', { ascending: false }),
       ]);
 
       setClothes(clothesRes.data || []);
-      setEntries(entriesRes.data || []);
+      setFeedItems(feedRes.data || []);
       setIsLoading(false);
     };
     if (!authLoading && user) fetchData();
   }, [user, authLoading]);
+
+  // ootd_feed 메타데이터 파싱
+  const parsedFeed = feedItems.map(item => {
+    try { return { ...JSON.parse(item.name), created_at: item.created_at }; }
+    catch { return null; }
+  }).filter(Boolean);
 
   // 카테고리별 아이템 수
   const categoryStats = ['outer', 'tops', 'bottoms', 'shoes', 'bag', 'accessory', 'socks'].map(cat => ({
@@ -61,19 +67,19 @@ export default function StatsPage() {
   // 총 아이템 수
   const totalItems = clothes.length;
 
-  // 저널 통계
-  const totalEntries = entries.length;
-  const scoredEntries = entries.filter(e => e.score !== null);
+  // 피드 통계
+  const totalEntries = feedItems.length;
+  const scoredEntries = parsedFeed.filter((p: { score?: number }) => typeof p.score === 'number');
   const avgScore = scoredEntries.length > 0
-    ? Math.round(scoredEntries.reduce((sum, e) => sum + (e.score ?? 0), 0) / scoredEntries.length)
+    ? Math.round(scoredEntries.reduce((sum: number, e: { score?: number }) => sum + (e.score ?? 0), 0) / scoredEntries.length)
     : null;
   const bestScore = scoredEntries.length > 0
-    ? Math.max(...scoredEntries.map(e => e.score ?? 0))
+    ? Math.max(...scoredEntries.map((e: { score?: number }) => e.score ?? 0))
     : null;
 
   // 이번 달 착장 횟수
   const now = new Date();
-  const thisMonthEntries = entries.filter(e => {
+  const thisMonthEntries = feedItems.filter(e => {
     const d = new Date(e.created_at);
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
@@ -81,7 +87,7 @@ export default function StatsPage() {
   // 날씨별 기록 수
   const weatherStats = ['Clear', 'Cloudy', 'Rain', 'Snow'].map(w => ({
     condition: w,
-    count: entries.filter(e => e.weather_condition === w).length,
+    count: parsedFeed.filter((p: { weather?: string }) => p.weather?.includes(w)).length,
     label: w === 'Clear' ? '☀️ 맑음' : w === 'Cloudy' ? '☁️ 흐림' : w === 'Rain' ? '🌧️ 비' : '❄️ 눈',
   }));
 
@@ -92,7 +98,7 @@ export default function StatsPage() {
     weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay());
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    const count = entries.filter(e => {
+    const count = feedItems.filter(e => {
       const d = new Date(e.created_at);
       return d >= weekStart && d <= weekEnd;
     }).length;
@@ -176,11 +182,11 @@ export default function StatsPage() {
             <p className="text-3xl mb-3">📊</p>
             <p className="font-extrabold text-zinc-800 dark:text-white mb-2">아직 통계 데이터가 없어요</p>
             <p className="text-sm text-zinc-400 leading-relaxed mb-5">
-              저널을 <span className="font-bold text-zinc-600 dark:text-zinc-300">3개 이상</span> 기록하면<br />착장 분석과 OOTD 점수 통계가 나타나요
+              OOTD를 <span className="font-bold text-zinc-600 dark:text-zinc-300">3개 이상</span> 기록하면<br />착장 분석과 OOTD 점수 통계가 나타나요
             </p>
-            <Link href="/journal">
+            <Link href="/">
               <button className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-lg hover:opacity-80 transition active:scale-95">
-                저널 기록하러 가기
+                홈에서 OOTD 분석하기
               </button>
             </Link>
           </motion.div>

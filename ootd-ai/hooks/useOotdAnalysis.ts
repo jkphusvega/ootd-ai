@@ -189,12 +189,11 @@ export function useOotdAnalysis({
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault(); setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file?.type.startsWith('image/')) await processFile(file);
-  }, [weather, userProfile]);
+  };
 
   const resetAnalysis = () => {
     setScanState('idle'); setCritique(null); setHasCustomImage(false); setOriginalImage(''); setBase64Image(null);

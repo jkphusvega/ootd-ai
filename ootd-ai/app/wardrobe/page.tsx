@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Plus, Trash2, X, Droplets, ScanLine, Star } from 'lucide-react';
+import { Home, Plus, Trash2, X, Droplets, ScanLine, Star, Edit3, Link as LinkIcon, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
@@ -46,6 +46,51 @@ export default function GalleryPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [selectedFeed, setSelectedFeed] = useState<ClothItem | null>(null);
+  const [editingItem, setEditingItem] = useState<ClothItem | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const parseClothName = (raw: string) => {
+    try {
+      const obj = JSON.parse(raw);
+      return { name: obj.n || raw, purchaseUrl: obj.u || '' };
+    } catch {
+      return { name: raw, purchaseUrl: '' };
+    }
+  };
+
+  const handleItemClick = (item: ClothItem) => {
+    if (editMode) return;
+    setEditingItem(item);
+    const parsed = parseClothName(item.name);
+    setEditName(parsed.name);
+    setEditUrl(parsed.purchaseUrl);
+  };
+
+  const saveItemEdit = async () => {
+    if (!editingItem || !editName.trim()) return;
+    setIsSavingEdit(true);
+    try {
+      const newRawName = editUrl.trim() 
+        ? JSON.stringify({ n: editName.trim(), u: editUrl.trim() })
+        : editName.trim();
+        
+      const { error } = await supabase.from('clothes')
+        .update({ name: newRawName })
+        .eq('id', editingItem.id);
+        
+      if (error) throw error;
+      
+      setLocalItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, name: newRawName } : i));
+      toast('정보가 저장되었습니다.', 'success');
+      setEditingItem(null);
+    } catch {
+      toast('저장 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -252,7 +297,8 @@ export default function GalleryPage() {
                                 pendingDeleteId={pendingDeleteId}
                                 onRequestDelete={setPendingDeleteId}
                                 onConfirmDelete={handleDelete}
-                                onCancelDelete={() => setPendingDeleteId(null)} />
+                                onCancelDelete={() => setPendingDeleteId(null)}
+                                onClick={() => handleItemClick(item)} />
                             ))}
                             {hasMore && (
                               <div className="snap-center shrink-0 w-[100px] h-[160px] mt-[20px] flex flex-col items-center justify-center cursor-pointer group" onClick={() => toggleCategory(category.id)}>
@@ -274,7 +320,8 @@ export default function GalleryPage() {
                                 pendingDeleteId={pendingDeleteId}
                                 onRequestDelete={setPendingDeleteId}
                                 onConfirmDelete={handleDelete}
-                                onCancelDelete={() => setPendingDeleteId(null)} />
+                                onCancelDelete={() => setPendingDeleteId(null)}
+                                onClick={() => handleItemClick(item)} />
                             ))}
                             <Link href="/add-clothes">
                               <div className="aspect-square rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all">
@@ -464,21 +511,82 @@ export default function GalleryPage() {
           );
         })()}
       </AnimatePresence>
+      
+      {/* ── Item Edit Modal ── */}
+      <AnimatePresence>
+        {editingItem && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              onClick={() => !isSavingEdit && setEditingItem(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm z-50 bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-2xl overflow-hidden">
+              <div className="absolute top-4 right-4">
+                <button onClick={() => !isSavingEdit && setEditingItem(null)} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <h3 className="text-xl font-black mb-6 text-zinc-900 dark:text-white">아이템 정보 수정</h3>
+              
+              <div className="w-32 h-32 mx-auto mb-6 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-center p-2">
+                <img src={editingItem.image} alt="item preview" className="max-w-full max-h-full object-contain sticker-effect" />
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-400 mb-1.5 block flex items-center gap-1.5">
+                    <Edit3 className="w-3 h-3" />
+                    아이템 이름
+                  </label>
+                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)} disabled={isSavingEdit}
+                    placeholder="예: 검정 와이드 슬랙스"
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-400 mb-1.5 block flex items-center gap-1.5">
+                    <LinkIcon className="w-3 h-3" />
+                    구매 링크 (선택)
+                  </label>
+                  <input type="url" value={editUrl} onChange={e => setEditUrl(e.target.value)} disabled={isSavingEdit}
+                    placeholder="https://..."
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition" />
+                  <p className="text-[10px] text-zinc-500 mt-1.5">나중에 옷장을 공유할 때, 다른 사람이 이 링크로 옷을 구매할 수 있습니다.</p>
+                </div>
+              </div>
+
+              <button onClick={saveItemEdit} disabled={isSavingEdit || !editName.trim()}
+                className="mt-8 w-full py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl font-black text-sm tracking-widest flex justify-center items-center gap-2 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition disabled:opacity-50">
+                {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                저장하기
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 /* ───── Sub Components ───── */
 
-function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete }: {
+function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick }: {
   item: ClothItem;
   editMode: boolean;
   pendingDeleteId: string | null;
   onRequestDelete: (id: string) => void;
   onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
+  onClick?: () => void;
 }) {
   const isPending = pendingDeleteId === item.id;
+  
+  const parsedName = useMemo(() => {
+    try {
+      return JSON.parse(item.name).n || item.name;
+    } catch {
+      return item.name;
+    }
+  }, [item.name]);
   return (
     <div className="snap-center shrink-0 w-[150px] cursor-pointer group flex flex-col items-center relative">
       {editMode && !isPending && (
@@ -499,27 +607,36 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
           </button>
         </div>
       )}
-      <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3">
+      <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3" onClick={() => !editMode && onClick?.()}>
         <div className="w-[140px] h-[160px] relative flex items-center justify-center">
-          <img src={item.image} alt={item.name} loading="lazy" className="max-w-[100%] max-h-[100%] object-contain transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
+          <img src={item.image} alt={parsedName} loading="lazy" className="max-w-[100%] max-h-[100%] object-contain transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
         </div>
         <div className="mt-3 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
-          <p className="text-[9px] font-black tracking-widest text-zinc-800 dark:text-zinc-200 uppercase text-center">{item.name}</p>
+          <p className="text-[9px] font-black tracking-widest text-zinc-800 dark:text-zinc-200 uppercase text-center truncate max-w-[120px]">{parsedName}</p>
         </div>
       </div>
     </div>
   );
 }
 
-function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete }: {
+function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick }: {
   item: ClothItem;
   editMode: boolean;
   pendingDeleteId: string | null;
   onRequestDelete: (id: string) => void;
   onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
+  onClick?: () => void;
 }) {
   const isPending = pendingDeleteId === item.id;
+
+  const parsedName = useMemo(() => {
+    try {
+      return JSON.parse(item.name).n || item.name;
+    } catch {
+      return item.name;
+    }
+  }, [item.name]);
   return (
     <div className="relative group cursor-pointer">
       {editMode && !isPending && (
@@ -540,11 +657,11 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
           </button>
         </div>
       )}
-      <div className="aspect-square bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-1">
-        <img src={item.image} alt={item.name} loading="lazy" className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
+      <div className="aspect-square bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-1" onClick={() => !editMode && onClick?.()}>
+        <img src={item.image} alt={parsedName} loading="lazy" className="max-w-full max-h-full object-contain sticker-effect transition-transform duration-500 group-hover:scale-110" draggable={false} />
       </div>
       <div className="mt-3 text-center">
-        <p className="text-[10px] font-black tracking-widest text-zinc-700 dark:text-zinc-300 uppercase">{item.name}</p>
+        <p className="text-[10px] font-black tracking-widest text-zinc-700 dark:text-zinc-300 uppercase truncate max-w-full px-2">{parsedName}</p>
       </div>
     </div>
   );
