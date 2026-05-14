@@ -158,15 +158,14 @@ export function useWeather() {
     };
 
     const updateWeather = () => {
-      // 위치 정보 제공 동의 상태면 현재 위치 기반으로 가져오기
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        // 서울 기본값 먼저 표시 (GPS 대기 중에도 빈 화면 방지)
+        fetchWeather(37.5665, 126.978, true);
+        // GPS 위치 확인되면 덮어씌움
         navigator.geolocation.getCurrentPosition(
           (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude, false),
-          () => { 
-            // 위치 거부 시 서울 기본값으로 가져오기
-            fetchWeather(37.5665, 126.978, true); 
-          },
-          { timeout: 8000, maximumAge: 60 * 1000 } // 1분 이내 캐시 위치 허용
+          () => { /* 거부/실패 시 이미 표시된 서울 기본값 유지 */ },
+          { timeout: 15000, maximumAge: 5 * 60 * 1000 }
         );
       } else {
         fetchWeather(37.5665, 126.978, true);
