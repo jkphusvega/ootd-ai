@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface HourlyForecast {
   hour: number;          // 0-23
@@ -87,8 +87,10 @@ const generateWeatherTip = (data: {
 
 export function useWeather() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const hasRealLocation = useRef(false);
 
   useEffect(() => {
+    hasRealLocation.current = false;
     // 1. 빠른 화면 렌더링을 위해 캐시된 데이터가 있으면 먼저 보여줌
     const cached = sessionStorage.getItem('ootd_weather_v2');
     if (cached) {
@@ -102,6 +104,7 @@ export function useWeather() {
     }
 
     const fetchWeather = async (lat = 37.5665, lon = 126.978, isFallback = false) => {
+      if (isFallback && hasRealLocation.current) return;
       try {
         const res = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -147,8 +150,8 @@ export function useWeather() {
           weatherTip: generateWeatherTip({ tempMin, tempMax, condition: decodeWeatherCode(data.current.weather_code), precipProb, hourly }),
         };
 
+        if (!isFallback) hasRealLocation.current = true;
         setWeather(result);
-        // 위치 기반 최신 데이터만 캐시에 저장 (Fallback인 서울 데이터는 덮어쓰기 방지)
         if (!isFallback) {
           sessionStorage.setItem('ootd_weather_v2', JSON.stringify({ data: result, ts: Date.now() }));
         }
