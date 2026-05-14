@@ -89,16 +89,19 @@ export function useWeather() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
   useEffect(() => {
-    // 캐시 확인 (10분)
+    // 1. 빠른 화면 렌더링을 위해 캐시된 데이터가 있으면 먼저 보여줌
     const cached = sessionStorage.getItem('ootd_weather_v2');
     if (cached) {
       try {
         const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < 10 * 60 * 1000) { setWeather(data); return; }
+        // 캐시가 5분 이내면 일단 표시 (하지만 return으로 끝내지 않고 뒤에서 새 데이터/위치로 업데이트 시도)
+        if (Date.now() - ts < 5 * 60 * 1000) {
+          setWeather(data);
+        }
       } catch { /* ignore */ }
     }
 
-    const fetchWeather = async (lat = 37.5665, lon = 126.978) => {
+    const fetchWeather = async (lat = 37.5665, lon = 126.978, isFallback = false) => {
       try {
         const res = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -112,11 +115,9 @@ export function useWeather() {
         const now = new Date();
         const currentHour = now.getHours();
 
-        // 시간별 예보: 현재 시간부터 12시간
         const hourly: HourlyForecast[] = [];
         const hourlyTimes: string[] = data.hourly?.time || [];
         for (let i = 0; i < hourlyTimes.length && hourly.length < 12; i++) {
-          const h = new Date(hourlyTimes[i]).getHours();
           const hourIndex = new Date(hourlyTimes[i]).getHours();
           if (i >= currentHour) {
             hourly.push({
@@ -147,22 +148,50 @@ export function useWeather() {
         };
 
         setWeather(result);
-        sessionStorage.setItem('ootd_weather_v2', JSON.stringify({ data: result, ts: Date.now() }));
+        // 위치 기반 최신 데이터만 캐시에 저장 (Fallback인 서울 데이터는 덮어쓰기 방지)
+        if (!isFallback) {
+          sessionStorage.setItem('ootd_weather_v2', JSON.stringify({ data: result, ts: Date.now() }));
+        }
       } catch {
-        // silently fall back — components handle null weather gracefully
+        // silently fall back
       }
     };
 
-    // 서울 기본값 즉시 가져오고, 위치 정보 오면 덮어씀
-    fetchWeather();
+    const updateWeather = () => {
+      // 위치 정보 제공 동의 상태면 현재 위치 기반으로 가져오기
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude, false),
+          () => { 
+            // 위치 거부 시 서울 기본값으로 가져오기
+            fetchWeather(37.5665, 126.978, true); 
+          },
+          { timeout: 8000, maximumAge: 0 } // 항상 최신 위치 시도
+        );
+      } else {
+        fetchWeather(37.5665, 126.978, true);
+      }
+    };
 
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => { /* 위치 거부 시 서울 기본값 유지 */ },
-        { timeout: 8000, maximumAge: 5 * 60 * 1000 }
-      );
-    }
+    // 초기 마운트 시 날씨 업데이트
+    updateWeather();
+
+    // 사용자가 다른 탭/앱에 갔다가 다시 돌아왔을 때 날씨 업데이트 (실시간 반영 느낌)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateWeather();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // 30분마다 자동 갱신 (앱을 켜두기만 해도 업데이트)
+    const intervalId = setInterval(updateWeather, 30 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
   return weather;
