@@ -57,13 +57,9 @@ export async function POST(request: Request) {
       });
     }
 
-    const parseName = (name: string) => {
-      try { return JSON.parse(name).n || name; }
-      catch { return name; }
-    };
     // 옷장 아이템 정보를 텍스트로 변환
-    const wardrobeDescription = clothes.map(item => 
-      `- ${item.category}: "${parseName(item.name)}" (이미지: ${item.image_url})`
+    const wardrobeDescription = clothes.map(item =>
+      `- ${item.category}: "${item.name}" (이미지: ${item.image_url})`
     ).join('\n');
 
     const FIT_LABEL: Record<string, string> = {

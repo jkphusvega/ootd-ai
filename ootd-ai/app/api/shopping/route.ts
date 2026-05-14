@@ -31,12 +31,8 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .neq('category', 'ootd_feed');
 
-    const parseName = (name: string) => {
-      try { return JSON.parse(name).n || name; }
-      catch { return name; }
-    };
     const wardrobeDescription = (clothes || []).map(item =>
-      `- ${item.category}: "${parseName(item.name)}"`
+      `- ${item.category}: "${item.name}"`
     ).join('\n');
 
     let profileContext = '';

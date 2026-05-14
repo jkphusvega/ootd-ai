@@ -12,6 +12,7 @@ interface ClothItem {
   id: string;
   image: string;
   name: string;
+  purchaseUrl?: string;
   categoryId?: string;
   createdAt?: string;
 }
@@ -51,38 +52,24 @@ export default function GalleryPage() {
   const [editUrl, setEditUrl] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  const parseClothName = (raw: string) => {
-    try {
-      const obj = JSON.parse(raw);
-      return { name: obj.n || raw, purchaseUrl: obj.u || '' };
-    } catch {
-      return { name: raw, purchaseUrl: '' };
-    }
-  };
-
   const handleItemClick = (item: ClothItem) => {
     if (editMode) return;
     setEditingItem(item);
-    const parsed = parseClothName(item.name);
-    setEditName(parsed.name);
-    setEditUrl(parsed.purchaseUrl);
+    setEditName(item.name);
+    setEditUrl(item.purchaseUrl || '');
   };
 
   const saveItemEdit = async () => {
     if (!editingItem || !editName.trim()) return;
     setIsSavingEdit(true);
     try {
-      const newRawName = editUrl.trim() 
-        ? JSON.stringify({ n: editName.trim(), u: editUrl.trim() })
-        : editName.trim();
-        
       const { error } = await supabase.from('clothes')
-        .update({ name: newRawName })
+        .update({ name: editName.trim(), purchase_url: editUrl.trim() || null })
         .eq('id', editingItem.id);
-        
       if (error) throw error;
-      
-      setLocalItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, name: newRawName } : i));
+      setLocalItems(prev => prev.map(i =>
+        i.id === editingItem.id ? { ...i, name: editName.trim(), purchaseUrl: editUrl.trim() || undefined } : i
+      ));
       toast('정보가 저장되었습니다.', 'success');
       setEditingItem(null);
     } catch {
@@ -107,10 +94,10 @@ export default function GalleryPage() {
   const fetchClothes = async () => {
     if (!user) return;
     setIsLoading(true);
-    const { data, error } = await supabase.from('clothes').select('id, image_url, name, category, created_at').eq('user_id', user.id).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('clothes').select('id, image_url, name, purchase_url, category, created_at').eq('user_id', user.id).order('created_at', { ascending: false });
     if (data && !error) {
-      const mapped = data.map((row: { id: string; image_url: string; name: string; category: string; created_at: string }) => ({
-        id: row.id, image: row.image_url, name: row.name, categoryId: row.category, createdAt: row.created_at
+      const mapped = data.map((row: { id: string; image_url: string; name: string; purchase_url?: string; category: string; created_at: string }) => ({
+        id: row.id, image: row.image_url, name: row.name, purchaseUrl: row.purchase_url || undefined, categoryId: row.category, createdAt: row.created_at
       }));
       setLocalItems(mapped);
     }
