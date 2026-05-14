@@ -144,6 +144,14 @@ export default function AddClothesPage() {
     else if (cat.includes('bottom')) ymin = Math.max(ymin, 0.35);
     else if (cat.includes('shoe')) ymin = Math.max(ymin, 0.80);
 
+    // 기본 크롭 먼저 확보 (배경제거 실패 시 fallback용)
+    const baseStrategy = STRATEGIES[0];
+    let fallbackCropped: string | null = null;
+    try {
+      const cropped = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax, baseStrategy);
+      fallbackCropped = await blobToBase64(cropped);
+    } catch { /* fallback 없이 진행 */ }
+
     for (let s = 0; s < STRATEGIES.length; s++) {
       const strategy = STRATEGIES[s];
       try {
@@ -154,13 +162,16 @@ export default function AddClothesPage() {
         const cropped = await getSegmentedBlob(imgSrc, sXmin, sYmin, sXmax, sYmax, strategy);
         const removed = await Promise.race([
           removeBackground(cropped),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000)),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000)),
         ]);
         return await blobToBase64(removed);
       } catch {
-        await new Promise(r => setTimeout(r, 800));
+        if (s < STRATEGIES.length - 1) await new Promise(r => setTimeout(r, 500));
       }
     }
+
+    // 배경제거 모두 실패 → 크롭 이미지라도 반환
+    if (fallbackCropped) return fallbackCropped;
     throw new Error('추출 실패');
   };
 
