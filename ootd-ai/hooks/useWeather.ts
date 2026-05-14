@@ -85,7 +85,7 @@ const generateWeatherTip = (data: {
   return parts.join(' · ');
 };
 
-const CACHE_KEY = 'ootd_weather_v2';
+const CACHE_KEY = 'ootd_weather_v3';
 const CACHE_TTL = 5 * 60 * 1000;
 
 const getPosition = (): Promise<{ lat: number; lon: number }> =>
