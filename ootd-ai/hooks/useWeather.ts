@@ -166,7 +166,7 @@ export function useWeather() {
             // 위치 거부 시 서울 기본값으로 가져오기
             fetchWeather(37.5665, 126.978, true); 
           },
-          { timeout: 8000, maximumAge: 0 } // 항상 최신 위치 시도
+          { timeout: 8000, maximumAge: 60 * 1000 } // 1분 이내 캐시 위치 허용
         );
       } else {
         fetchWeather(37.5665, 126.978, true);
