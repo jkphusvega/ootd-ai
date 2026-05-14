@@ -12,15 +12,15 @@ export interface HourlyForecast {
 export interface WeatherData {
   temperature: number;
   condition: string;
-  // Phase 2: 확장 데이터
   feelsLike: number;
   humidity: number;
   windSpeed: number;
   tempMin: number;
   tempMax: number;
-  precipitationProbability: number; // 오늘 최대 강수확률 (%)
-  hourly: HourlyForecast[];        // 향후 12시간 예보
-  weatherTip: string;              // AI 코디 참고용 날씨 요약
+  precipitationProbability: number;
+  hourly: HourlyForecast[];
+  weatherTip: string;
+  locationLabel: string; // e.g. "37.45, 126.65" or "서울 (기본값)"
 }
 
 const decodeWeatherCode = (code: number): string => {
@@ -97,7 +97,7 @@ const getPosition = (): Promise<{ lat: number; lon: number }> =>
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
       () => resolve({ lat: 37.5665, lon: 126.978 }),
-      { timeout: 15000, maximumAge: 5 * 60 * 1000 }
+      { timeout: 15000, maximumAge: 0 }
     );
   });
 
@@ -148,6 +148,9 @@ export function useWeather() {
         windSpeed: Math.round((data.current.wind_speed_10m ?? 0) * 10) / 10,
         tempMin, tempMax, precipitationProbability: precipProb, hourly,
         weatherTip: generateWeatherTip({ tempMin, tempMax, condition: decodeWeatherCode(data.current.weather_code), precipProb, hourly }),
+        locationLabel: isSeoul
+          ? '서울 (위치 기본값)'
+          : `${lat.toFixed(3)}, ${lon.toFixed(3)}`,
       };
 
       setWeather(result);

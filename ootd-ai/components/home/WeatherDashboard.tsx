@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { Droplets, Wind, Thermometer, CloudRain, Sun, Cloud, CloudSnow, Umbrella } from 'lucide-react';
+import { Droplets, Wind, Thermometer, CloudRain, Sun, Cloud, CloudSnow, Umbrella, MapPin } from 'lucide-react';
 import type { WeatherData, HourlyForecast } from '../../hooks/useWeather';
 import { getConditionEmoji } from '../../hooks/useWeather';
 
@@ -52,6 +52,12 @@ export default function WeatherDashboard({ weather }: Props) {
               <span className="text-[10px] font-bold text-blue-500">↓{weather.tempMin}°</span>
               <span className="text-[10px] font-bold text-red-400">↑{weather.tempMax}°</span>
             </div>
+            {weather.locationLabel && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <MapPin className="w-2.5 h-2.5 text-zinc-400" />
+                <span className="text-[9px] text-zinc-400">{weather.locationLabel}</span>
+              </div>
+            )}
           </div>
         </div>
 
