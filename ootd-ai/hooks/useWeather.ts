@@ -150,7 +150,6 @@ export function useWeather() {
           weatherTip: generateWeatherTip({ tempMin, tempMax, condition: decodeWeatherCode(data.current.weather_code), precipProb, hourly }),
         };
 
-        if (!isFallback) hasRealLocation.current = true;
         setWeather(result);
         if (!isFallback) {
           sessionStorage.setItem('ootd_weather_v2', JSON.stringify({ data: result, ts: Date.now() }));
@@ -164,9 +163,12 @@ export function useWeather() {
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
         // 서울 기본값 먼저 표시 (GPS 대기 중에도 빈 화면 방지)
         fetchWeather(37.5665, 126.978, true);
-        // GPS 위치 확인되면 덮어씌움
+        // GPS 위치 확인되면 덮어씌움 — 좌표 받는 즉시 플래그 세워서 서울 결과 차단
         navigator.geolocation.getCurrentPosition(
-          (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude, false),
+          (pos) => {
+            hasRealLocation.current = true;
+            fetchWeather(pos.coords.latitude, pos.coords.longitude, false);
+          },
           () => { /* 거부/실패 시 이미 표시된 서울 기본값 유지 */ },
           { timeout: 15000, maximumAge: 5 * 60 * 1000 }
         );
