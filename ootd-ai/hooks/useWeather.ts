@@ -85,117 +85,103 @@ const generateWeatherTip = (data: {
   return parts.join(' · ');
 };
 
+const CACHE_KEY = 'ootd_weather_v2';
+const CACHE_TTL = 5 * 60 * 1000;
+
+const getPosition = (): Promise<{ lat: number; lon: number }> =>
+  new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      resolve({ lat: 37.5665, lon: 126.978 });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => resolve({ lat: 37.5665, lon: 126.978 }),
+      { timeout: 15000, maximumAge: 5 * 60 * 1000 }
+    );
+  });
+
 export function useWeather() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const hasRealLocation = useRef(false);
+  const isFetchingRef = useRef(false);
+
+  const updateWeather = async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    try {
+      const { lat, lon } = await getPosition();
+      const isSeoul = lat === 37.5665 && lon === 126.978;
+
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&current=temperature_2m,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m` +
+        `&hourly=temperature_2m,weather_code,precipitation_probability,precipitation` +
+        `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+        `&timezone=Asia/Seoul&forecast_days=1`
+      );
+      const data = await res.json();
+
+      const currentHour = new Date().getHours();
+      const hourly: HourlyForecast[] = [];
+      const hourlyTimes: string[] = data.hourly?.time || [];
+      for (let i = 0; i < hourlyTimes.length && hourly.length < 12; i++) {
+        if (i >= currentHour) {
+          hourly.push({
+            hour: new Date(hourlyTimes[i]).getHours(),
+            temperature: Math.round(data.hourly.temperature_2m[i]),
+            weatherCode: data.hourly.weather_code[i],
+            condition: decodeWeatherCode(data.hourly.weather_code[i]),
+            precipitation: data.hourly.precipitation?.[i] || 0,
+          });
+        }
+      }
+
+      const tempMin = Math.round(data.daily?.temperature_2m_min?.[0] ?? data.current.temperature_2m - 3);
+      const tempMax = Math.round(data.daily?.temperature_2m_max?.[0] ?? data.current.temperature_2m + 3);
+      const precipProb = data.daily?.precipitation_probability_max?.[0] ?? 0;
+
+      const result: WeatherData = {
+        temperature: Math.round(data.current.temperature_2m * 10) / 10,
+        condition: decodeWeatherCode(data.current.weather_code),
+        feelsLike: Math.round(data.current.apparent_temperature ?? data.current.temperature_2m),
+        humidity: data.current.relative_humidity_2m ?? 0,
+        windSpeed: Math.round((data.current.wind_speed_10m ?? 0) * 10) / 10,
+        tempMin, tempMax, precipitationProbability: precipProb, hourly,
+        weatherTip: generateWeatherTip({ tempMin, tempMax, condition: decodeWeatherCode(data.current.weather_code), precipProb, hourly }),
+      };
+
+      setWeather(result);
+      if (!isSeoul) {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, ts: Date.now() }));
+      }
+    } catch {
+      // silently fail
+    } finally {
+      isFetchingRef.current = false;
+    }
+  };
 
   useEffect(() => {
-    hasRealLocation.current = false;
-    // 1. 빠른 화면 렌더링을 위해 캐시된 데이터가 있으면 먼저 보여줌
-    const cached = sessionStorage.getItem('ootd_weather_v2');
-    if (cached) {
-      try {
+    // 캐시가 신선하면 즉시 표시 후 스킵
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
         const { data, ts } = JSON.parse(cached);
-        // 캐시가 5분 이내면 일단 표시 (하지만 return으로 끝내지 않고 뒤에서 새 데이터/위치로 업데이트 시도)
-        if (Date.now() - ts < 5 * 60 * 1000) {
-          setWeather(data);
-        }
-      } catch { /* ignore */ }
-    }
-
-    const fetchWeather = async (lat = 37.5665, lon = 126.978, isFallback = false) => {
-      if (isFallback && hasRealLocation.current) return;
-      try {
-        const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-          `&current=temperature_2m,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m` +
-          `&hourly=temperature_2m,weather_code,precipitation_probability,precipitation` +
-          `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
-          `&timezone=Asia/Seoul&forecast_days=1`
-        );
-        const data = await res.json();
-
-        const now = new Date();
-        const currentHour = now.getHours();
-
-        const hourly: HourlyForecast[] = [];
-        const hourlyTimes: string[] = data.hourly?.time || [];
-        for (let i = 0; i < hourlyTimes.length && hourly.length < 12; i++) {
-          const hourIndex = new Date(hourlyTimes[i]).getHours();
-          if (i >= currentHour) {
-            hourly.push({
-              hour: hourIndex,
-              temperature: Math.round(data.hourly.temperature_2m[i]),
-              weatherCode: data.hourly.weather_code[i],
-              condition: decodeWeatherCode(data.hourly.weather_code[i]),
-              precipitation: data.hourly.precipitation?.[i] || 0,
-            });
-          }
-        }
-
-        const tempMin = Math.round(data.daily?.temperature_2m_min?.[0] ?? data.current.temperature_2m - 3);
-        const tempMax = Math.round(data.daily?.temperature_2m_max?.[0] ?? data.current.temperature_2m + 3);
-        const precipProb = data.daily?.precipitation_probability_max?.[0] ?? 0;
-
-        const result: WeatherData = {
-          temperature: Math.round(data.current.temperature_2m * 10) / 10,
-          condition: decodeWeatherCode(data.current.weather_code),
-          feelsLike: Math.round(data.current.apparent_temperature ?? data.current.temperature_2m),
-          humidity: data.current.relative_humidity_2m ?? 0,
-          windSpeed: Math.round((data.current.wind_speed_10m ?? 0) * 10) / 10,
-          tempMin,
-          tempMax,
-          precipitationProbability: precipProb,
-          hourly,
-          weatherTip: generateWeatherTip({ tempMin, tempMax, condition: decodeWeatherCode(data.current.weather_code), precipProb, hourly }),
-        };
-
-        setWeather(result);
-        if (!isFallback) {
-          sessionStorage.setItem('ootd_weather_v2', JSON.stringify({ data: result, ts: Date.now() }));
-        }
-      } catch {
-        // silently fall back
+        setWeather(data);
+        if (Date.now() - ts < CACHE_TTL) return; // 신선한 캐시면 재요청 안 함
       }
-    };
+    } catch { /* ignore */ }
 
-    const updateWeather = () => {
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        // 서울 기본값 먼저 표시 (GPS 대기 중에도 빈 화면 방지)
-        fetchWeather(37.5665, 126.978, true);
-        // GPS 위치 확인되면 덮어씌움 — 좌표 받는 즉시 플래그 세워서 서울 결과 차단
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            hasRealLocation.current = true;
-            fetchWeather(pos.coords.latitude, pos.coords.longitude, false);
-          },
-          () => { /* 거부/실패 시 이미 표시된 서울 기본값 유지 */ },
-          { timeout: 15000, maximumAge: 5 * 60 * 1000 }
-        );
-      } else {
-        fetchWeather(37.5665, 126.978, true);
-      }
-    };
-
-    // 초기 마운트 시 날씨 업데이트
     updateWeather();
 
-    // 사용자가 다른 탭/앱에 갔다가 다시 돌아왔을 때 날씨 업데이트 (실시간 반영 느낌)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        updateWeather();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // 30분마다 자동 갱신 (앱을 켜두기만 해도 업데이트)
-    const intervalId = setInterval(updateWeather, 30 * 60 * 1000);
-
+    const onVisible = () => { if (document.visibilityState === 'visible') updateWeather(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = setInterval(updateWeather, 30 * 60 * 1000);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(timer);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return weather;
