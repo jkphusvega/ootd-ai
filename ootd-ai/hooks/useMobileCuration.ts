@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '../components/ToastProvider';
 import type { WeatherData } from './useWeather';
 
 export interface CurationItem {
@@ -31,6 +32,7 @@ export function useMobileCuration({
   weather: WeatherData | null;
   supabase: SupabaseClient;
 }) {
+  const { toast } = useToast();
   const [curation, setCuration] = useState<CurationResult | null>(null);
   const [isCurating, setIsCurating] = useState(false);
   const [curationError, setCurationError] = useState<string | null>(null);
@@ -136,8 +138,8 @@ export function useMobileCuration({
 
       if (error) throw error;
       setFeedback(type);
-    } catch (e) {
-      console.error('Feedback save error:', e);
+    } catch {
+      toast('저장 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsSavingFeedback(false);
     }

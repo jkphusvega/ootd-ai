@@ -84,16 +84,8 @@ export default function Home() {
       {/* Desktop */}
       <DesktopLayout
         weather={weather} userProfile={userProfile} greeting={getGreeting()}
-        scanState={analysis.scanState} setScanState={analysis.setScanState}
-        critique={analysis.critique} partialCritique={analysis.partialCritique}
-        originalImage={analysis.originalImage} hasCustomImage={analysis.hasCustomImage}
-        base64Image={analysis.base64Image} isStreaming={analysis.isStreaming}
-        isRateLimited={analysis.isRateLimited} isDragging={analysis.isDragging}
         wardrobeCount={curation.wardrobeCount}
-        retryAnalysis={analysis.retryAnalysis} handleSaveToFeed={analysis.handleSaveToFeed}
-        resetAnalysis={analysis.resetAnalysis}
-        handleDragOver={analysis.handleDragOver} handleDragLeave={analysis.handleDragLeave}
-        handleDrop={analysis.handleDrop} triggerDesktopUpload={analysis.triggerDesktopUpload}
+        analysis={analysis}
         onLogout={handleLogout}
       />
 

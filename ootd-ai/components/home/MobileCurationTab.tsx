@@ -209,35 +209,23 @@ export default function MobileCurationTab({
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             className="flex gap-3 mt-1"
           >
-            <button
-              onClick={() => submitFeedback('dislike')}
-              disabled={!!feedback || isSavingFeedback}
-              className={`flex-1 py-3.5 rounded-2xl text-[11px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-2 transition active:scale-95 ${
-                feedback === 'dislike'
-                  ? 'bg-red-500 text-white shadow-lg'
-                  : feedback
-                    ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed'
-                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-red-300 hover:text-red-500'
-              }`}
-            >
-              <ThumbsDown className="w-4 h-4" />
-              {feedback === 'dislike' ? '별로에요' : '별로'}
-            </button>
-
-            <button
-              onClick={() => submitFeedback('like')}
-              disabled={!!feedback || isSavingFeedback}
-              className={`flex-1 py-3.5 rounded-2xl text-[11px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-2 transition active:scale-95 ${
-                feedback === 'like'
-                  ? 'bg-emerald-500 text-white shadow-lg'
-                  : feedback
-                    ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed'
-                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-emerald-300 hover:text-emerald-500'
-              }`}
-            >
-              <ThumbsUp className="w-4 h-4" />
-              {feedback === 'like' ? '좋아요!' : '좋아요'}
-            </button>
+            {([
+              { type: 'dislike', icon: <ThumbsDown className="w-4 h-4" />, label: '별로', activeLabel: '별로에요', activeClass: 'bg-red-500 text-white shadow-lg', hoverClass: 'hover:border-red-300 hover:text-red-500' },
+              { type: 'like',    icon: <ThumbsUp   className="w-4 h-4" />, label: '좋아요', activeLabel: '좋아요!', activeClass: 'bg-emerald-500 text-white shadow-lg', hoverClass: 'hover:border-emerald-300 hover:text-emerald-500' },
+            ] as const).map(({ type, icon, label, activeLabel, activeClass, hoverClass }) => (
+              <button key={type}
+                onClick={() => submitFeedback(type)}
+                disabled={!!feedback || isSavingFeedback}
+                className={`flex-1 py-3.5 rounded-2xl text-[11px] font-extrabold tracking-widest uppercase flex items-center justify-center gap-2 transition active:scale-95 ${
+                  feedback === type ? activeClass
+                  : feedback ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed'
+                  : `bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 ${hoverClass}`
+                }`}
+              >
+                {icon}
+                {feedback === type ? activeLabel : label}
+              </button>
+            ))}
           </motion.div>
 
           {/* 착용 확정 버튼 */}

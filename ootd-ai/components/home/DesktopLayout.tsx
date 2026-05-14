@@ -8,11 +8,10 @@ import type { WeatherData } from '../../hooks/useWeather';
 import WeatherDashboard from './WeatherDashboard';
 interface UserProfile { nickname?: string; [key: string]: unknown; }
 
-interface Props {
-  weather: WeatherData | null;
-  userProfile: UserProfile | null;
-  greeting: string;
-  scanState: 'idle' | 'scanning' | 'success' | 'error';
+type ScanState = 'idle' | 'scanning' | 'success' | 'error';
+
+export interface AnalysisState {
+  scanState: ScanState;
   critique: FashionCritique | null;
   partialCritique: Partial<FashionCritique> | null;
   originalImage: string;
@@ -21,8 +20,7 @@ interface Props {
   isStreaming: boolean;
   isRateLimited: boolean;
   isDragging: boolean;
-  wardrobeCount: number;
-  setScanState: (s: 'idle' | 'scanning' | 'success' | 'error') => void;
+  setScanState: (s: ScanState) => void;
   retryAnalysis: () => void;
   handleSaveToFeed: () => void;
   resetAnalysis: () => void;
@@ -30,6 +28,14 @@ interface Props {
   handleDragLeave: () => void;
   handleDrop: (e: React.DragEvent) => void;
   triggerDesktopUpload: () => void;
+}
+
+interface Props {
+  weather: WeatherData | null;
+  userProfile: UserProfile | null;
+  greeting: string;
+  wardrobeCount: number;
+  analysis: AnalysisState;
   onLogout: () => void;
 }
 
@@ -41,12 +47,15 @@ function WeatherIcon({ condition }: { condition: string }) {
 }
 
 export default function DesktopLayout({
-  weather, userProfile, greeting, scanState, critique, partialCritique,
-  originalImage, hasCustomImage, base64Image, isStreaming, isRateLimited, isDragging,
-  wardrobeCount, setScanState, retryAnalysis, handleSaveToFeed, resetAnalysis,
-  handleDragOver, handleDragLeave, handleDrop, triggerDesktopUpload, onLogout,
+  weather, userProfile, greeting, wardrobeCount, analysis, onLogout,
 }: Props) {
   const router = useRouter();
+  const {
+    scanState, critique, partialCritique, originalImage, hasCustomImage,
+    base64Image, isStreaming, isRateLimited, isDragging,
+    setScanState, retryAnalysis, handleSaveToFeed, resetAnalysis,
+    handleDragOver, handleDragLeave, handleDrop, triggerDesktopUpload,
+  } = analysis;
   const d = critique ?? partialCritique;
 
   const Sk = ({ w = 'full' }: { w?: string }) => (
