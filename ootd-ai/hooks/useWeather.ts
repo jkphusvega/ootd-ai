@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 
 export interface HourlyForecast {
-  hour: number;          // 0-23
+  hour: number;
   temperature: number;
   weatherCode: number;
   condition: string;
-  precipitation: number; // mm
+  precipitation: number;
 }
 
 export interface WeatherData {
@@ -20,19 +20,18 @@ export interface WeatherData {
   precipitationProbability: number;
   hourly: HourlyForecast[];
   weatherTip: string;
-  locationLabel: string; // e.g. "37.45, 126.65" or "서울 (기본값)"
+  locationLabel: string;
 }
 
-const decodeWeatherCode = (code: number): string => {
-  if (code === 0) return 'Clear';
-  if (code <= 3) return 'Cloudy';
-  if (code <= 48) return 'Cloudy';
-  if (code <= 57) return 'Rain';
-  if (code <= 67) return 'Rain';
-  if (code <= 77) return 'Snow';
-  if (code <= 82) return 'Rain';
-  if (code <= 86) return 'Snow';
-  return 'Rain';
+// OWM weather condition id → simple label
+const decodeOWM = (id: number): string => {
+  if (id >= 200 && id < 300) return 'Rain';
+  if (id >= 300 && id < 400) return 'Rain';
+  if (id >= 500 && id < 600) return 'Rain';
+  if (id >= 600 && id < 700) return 'Snow';
+  if (id >= 700 && id < 800) return 'Cloudy';
+  if (id === 800) return 'Clear';
+  return 'Cloudy';
 };
 
 const getConditionEmoji = (condition: string): string => {
@@ -51,32 +50,19 @@ const generateWeatherTip = (data: {
   const gap = tempMax - tempMin;
   const parts: string[] = [];
 
-  // 기온 범위 코멘트
-  if (gap >= 10) {
-    parts.push(`일교차가 ${Math.round(gap)}°C로 크니 레이어드 필수`);
-  }
+  if (gap >= 10) parts.push(`일교차가 ${Math.round(gap)}°C로 크니 레이어드 필수`);
 
-  // 강수 확률
-  if (precipProb >= 60) {
-    parts.push('비 올 확률 높음 — 방수 아우터 추천');
-  } else if (precipProb >= 30) {
-    parts.push('비 가능성 있음 — 우산 챙기세요');
-  }
+  if (precipProb >= 60) parts.push('비 올 확률 높음 — 방수 아우터 추천');
+  else if (precipProb >= 30) parts.push('비 가능성 있음 — 우산 챙기세요');
 
-  // 오후 날씨 변화 감지
   const now = new Date().getHours();
   const futureHours = hourly.filter(h => h.hour > now && h.hour <= now + 6);
   const willRain = futureHours.some(h => h.condition === 'Rain' || h.condition === 'Snow');
   const willClear = condition !== 'Clear' && futureHours.some(h => h.condition === 'Clear');
 
-  if (willRain && condition === 'Clear') {
-    parts.push('나중에 비 예보 — 겉옷 준비');
-  }
-  if (willClear) {
-    parts.push('곧 날씨 개선 예정');
-  }
+  if (willRain && condition === 'Clear') parts.push('나중에 비 예보 — 겉옷 준비');
+  if (willClear) parts.push('곧 날씨 개선 예정');
 
-  // 기온별 코디 팁
   if (tempMax >= 28) parts.push('더운 날 — 반팔, 린넨 소재 추천');
   else if (tempMax >= 20) parts.push('쾌적한 날씨 — 가벼운 레이어드');
   else if (tempMax >= 10) parts.push('쌀쌀함 — 자켓이나 가디건 추천');
@@ -85,8 +71,9 @@ const generateWeatherTip = (data: {
   return parts.join(' · ');
 };
 
-const CACHE_KEY = 'ootd_weather_v3';
+const CACHE_KEY = 'ootd_weather_v4';
 const CACHE_TTL = 5 * 60 * 1000;
+const OWM_KEY = process.env.NEXT_PUBLIC_OWM_KEY || '';
 
 const getPosition = (): Promise<{ lat: number; lon: number }> =>
   new Promise((resolve) => {
@@ -112,42 +99,51 @@ export function useWeather() {
       const { lat, lon } = await getPosition();
       const isSeoul = lat === 37.5665 && lon === 126.978;
 
-      const res = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-        `&current=temperature_2m,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m` +
-        `&hourly=temperature_2m,weather_code,precipitation_probability,precipitation` +
-        `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
-        `&timezone=Asia/Seoul&forecast_days=1`
+      // Current weather
+      const [currentRes, forecastRes] = await Promise.all([
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWM_KEY}&units=metric`),
+        fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OWM_KEY}&units=metric&cnt=16`),
+      ]);
+
+      const current = await currentRes.json();
+      const forecast = await forecastRes.json();
+
+      const condition = decodeOWM(current.weather?.[0]?.id ?? 800);
+
+      // Build hourly from 3-hour forecast slots
+      const hourly: HourlyForecast[] = (forecast.list || []).slice(0, 6).map((slot: any) => ({
+        hour: new Date(slot.dt * 1000).getHours(),
+        temperature: Math.round(slot.main.temp),
+        weatherCode: slot.weather?.[0]?.id ?? 800,
+        condition: decodeOWM(slot.weather?.[0]?.id ?? 800),
+        precipitation: slot.rain?.['3h'] ?? slot.snow?.['3h'] ?? 0,
+      }));
+
+      // tempMin/Max from today's forecast slots
+      const todaySlots = (forecast.list || []).filter((slot: any) => {
+        const d = new Date(slot.dt * 1000);
+        const today = new Date();
+        return d.getDate() === today.getDate();
+      });
+      const temps = todaySlots.map((s: any) => s.main.temp);
+      const tempMin = Math.round(temps.length ? Math.min(...temps) : current.main.temp_min);
+      const tempMax = Math.round(temps.length ? Math.max(...temps) : current.main.temp_max);
+
+      // Max pop (precipitation probability) from today's slots
+      const precipProb = Math.round(
+        Math.max(0, ...todaySlots.map((s: any) => (s.pop ?? 0) * 100))
       );
-      const data = await res.json();
-
-      const currentHour = new Date().getHours();
-      const hourly: HourlyForecast[] = [];
-      const hourlyTimes: string[] = data.hourly?.time || [];
-      for (let i = 0; i < hourlyTimes.length && hourly.length < 12; i++) {
-        if (i >= currentHour) {
-          hourly.push({
-            hour: new Date(hourlyTimes[i]).getHours(),
-            temperature: Math.round(data.hourly.temperature_2m[i]),
-            weatherCode: data.hourly.weather_code[i],
-            condition: decodeWeatherCode(data.hourly.weather_code[i]),
-            precipitation: data.hourly.precipitation?.[i] || 0,
-          });
-        }
-      }
-
-      const tempMin = Math.round(data.daily?.temperature_2m_min?.[0] ?? data.current.temperature_2m - 3);
-      const tempMax = Math.round(data.daily?.temperature_2m_max?.[0] ?? data.current.temperature_2m + 3);
-      const precipProb = data.daily?.precipitation_probability_max?.[0] ?? 0;
 
       const result: WeatherData = {
-        temperature: Math.round(data.current.temperature_2m * 10) / 10,
-        condition: decodeWeatherCode(data.current.weather_code),
-        feelsLike: Math.round(data.current.apparent_temperature ?? data.current.temperature_2m),
-        humidity: data.current.relative_humidity_2m ?? 0,
-        windSpeed: Math.round((data.current.wind_speed_10m ?? 0) * 10) / 10,
-        tempMin, tempMax, precipitationProbability: precipProb, hourly,
-        weatherTip: generateWeatherTip({ tempMin, tempMax, condition: decodeWeatherCode(data.current.weather_code), precipProb, hourly }),
+        temperature: Math.round(current.main.temp * 10) / 10,
+        condition,
+        feelsLike: Math.round(current.main.feels_like),
+        humidity: current.main.humidity,
+        windSpeed: Math.round(current.wind?.speed * 10) / 10,
+        tempMin, tempMax,
+        precipitationProbability: precipProb,
+        hourly,
+        weatherTip: generateWeatherTip({ tempMin, tempMax, condition, precipProb, hourly }),
         locationLabel: isSeoul
           ? '서울 (위치 기본값)'
           : `${lat.toFixed(3)}, ${lon.toFixed(3)}`,
@@ -165,13 +161,12 @@ export function useWeather() {
   };
 
   useEffect(() => {
-    // 캐시가 신선하면 즉시 표시 후 스킵
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
         setWeather(data);
-        if (Date.now() - ts < CACHE_TTL) return; // 신선한 캐시면 재요청 안 함
+        if (Date.now() - ts < CACHE_TTL) return;
       }
     } catch { /* ignore */ }
 
