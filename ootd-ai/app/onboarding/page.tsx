@@ -130,7 +130,7 @@ const TOTAL_STEPS = 3;
 const COMPLETION_PCT = [33, 66, 100];
 
 export default function OnboardingPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const { toast } = useToast();
@@ -146,6 +146,7 @@ export default function OnboardingPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.replace('/login');
       return;
@@ -162,7 +163,7 @@ export default function OnboardingPage() {
           setIsChecking(false);
         }
       });
-  }, [user, router, supabase]);
+  }, [user, authLoading, router, supabase]);
 
   const togglePhoto = (id: string) => {
     setSelectedPhotos(prev =>
