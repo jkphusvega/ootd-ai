@@ -21,6 +21,7 @@ export interface WeatherData {
   hourly: HourlyForecast[];
   weatherTip: string;
   locationLabel: string;
+  cityName: string;
 }
 
 // OWM weather condition id → simple label
@@ -71,7 +72,7 @@ const generateWeatherTip = (data: {
   return parts.join(' · ');
 };
 
-const CACHE_KEY = 'ootd_weather_v5';
+const CACHE_KEY = 'ootd_weather_v6';
 const CACHE_TTL = 5 * 60 * 1000;
 const OWM_KEY = process.env.NEXT_PUBLIC_OWM_KEY || '';
 
@@ -149,6 +150,7 @@ export function useWeather() {
         locationLabel: isSeoul
           ? '서울 (위치 기본값)'
           : `${lat.toFixed(3)}, ${lon.toFixed(3)}`,
+        cityName: current.name || '',
       };
 
       setWeather(result);
