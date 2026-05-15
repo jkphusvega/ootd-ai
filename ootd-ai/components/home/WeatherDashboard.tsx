@@ -51,9 +51,10 @@ export default function WeatherDashboard({ weather }: Props) {
               </span>
               <span className="text-sm text-zinc-400 font-semibold">체감 {weather.feelsLike}°</span>
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] font-bold text-blue-500">↓{weather.tempMin}°</span>
-              <span className="text-[11px] font-bold text-red-400">↑{weather.tempMax}°</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[11px] font-bold text-zinc-400">최저 {weather.tempMin}°</span>
+              <span className="text-[10px] text-zinc-300">·</span>
+              <span className="text-[11px] font-bold text-zinc-500">최고 {weather.tempMax}°</span>
             </div>
           </div>
         </div>
@@ -85,7 +86,7 @@ export default function WeatherDashboard({ weather }: Props) {
               }`}
             >
               <span className="text-[9px] font-bold text-zinc-400">
-                {idx === 0 ? '지금' : `${h.hour}시`}
+                {idx === 0 ? '지금' : h.hour < 12 ? `오전 ${h.hour}시` : h.hour === 12 ? '오후 12시' : `오후 ${h.hour - 12}시`}
               </span>
               <HourlyIcon condition={h.condition} />
               <span className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-200">
