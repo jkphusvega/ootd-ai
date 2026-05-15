@@ -110,8 +110,10 @@ export function useWeather() {
 
       const condition = decodeOWM(current.weather?.[0]?.id ?? 800);
 
-      // Build hourly from 3-hour forecast slots
-      const hourly: HourlyForecast[] = (forecast.list || []).slice(0, 6).map((slot: any) => ({
+      // Build hourly from 3-hour forecast slots — only future slots
+      const nowTs = Date.now() / 1000;
+      const futureSlots = (forecast.list || []).filter((slot: any) => slot.dt > nowTs);
+      const hourly: HourlyForecast[] = futureSlots.slice(0, 6).map((slot: any) => ({
         hour: new Date(slot.dt * 1000).getHours(),
         temperature: Math.round(slot.main.temp),
         weatherCode: slot.weather?.[0]?.id ?? 800,
@@ -120,7 +122,7 @@ export function useWeather() {
       }));
 
       // tempMin/Max from today's forecast slots
-      const todaySlots = (forecast.list || []).filter((slot: any) => {
+      const todaySlots = futureSlots.filter((slot: any) => {
         const d = new Date(slot.dt * 1000);
         const today = new Date();
         return d.getDate() === today.getDate();
