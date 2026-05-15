@@ -71,7 +71,7 @@ const generateWeatherTip = (data: {
   return parts.join(' · ');
 };
 
-const CACHE_KEY = 'ootd_weather_v4';
+const CACHE_KEY = 'ootd_weather_v5';
 const CACHE_TTL = 5 * 60 * 1000;
 const OWM_KEY = process.env.NEXT_PUBLIC_OWM_KEY || '';
 
