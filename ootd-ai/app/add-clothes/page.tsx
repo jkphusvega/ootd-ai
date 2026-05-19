@@ -264,6 +264,7 @@ export default function AddClothesPage() {
     try {
       for (const item of resultItems) {
         const res = await fetch(item.image);
+        if (!res.ok) throw new Error(`이미지 로드 실패: ${res.statusText}`);
         const blob = await res.blob();
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
         const { error: uploadErr } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
