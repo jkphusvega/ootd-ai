@@ -151,29 +151,47 @@ export default function MobileAnalysisTab({
               </div>
 
               {/* 잘된 점 + 개선점 */}
-              <div className="grid grid-cols-2 gap-2.5 mb-3">
-                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-3.5">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <TrendingUp className="w-3 h-3 text-emerald-500" />
-                    <span className="text-[9px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
+              <div className="flex flex-col gap-2 mb-3">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                      <TrendingUp className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-[10px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
                   </div>
                   {d.strengths?.length
-                    ? <ul className="flex flex-col gap-2">{d.strengths.map((s, i) => <li key={i} className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium leading-snug">{s}</li>)}</ul>
+                    ? <ul className="flex flex-col gap-2.5">
+                        {d.strengths.map((s, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-emerald-400 mt-0.5 shrink-0 text-sm">✓</span>
+                            <span className="text-[12px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
                     : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
                 </div>
-                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-3.5">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <TrendingDown className="w-3 h-3 text-amber-500" />
-                    <span className="text-[9px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
+                      <TrendingDown className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-[10px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
                   </div>
                   {d.improvements?.length
-                    ? <ul className="flex flex-col gap-2">{d.improvements.map((s, i) => <li key={i} className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-snug">{s}</li>)}</ul>
+                    ? <ul className="flex flex-col gap-2.5">
+                        {d.improvements.map((s, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-amber-400 mt-0.5 shrink-0 text-sm">→</span>
+                            <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
                     : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
                 </div>
               </div>
 
               {/* 스타일링 팁 */}
-              <div className="bg-black rounded-2xl p-4 mb-3">
+              <div className="bg-zinc-900 rounded-2xl p-4 mb-3">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
                   <span className="text-[10px] font-extrabold tracking-widest text-white uppercase">Stylist Tips</span>
@@ -182,8 +200,8 @@ export default function MobileAnalysisTab({
                   <ol className="flex flex-col gap-3">
                     {d.tips.map((tip, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <span className="shrink-0 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black text-white/60">{i + 1}</span>
-                        <span className="text-[12px] text-white/90 font-medium leading-snug">{tip}</span>
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-[10px] font-black text-yellow-300">{i + 1}</span>
+                        <span className="text-[12px] text-zinc-200 font-medium leading-snug">{tip}</span>
                       </li>
                     ))}
                   </ol>
@@ -196,11 +214,16 @@ export default function MobileAnalysisTab({
 
               {/* 날씨 코멘트 */}
               {(d.weatherNote || isStreaming) && (
-                <div className="flex items-start gap-2 px-3 py-2.5 bg-sky-50 dark:bg-sky-950/30 rounded-xl border border-sky-100 dark:border-sky-900 mb-4">
-                  <CloudSun className="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0" />
-                  {d.weatherNote
-                    ? <p className="text-[11px] text-sky-700 dark:text-sky-300 font-medium leading-relaxed">{d.weatherNote}</p>
-                    : <Skeleton w="full" />}
+                <div className="flex items-start gap-3 px-4 py-3 bg-sky-50 dark:bg-sky-950/30 rounded-2xl border border-sky-100 dark:border-sky-900 mb-4">
+                  <div className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-900 flex items-center justify-center shrink-0 mt-0.5">
+                    <CloudSun className="w-3.5 h-3.5 text-sky-500" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-extrabold tracking-widest text-sky-400 uppercase block mb-0.5">날씨 적합성</span>
+                    {d.weatherNote
+                      ? <p className="text-[12px] text-sky-800 dark:text-sky-200 font-medium leading-relaxed">{d.weatherNote}</p>
+                      : <Skeleton w="full" />}
+                  </div>
                 </div>
               )}
 
