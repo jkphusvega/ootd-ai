@@ -51,8 +51,13 @@ export default function Home() {
   // Fetch user profile, redirect to onboarding if missing
   useEffect(() => {
     if (authLoading || !user) return;
-    supabase.from('user_profiles').select('*').eq('user_id', user.id).single()
-      .then(({ data }) => { if (data) setUserProfile(data); else router.push('/onboarding'); });
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('user_profiles').select('*').eq('user_id', user.id).single();
+        if (error && error.code !== 'PGRST116') { console.error('[profile]', error.message); return; }
+        if (data) setUserProfile(data); else router.push('/onboarding');
+      } catch (e) { console.error('[profile]', e); }
+    })();
   }, [user, authLoading, router, supabase]);
 
   const getGreeting = () => {

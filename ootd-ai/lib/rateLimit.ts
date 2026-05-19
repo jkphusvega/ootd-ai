@@ -45,10 +45,12 @@ export async function checkRateLimit(userId: string, endpoint: string) {
     if (keyDate < cutoff) delete newUsage[key];
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('user_profiles')
     .update({ api_usage: newUsage })
     .eq('user_id', userId);
+
+  if (updateError) console.error('[rateLimit] usage update failed:', updateError.message);
 
   return { allowed: true, remaining: limit - currentCount - 1, limit };
 }

@@ -40,8 +40,6 @@ export async function POST(request: Request) {
       profileContext = `User profile: ${userProfile.height}cm, ${userProfile.weight}kg, prefers ${userProfile.fit_preference} fit. Body shape: ${userProfile.body_shape || 'Not specified'}. Styling goal: ${userProfile.body_goal || 'Not specified'}. Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { temperature: 0.4 } });
-
     const prompt = `You are a personal fashion shopping advisor in Seoul, Korea.
 
 The user currently has these items in their wardrobe:
@@ -74,12 +72,30 @@ Return JSON only:
 
 IMPORTANT: Only return raw JSON. No markdown. Write everything in Korean.`;
 
-    const result = await model.generateContent(
-      prompt,
-      // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
-      { thinkingConfig: { thinkingBudget: 0 } }
-    );
-    const responseText = result.response.text();
+    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    let responseText = '';
+    let lastError: unknown;
+    outer: for (const modelName of MODELS) {
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4 } });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const result = await model.generateContent(
+            prompt,
+            // @ts-expect-error: thinkingConfig is a valid runtime option for gemini-2.5-flash
+            { thinkingConfig: { thinkingBudget: 0 } }
+          );
+          responseText = result.response.text();
+          break outer;
+        } catch (e) {
+          lastError = e;
+          const msg = e instanceof Error ? e.message : '';
+          const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
+          if (!isOverloaded) break;
+          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+    }
+    if (!responseText) throw lastError;
     const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');

@@ -239,8 +239,10 @@ export default function AddClothesPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: item.image, category: item.category }),
           });
-          const nameData = await res.json();
-          item.name = nameData.name || CATEGORY_LABELS[item.category] || item.category;
+          if (res.ok) {
+            const nameData = await res.json();
+            item.name = nameData.name || CATEGORY_LABELS[item.category] || item.category;
+          }
         } catch {
           item.name = CATEGORY_LABELS[item.category] || item.category;
         }
@@ -262,6 +264,7 @@ export default function AddClothesPage() {
     try {
       for (const item of resultItems) {
         const res = await fetch(item.image);
+        if (!res.ok) throw new Error(`이미지 로드 실패: ${res.statusText}`);
         const blob = await res.blob();
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
         const { error: uploadErr } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
@@ -307,18 +310,25 @@ export default function AddClothesPage() {
 
   // sessionStorage 자동 시작 (OOTD → AI 추출 연동)
   useEffect(() => {
+    let mounted = true;
     const transferImage = sessionStorage.getItem('ootd_transfer_image');
     const autoStart = sessionStorage.getItem('ootd_auto_start');
     if (transferImage) {
       setBase64Original(transferImage);
-      fetch(transferImage).then(r => r.blob()).then(blob => {
-        setOriginalImage(URL.createObjectURL(blob));
-        sessionStorage.removeItem('ootd_transfer_image');
-        if (autoStart === 'true') {
-          sessionStorage.removeItem('ootd_auto_start');
-        }
-      });
+      fetch(transferImage)
+        .then(r => {
+          if (!r.ok) throw new Error('fetch failed');
+          return r.blob();
+        })
+        .then(blob => {
+          if (!mounted) return;
+          setOriginalImage(URL.createObjectURL(blob));
+          sessionStorage.removeItem('ootd_transfer_image');
+          if (autoStart === 'true') sessionStorage.removeItem('ootd_auto_start');
+        })
+        .catch(e => console.error('[add-clothes] sessionStorage transfer failed:', e));
     }
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
