@@ -205,6 +205,7 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-3 gap-2 mb-6">
               {STYLE_PHOTOS.map((photo, idx) => {
                 const isSelected = selectedPhotos.includes(photo.id);
+                const isFirstOfStyle = STYLE_PHOTOS.findIndex(p => p.style === photo.style) === idx;
                 return (
                   <motion.button
                     key={photo.id}
@@ -227,10 +228,12 @@ export default function OnboardingPage() {
                     {/* Gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                    {/* Style label */}
-                    <span className="absolute bottom-2 left-2 text-[9px] font-extrabold tracking-widest text-white/80 uppercase">
-                      {photo.styleLabel}
-                    </span>
+                    {/* Style label — first photo of each style only */}
+                    {isFirstOfStyle && (
+                      <span className="absolute bottom-2 left-2 text-[9px] font-extrabold tracking-widest text-white/80 uppercase">
+                        {photo.styleLabel}
+                      </span>
+                    )}
 
                     {/* Check badge */}
                     <AnimatePresence>
