@@ -150,7 +150,7 @@ export default function GalleryPage() {
     setLocalItems(prev => prev.filter(i => i.id !== id));
     setPendingDeleteId(null);
 
-    const { error } = await supabase.from('clothes').delete().eq('id', id);
+    const { error } = await supabase.from('clothes').delete().eq('id', id).eq('user_id', user?.id ?? '');
     if (error) {
       toast('삭제에 실패했습니다. 다시 시도해주세요.', 'error');
       fetchClothes();

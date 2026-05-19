@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     // Only allow calls from internal server routes via shared secret
     const secret = req.headers.get('x-internal-secret');
-    if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+    if (!process.env.INTERNAL_API_SECRET || !secret || secret !== process.env.INTERNAL_API_SECRET) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

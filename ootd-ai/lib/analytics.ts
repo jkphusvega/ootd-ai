@@ -27,7 +27,7 @@ export async function logEvent(
       event,
       properties: properties ?? {},
     });
-  } catch {
-    // 분석 로깅 실패는 사용자 경험에 영향 없어야 함
+  } catch (e) {
+    console.error('[analytics] logEvent failed:', e);
   }
 }
