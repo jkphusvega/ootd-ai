@@ -128,7 +128,15 @@ export function useOotdAnalysis({
       setScanState('idle'); setIsStreaming(false); setPartialCritique(null);
       return;
     }
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed: FashionCritique & { error?: string };
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch {
+      if (!mountedRef.current) return;
+      toast('AI 응답을 읽을 수 없습니다. 다시 시도해주세요.', 'error');
+      setScanState('idle'); setIsStreaming(false); setPartialCritique(null);
+      return;
+    }
     if (!mountedRef.current) return;
     if (parsed.error) {
       toast(parsed.error, 'error');

@@ -158,8 +158,8 @@ export function useWeather() {
       if (!isSeoul) {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, ts: Date.now() }));
       }
-    } catch {
-      // silently fail
+    } catch (e) {
+      console.error('[useWeather] fetch failed:', e);
     } finally {
       isFetchingRef.current = false;
     }

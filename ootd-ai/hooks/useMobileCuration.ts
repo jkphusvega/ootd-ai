@@ -140,7 +140,8 @@ export function useMobileCuration({
 
       if (error) throw error;
       setFeedback(type);
-    } catch {
+    } catch (err) {
+      console.error('[submitFeedback]', err);
       toast('저장 중 오류가 발생했습니다.', 'error');
     } finally {
       savingFeedbackRef.current = false;
