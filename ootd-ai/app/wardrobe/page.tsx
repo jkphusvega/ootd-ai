@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Plus, Trash2, X, CloudSun, Sparkles, TrendingUp, TrendingDown, Star, Edit3, Link as LinkIcon, Save, Loader2 } from 'lucide-react';
+import { Home, Plus, Trash2, X, CloudSun, Sparkles, TrendingUp, TrendingDown, Star, Edit3, Link as LinkIcon, Save, Loader2, LayoutGrid, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
@@ -47,6 +47,11 @@ export default function GalleryPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [selectedFeed, setSelectedFeed] = useState<ClothItem | null>(null);
+  const [feedView, setFeedView] = useState<'grid' | 'calendar'>('grid');
+  const [calMonth, setCalMonth] = useState(() => {
+    const n = new Date();
+    return { year: n.getFullYear(), month: n.getMonth() };
+  });
   const [editingItem, setEditingItem] = useState<ClothItem | null>(null);
   const [editName, setEditName] = useState('');
   const [editUrl, setEditUrl] = useState('');
@@ -340,67 +345,175 @@ export default function GalleryPage() {
           )}
 
           {/* TAB 2: OOTD FEEDS */}
-          {activeTab === 'memories' && (
-            <motion.div key="memories" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="px-6 mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => {
-                // JSON 파싱 시도 (신형), 실패하면 구형 포맷 폴백
-                let parsed: { score?: number; headline?: string; summary?: string } = {};
-                try { parsed = JSON.parse(memory.name); } catch {
-                  const s = memory.name.split(':');
-                  parsed = { score: parseInt(s[0]), summary: s[1]?.trim() };
-                }
-                const displaySummary = parsed.headline || parsed.summary;
-                return (
-                  <motion.div key={memory.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                    onClick={() => setSelectedFeed(memory)}
-                    className="relative group cursor-pointer rounded-[1.5rem] overflow-hidden bg-white dark:bg-zinc-900 shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-zinc-200 dark:border-zinc-800">
-                    <div className="aspect-[3/4] relative">
-                      <img src={memory.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                      {/* 삭제 버튼 */}
-                      {pendingDeleteId === memory.id ? (
-                        <div className="absolute top-3 right-3 z-20 flex gap-1" onClick={e => e.stopPropagation()}>
-                          <button onClick={() => handleDelete(memory.id)} className="bg-red-500 text-white text-[9px] font-black px-2.5 py-1.5 rounded-full shadow-lg">삭제</button>
-                          <button onClick={() => setPendingDeleteId(null)} className="bg-white text-zinc-700 text-[9px] font-black px-2.5 py-1.5 rounded-full shadow-lg">취소</button>
-                        </div>
-                      ) : (
-                        <button onClick={e => { e.stopPropagation(); setPendingDeleteId(memory.id); }}
-                          className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white p-2 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {/* 점수 배지 */}
-                      {parsed.score && (
-                        <div className="absolute top-3 left-3 bg-black text-white px-2.5 py-1 rounded-full font-black text-sm shadow-lg">
-                          {parsed.score}
-                        </div>
-                      )}
-                      {/* 날짜 + 요약 */}
-                      <div className="absolute bottom-3 left-3 right-3">
-                        {memory.createdAt && (
-                          <p className="text-white/60 text-[9px] font-bold tracking-widest uppercase mb-1">
-                            {new Date(memory.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                          </p>
-                        )}
-                        {displaySummary && (
-                          <p className="text-white text-[11px] font-bold leading-tight line-clamp-2">"{displaySummary}"</p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-              {localItems.filter(i => i.categoryId === 'ootd_feed').length === 0 && (
-                <div className="col-span-full">
-                  <p className="text-zinc-400 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    등록된 과거 OOTD 스크랩이 아직 없습니다.
-                  </p>
+          {activeTab === 'memories' && (() => {
+            const feedItems = localItems.filter(i => i.categoryId === 'ootd_feed');
+
+            // date → first item of that day
+            const dateMap: Record<string, ClothItem> = {};
+            feedItems.forEach(item => {
+              if (!item.createdAt) return;
+              const key = item.createdAt.slice(0, 10);
+              if (!dateMap[key]) dateMap[key] = item;
+            });
+
+            // calendar helpers
+            const { year, month } = calMonth;
+            const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+            const DOW = ['일','월','화','수','목','금','토'];
+            const firstDow = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const cells: (number | null)[] = [
+              ...Array(firstDow).fill(null),
+              ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+            ];
+            while (cells.length % 7 !== 0) cells.push(null);
+            const weeks = Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+
+            return (
+              <motion.div key="memories" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }} className="mt-4">
+
+                {/* View toggle */}
+                <div className="flex items-center justify-between px-6 mb-4">
+                  <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">
+                    {feedItems.length} OOTD 기록
+                  </span>
+                  <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl gap-0.5">
+                    <button onClick={() => setFeedView('grid')}
+                      className={`p-2 rounded-lg transition ${feedView === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setFeedView('calendar')}
+                      className={`p-2 rounded-lg transition ${feedView === 'calendar' ? 'bg-white dark:bg-zinc-700 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}>
+                      <CalendarDays className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            </motion.div>
-          )}
+
+                {/* GRID VIEW */}
+                {feedView === 'grid' && (
+                  <div className="px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {feedItems.map(memory => {
+                      let parsed: { score?: number; headline?: string; summary?: string } = {};
+                      try { parsed = JSON.parse(memory.name); } catch {
+                        const s = memory.name.split(':');
+                        parsed = { score: parseInt(s[0]), summary: s[1]?.trim() };
+                      }
+                      const displaySummary = parsed.headline || parsed.summary;
+                      return (
+                        <motion.div key={memory.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                          onClick={() => setSelectedFeed(memory)}
+                          className="relative group cursor-pointer rounded-[1.5rem] overflow-hidden bg-white dark:bg-zinc-900 shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-zinc-200 dark:border-zinc-800">
+                          <div className="aspect-[3/4] relative">
+                            <img src={memory.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="OOTD" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                            {pendingDeleteId === memory.id ? (
+                              <div className="absolute top-3 right-3 z-20 flex gap-1" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => handleDelete(memory.id)} className="bg-red-500 text-white text-[9px] font-black px-2.5 py-1.5 rounded-full shadow-lg">삭제</button>
+                                <button onClick={() => setPendingDeleteId(null)} className="bg-white text-zinc-700 text-[9px] font-black px-2.5 py-1.5 rounded-full shadow-lg">취소</button>
+                              </div>
+                            ) : (
+                              <button onClick={e => { e.stopPropagation(); setPendingDeleteId(memory.id); }}
+                                className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white p-2 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {parsed.score != null && (
+                              <div className="absolute top-3 left-3 bg-black text-white px-2.5 py-1 rounded-full font-black text-sm shadow-lg">
+                                {parsed.score}
+                              </div>
+                            )}
+                            <div className="absolute bottom-3 left-3 right-3">
+                              {memory.createdAt && (
+                                <p className="text-white/60 text-[9px] font-bold tracking-widest uppercase mb-1">
+                                  {new Date(memory.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                                </p>
+                              )}
+                              {displaySummary && (
+                                <p className="text-white text-[11px] font-bold leading-tight line-clamp-2">"{displaySummary}"</p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    {feedItems.length === 0 && (
+                      <div className="col-span-full">
+                        <p className="text-zinc-400 font-extrabold text-center mt-20 text-[13px] tracking-widest uppercase py-10 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                          저장된 OOTD가 없습니다
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CALENDAR VIEW */}
+                {feedView === 'calendar' && (
+                  <div className="px-4">
+                    {/* Month nav */}
+                    <div className="flex items-center justify-between mb-4 px-2">
+                      <button onClick={() => setCalMonth(p => p.month === 0 ? { year: p.year - 1, month: 11 } : { ...p, month: p.month - 1 })}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
+                        <ChevronLeft className="w-4 h-4 text-zinc-500" />
+                      </button>
+                      <span className="text-sm font-black text-zinc-900 dark:text-white">{year}년 {MONTH_NAMES[month]}</span>
+                      <button onClick={() => setCalMonth(p => p.month === 11 ? { year: p.year + 1, month: 0 } : { ...p, month: p.month + 1 })}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
+                        <ChevronRight className="w-4 h-4 text-zinc-500" />
+                      </button>
+                    </div>
+
+                    {/* DOW header */}
+                    <div className="grid grid-cols-7 mb-1">
+                      {DOW.map((d, i) => (
+                        <div key={d} className={`text-center text-[10px] font-extrabold tracking-widest py-1 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-zinc-400'}`}>{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Weeks */}
+                    <div className="flex flex-col gap-1">
+                      {weeks.map((week, wi) => (
+                        <div key={wi} className="grid grid-cols-7 gap-1">
+                          {week.map((day, di) => {
+                            if (!day) return <div key={di} />;
+                            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const item = dateMap[dateKey];
+                            const isToday = dateKey === todayStr;
+                            let parsed: { score?: number } = {};
+                            if (item) { try { parsed = JSON.parse(item.name); } catch {} }
+                            return (
+                              <div key={di}
+                                onClick={() => item && setSelectedFeed(item)}
+                                className={`relative aspect-square rounded-xl overflow-hidden transition-all ${item ? 'cursor-pointer hover:scale-105 shadow-sm' : ''} ${isToday && !item ? 'ring-2 ring-zinc-300 dark:ring-zinc-600' : ''}`}>
+                                {item ? (
+                                  <>
+                                    <img src={item.image} alt="OOTD" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                    {parsed.score != null && (
+                                      <span className="absolute bottom-1 left-0 right-0 text-center text-white font-black text-[9px] leading-none">{parsed.score}</span>
+                                    )}
+                                    {isToday && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white" />}
+                                  </>
+                                ) : (
+                                  <div className={`w-full h-full flex items-center justify-center rounded-xl ${isToday ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-50 dark:bg-zinc-900'}`}>
+                                    <span className={`text-[11px] font-bold ${isToday ? 'text-white dark:text-zinc-900' : di === 0 ? 'text-red-300' : di === 6 ? 'text-blue-300' : 'text-zinc-400'}`}>{day}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Legend */}
+                    <p className="text-center text-[10px] text-zinc-400 font-medium mt-5 mb-4">사진이 있는 날을 탭하면 분석 내용을 볼 수 있어요</p>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
       </main>
 
