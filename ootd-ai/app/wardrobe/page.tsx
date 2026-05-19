@@ -163,7 +163,8 @@ export default function GalleryPage() {
       const idx = item.image.indexOf(storagePrefix);
       if (idx !== -1) {
         const fileName = item.image.slice(idx + storagePrefix.length);
-        await supabase.storage.from('clothes').remove([fileName]);
+        const { error: storageErr } = await supabase.storage.from('clothes').remove([fileName]);
+        if (storageErr) console.error('[wardrobe] storage delete failed:', storageErr.message);
       }
     }
   };
