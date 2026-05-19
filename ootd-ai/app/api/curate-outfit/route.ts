@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     // Rate Limiting
-    const { allowed, remaining, limit } = await checkRateLimit(user.id, 'curate-outfit');
+    const { allowed, limit } = await checkRateLimit(user.id, 'curate-outfit');
     if (!allowed) {
       return NextResponse.json(
         { error: `일일 추천 한도(${limit}회)를 초과했습니다. 내일 다시 시도해주세요.` },
@@ -181,9 +181,9 @@ IMPORTANT: Only return raw JSON. No markdown. Write title, description, and reas
     }
 
     // Push notification — fire and forget, don't block response
-    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL('/api/push/send', request.url).toString() : '/api/push/send'}`, {
+    fetch(new URL('/api/push/send', request.url).toString(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.INTERNAL_API_SECRET || '' },
       body: JSON.stringify({
         userId: user.id,
         title: '오늘의 코디 추천 ✨',

@@ -13,9 +13,15 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-// This endpoint sends a push to a single user (called from client after curation)
+// This endpoint sends a push to a single user (internal server-to-server only)
 export async function POST(req: NextRequest) {
   try {
+    // Only allow calls from internal server routes via shared secret
+    const secret = req.headers.get('x-internal-secret');
+    if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { userId, title, body, url } = await req.json();
 
     if (!userId) {
