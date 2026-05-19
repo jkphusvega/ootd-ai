@@ -33,10 +33,7 @@ export async function POST(request: Request) {
       inlineData: { data: base64Data, mimeType: 'image/jpeg' as const }
     };
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: { temperature: 0.4 },
-    });
+    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
 
     let profileContext = '';
     if (userProfile) {
@@ -74,17 +71,30 @@ export async function POST(request: Request) {
 - weatherNote: 날씨와 옷차림의 관계를 한 문장으로
 - 모든 텍스트 한국어, JSON만 반환`;
 
-    const streamResult = await model.generateContentStream(
-      [prompt, imagePart],
-      // @ts-expect-error: thinkingConfig is valid at runtime for gemini-2.5-flash
-      { thinkingConfig: { thinkingBudget: 0 } }
-    );
+    // retry + fallback: 2.5-flash 2회 시도 → 1.5-flash
+    let streamResult: Awaited<ReturnType<ReturnType<typeof genAI.getGenerativeModel>['generateContentStream']>> | null = null;
+    outer: for (const modelName of MODELS) {
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4 } });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          // @ts-expect-error: thinkingConfig is valid at runtime for gemini-2.5-flash
+          streamResult = await model.generateContentStream([prompt, imagePart], { thinkingConfig: { thinkingBudget: 0 } });
+          break outer;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
+          if (!isOverloaded) throw e;
+          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+    }
+    if (!streamResult) throw new Error('AI 서비스가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요.');
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of streamResult.stream) {
+          for await (const chunk of streamResult!.stream) {
             controller.enqueue(encoder.encode(chunk.text()));
           }
         } catch (e) {
