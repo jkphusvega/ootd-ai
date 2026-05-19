@@ -53,11 +53,12 @@ export function usePushNotification(userId: string | undefined) {
         applicationServerKey: keyBytes.buffer as ArrayBuffer,
       });
 
-      await fetch('/api/push/subscribe', {
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: sub.toJSON(), userId }),
       });
+      if (!res.ok) throw new Error(`Subscribe failed: ${res.status}`);
 
       setState('subscribed');
       return true;

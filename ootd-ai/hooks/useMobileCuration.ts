@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../components/ToastProvider';
 import type { WeatherData } from './useWeather';
 
@@ -39,6 +39,7 @@ export function useMobileCuration({
   const [wardrobeCount, setWardrobeCount] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackType>(null);
   const [isSavingFeedback, setIsSavingFeedback] = useState(false);
+  const savingFeedbackRef = useRef(false);
   const [pastSimilarOutfits, setPastSimilarOutfits] = useState<Array<{ image_url: string; title: string; style: string }>>([]);
 
   useEffect(() => {
@@ -115,7 +116,8 @@ export function useMobileCuration({
 
   // 피드백 저장: 좋아요/싫어요/착용확정을 ootd_feed에 저장
   const submitFeedback = useCallback(async (type: 'like' | 'dislike' | 'worn') => {
-    if (!user || !curation || isSavingFeedback) return;
+    if (!user || !curation || savingFeedbackRef.current) return;
+    savingFeedbackRef.current = true;
     setIsSavingFeedback(true);
     try {
       const meta = {
@@ -141,9 +143,10 @@ export function useMobileCuration({
     } catch {
       toast('저장 중 오류가 발생했습니다.', 'error');
     } finally {
+      savingFeedbackRef.current = false;
       setIsSavingFeedback(false);
     }
-  }, [user, curation, weather, supabase, isSavingFeedback]);
+  }, [user, curation, weather, supabase]);
 
   return {
     curation, isCurating, curationError, wardrobeCount,

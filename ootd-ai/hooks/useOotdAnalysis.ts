@@ -197,7 +197,10 @@ export function useOotdAnalysis({
         image_url: publicUrl,
         user_id: user.id,
       });
-      if (dbError) throw new Error('DB 에러: ' + dbError.message);
+      if (dbError) {
+        await supabase.storage.from('clothes').remove([fileName]);
+        throw new Error('DB 에러: ' + dbError.message);
+      }
       toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
       logEvent(user.id, 'ootd_saved_to_feed', { score: critique.score });
       setScanState('success');
