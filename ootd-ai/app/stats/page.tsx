@@ -87,7 +87,7 @@ export default function StatsPage() {
   // 날씨별 기록 수
   const weatherStats = ['Clear', 'Cloudy', 'Rain', 'Snow'].map(w => ({
     condition: w,
-    count: parsedFeed.filter((p: { weather?: string }) => p.weather?.includes(w)).length,
+    count: parsedFeed.filter((p: { weather?: string | number }) => typeof p.weather === 'string' && p.weather.includes(w)).length,
     label: w === 'Clear' ? '☀️ 맑음' : w === 'Cloudy' ? '☁️ 흐림' : w === 'Rain' ? '🌧️ 비' : '❄️ 눈',
   }));
 
