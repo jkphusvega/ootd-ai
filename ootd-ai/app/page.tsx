@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut } from 'lucide-react';
+import { Menu, Settings, Shirt, X } from 'lucide-react';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
@@ -24,6 +25,7 @@ export default function Home() {
   const { toast } = useToast();
   const [showSplash, setShowSplash] = useState(false);
   const [mobileTab, setMobileTab] = useState<'curation' | 'analysis'>('curation');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{ nickname?: string; profile_image?: string; [key: string]: unknown } | null>(null);
 
   const analysis = useOotdAnalysis({ user, weather, userProfile, supabase, toast });
@@ -63,7 +65,6 @@ export default function Home() {
     return `좋은 저녁이에요${n} 🌆`;
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/login'); router.refresh(); };
 
   if (!authLoading && !user && !showSplash) return <LandingContent />;
   if (authLoading || showSplash) {
@@ -86,7 +87,7 @@ export default function Home() {
         weather={weather} userProfile={userProfile} greeting={getGreeting()}
         wardrobeCount={curation.wardrobeCount}
         analysis={analysis}
-        onLogout={handleLogout}
+        onLogout={() => {}}
       />
 
       {/* Mobile */}
@@ -98,11 +99,10 @@ export default function Home() {
 
         {/* Top HUD */}
         <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-center z-20">
-          <Link href="/settings" className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-800 shadow-xl hover:bg-white/80 transition shrink-0 overflow-hidden">
-            {userProfile?.profile_image || user?.user_metadata?.avatar_url
-              ? <img src={(userProfile?.profile_image || user?.user_metadata?.avatar_url) as string} alt="Profile" className="w-full h-full object-cover" />
-              : <User className="w-4 h-4" />}
-          </Link>
+          {/* 앱 아이콘 */}
+          <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-xl shrink-0">
+            <img src="/logo.png" alt="OOTD AI" className="w-full h-full object-cover" />
+          </div>
 
           <div className="flex p-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-xl">
             {(['curation', 'analysis'] as const).map(tab => (
@@ -120,10 +120,41 @@ export default function Home() {
             ))}
           </div>
 
-          <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-red-400 shadow-xl hover:bg-red-50 transition shrink-0">
-            <LogOut className="w-4 h-4" />
+          {/* 햄버거 메뉴 */}
+          <button onClick={() => setMenuOpen(v => !v)}
+            className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-xl border border-black/5 flex items-center justify-center text-zinc-700 shadow-xl hover:bg-white/80 transition shrink-0">
+            {menuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </header>
+
+        {/* 드롭다운 메뉴 */}
+        <AnimatePresence>
+          {menuOpen && (
+            <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                className="absolute top-24 right-6 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-2xl border border-black/5 dark:border-white/10 shadow-2xl overflow-hidden min-w-[160px]"
+              >
+                <Link href="/wardrobe" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+                  <Shirt className="w-4 h-4 text-zinc-500" />
+                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">내 옷장</span>
+                </Link>
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
+                <Link href="/settings" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+                  <Settings className="w-4 h-4 text-zinc-500" />
+                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">설정</span>
+                </Link>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {mobileTab === 'curation' && (
