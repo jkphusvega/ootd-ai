@@ -16,7 +16,7 @@ function HourlyIcon({ condition }: { condition: string }) {
 }
 
 export default function WeatherDashboard({ weather }: Props) {
-  const displayHours: HourlyForecast[] = weather.hourly.slice(0, 6);
+  const displayHours: HourlyForecast[] = weather.hourly.slice(0, 5);
   const tempRange = weather.tempMax - weather.tempMin || 1;
   const currentPercent = Math.min(100, Math.max(0,
     ((weather.temperature - weather.tempMin) / tempRange) * 100
@@ -75,25 +75,42 @@ export default function WeatherDashboard({ weather }: Props) {
       {/* 시간별 예보 */}
       {displayHours.length > 0 && (
         <div className="flex gap-1 mb-3">
-          {displayHours.map((h, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + idx * 0.04 }}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl ${
-                idx === 0 ? 'bg-zinc-100/80 dark:bg-zinc-800/50' : ''
-              }`}
-            >
-              <span className="text-[9px] font-bold text-zinc-400">
-                {idx === 0 ? '지금' : h.hour < 12 ? `오전 ${h.hour}시` : h.hour === 12 ? '오후 12시' : `오후 ${h.hour - 12}시`}
-              </span>
-              <HourlyIcon condition={h.condition} />
-              <span className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-200">
-                {h.temperature}°
-              </span>
-            </motion.div>
-          ))}
+          {/* 지금 슬롯 */}
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl bg-zinc-100/80 dark:bg-zinc-800/50"
+          >
+            <span className="text-[9px] font-bold text-zinc-400">지금</span>
+            <HourlyIcon condition={weather.condition} />
+            <span className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-200">
+              {Math.round(weather.temperature)}°
+            </span>
+          </motion.div>
+
+          {/* 이후 3시간 간격 슬롯 */}
+          {displayHours.map((h, idx) => {
+            const label = h.hour < 12
+              ? `오전 ${h.hour === 0 ? 12 : h.hour}시`
+              : h.hour === 12 ? '오후 12시'
+              : `오후 ${h.hour - 12}시`;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.19 + idx * 0.04 }}
+                className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl"
+              >
+                <span className="text-[9px] font-bold text-zinc-400">{label}</span>
+                <HourlyIcon condition={h.condition} />
+                <span className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-200">
+                  {h.temperature}°
+                </span>
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
