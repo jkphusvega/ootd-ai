@@ -97,10 +97,11 @@ export async function POST(request: Request) {
           for await (const chunk of streamResult!.stream) {
             controller.enqueue(encoder.encode(chunk.text()));
           }
+          controller.close();
         } catch (e) {
           console.error('Stream error:', e);
+          controller.error(e);
         }
-        controller.close();
       },
     });
 

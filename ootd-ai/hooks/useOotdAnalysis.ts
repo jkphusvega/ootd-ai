@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { logEvent } from '../lib/analytics';
 
 export interface FashionCritique {
@@ -47,6 +47,9 @@ export function useOotdAnalysis({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const desktopFileInputRef = useRef<HTMLInputElement>(null);
+  const blobUrlRef = useRef<string>('');
+  const mountedRef = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current); }; }, []);
 
   const extractPartialFields = (text: string): Partial<FashionCritique> => {
     const r: Partial<FashionCritique> = {};
@@ -112,7 +115,7 @@ export function useOotdAnalysis({
       if (done) break;
       fullText += decoder.decode(value, { stream: true });
       const partial = extractPartialFields(fullText);
-      if (Object.keys(partial).length > 0) {
+      if (Object.keys(partial).length > 0 && mountedRef.current) {
         setPartialCritique(partial);
         if (!panelOpened) { panelOpened = true; setIsStreaming(true); setScanState('success'); }
       }
@@ -120,11 +123,13 @@ export function useOotdAnalysis({
     const cleaned = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      if (!mountedRef.current) return;
       toast('AI 응답을 읽을 수 없습니다. 다시 시도해주세요.', 'error');
       setScanState('idle'); setIsStreaming(false); setPartialCritique(null);
       return;
     }
     const parsed = JSON.parse(jsonMatch[0]);
+    if (!mountedRef.current) return;
     if (parsed.error) {
       toast(parsed.error, 'error');
       setScanState('idle'); setIsStreaming(false); setPartialCritique(null);
@@ -140,7 +145,9 @@ export function useOotdAnalysis({
       toast('사진 용량이 너무 큽니다!\n10MB 이하의 사진을 사용해주세요.', 'error');
       return;
     }
-    setOriginalImage(URL.createObjectURL(file));
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    blobUrlRef.current = URL.createObjectURL(file);
+    setOriginalImage(blobUrlRef.current);
     setHasCustomImage(true);
     const fullBase64 = await new Promise<string>(resolve => {
       const r = new FileReader();

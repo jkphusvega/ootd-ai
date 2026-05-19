@@ -24,8 +24,12 @@ export async function POST(req: Request) {
     }
 
     // data:image/jpeg;base64,... 에서 순수 데이터만 추출
-    const [mimeInfo, base64Data] = image.split(',');
-    const mimeType = mimeInfo.split(':')[1].split(';')[0];
+    const commaIdx = image.indexOf(',');
+    if (commaIdx === -1) {
+      return NextResponse.json({ error: '이미지 형식이 올바르지 않습니다.' }, { status: 400 });
+    }
+    const mimeType = image.slice(0, commaIdx).split(':')[1]?.split(';')[0] || 'image/jpeg';
+    const base64Data = image.slice(commaIdx + 1);
     
     // 환경 변수 검증 (Milestone 2에서는 Gemini 2.5 Flash를 사용하여 최고 속도로 바운딩 박스를 뽑습니다)
     const apiKey = process.env.GEMINI_API_KEY;

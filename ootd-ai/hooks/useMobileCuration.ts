@@ -88,7 +88,7 @@ export function useMobileCuration({
   }, [user, weather, supabase]);
 
   const generateCuration = async () => {
-    if (!user) return;
+    if (!user || isCurating) return;
     setIsCurating(true);
     setCurationError(null);
     setFeedback(null); // 새 추천 시 피드백 초기화

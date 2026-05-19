@@ -193,10 +193,14 @@ export default function SettingsPage() {
     }
   };
 
-  const copyShareLink = () => {
+  const copyShareLink = async () => {
     const link = `${window.location.origin}/shared/${shareId}`;
-    navigator.clipboard.writeText(link);
-    toast('링크가 복사되었습니다.', 'success');
+    try {
+      await navigator.clipboard.writeText(link);
+      toast('링크가 복사되었습니다.', 'success');
+    } catch {
+      toast('링크 복사에 실패했습니다.', 'error');
+    }
   };
 
   const handleContactSubmit = async () => {
@@ -268,7 +272,9 @@ export default function SettingsPage() {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full pb-2 text-lg font-bold bg-transparent border-b-2 border-zinc-200 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none transition-colors dark:text-white"
+              maxLength={20}
+              disabled={isSaving}
+              className="w-full pb-2 text-lg font-bold bg-transparent border-b-2 border-zinc-200 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none transition-colors dark:text-white disabled:opacity-50"
             />
           </div>
         </motion.section>

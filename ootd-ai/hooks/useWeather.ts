@@ -106,6 +106,7 @@ export function useWeather() {
         fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OWM_KEY}&units=metric&cnt=16`),
       ]);
 
+      if (!currentRes.ok || !forecastRes.ok) throw new Error('Weather API error');
       const current = await currentRes.json();
       const forecast = await forecastRes.json();
 
