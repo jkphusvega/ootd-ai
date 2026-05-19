@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Plus, Trash2, X, Droplets, ScanLine, Star, Edit3, Link as LinkIcon, Save, Loader2 } from 'lucide-react';
+import { Home, Plus, Trash2, X, CloudSun, Sparkles, TrendingUp, TrendingDown, Star, Edit3, Link as LinkIcon, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
@@ -346,11 +346,12 @@ export default function GalleryPage() {
               className="px-6 mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {localItems.filter(i => i.categoryId === 'ootd_feed').map(memory => {
                 // JSON 파싱 시도 (신형), 실패하면 구형 포맷 폴백
-                let parsed: { score?: number; summary?: string } = {};
+                let parsed: { score?: number; headline?: string; summary?: string } = {};
                 try { parsed = JSON.parse(memory.name); } catch {
                   const s = memory.name.split(':');
                   parsed = { score: parseInt(s[0]), summary: s[1]?.trim() };
                 }
+                const displaySummary = parsed.headline || parsed.summary;
                 return (
                   <motion.div key={memory.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                     onClick={() => setSelectedFeed(memory)}
@@ -383,8 +384,8 @@ export default function GalleryPage() {
                             {new Date(memory.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                           </p>
                         )}
-                        {parsed.summary && (
-                          <p className="text-white text-[11px] font-bold leading-tight line-clamp-2">"{parsed.summary}"</p>
+                        {displaySummary && (
+                          <p className="text-white text-[11px] font-bold leading-tight line-clamp-2">"{displaySummary}"</p>
                         )}
                       </div>
                     </div>
@@ -415,11 +416,24 @@ export default function GalleryPage() {
       {/* ── Feed Detail Modal ── */}
       <AnimatePresence>
         {selectedFeed && (() => {
-          let c: { score?: number; summary?: string; weatherAdvice?: string; fitAndColor?: string; stylistRecommendation?: string } = {};
+          type FeedData = {
+            score?: number; fit?: number; color?: number; styling?: number; weather?: number;
+            headline?: string; summary?: string;
+            strengths?: string[]; improvements?: string[]; tips?: string[]; weatherNote?: string;
+          };
+          let c: FeedData = {};
           try { c = JSON.parse(selectedFeed.name); } catch {
             const s = selectedFeed.name.split(':');
             c = { score: parseInt(s[0]), summary: s[1]?.trim() };
           }
+          const headline = c.headline || c.summary;
+          const breakdown = [
+            { label: '핏·실루엣', val: c.fit },
+            { label: '컬러 조합', val: c.color },
+            { label: '스타일링', val: c.styling },
+            { label: '날씨 적합', val: c.weather },
+          ];
+          const barCol = (v?: number) => v == null ? '#d4d4d8' : v >= 80 ? '#22c55e' : v >= 60 ? '#eab308' : '#ef4444';
           return (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -428,14 +442,13 @@ export default function GalleryPage() {
               <motion.div initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 rounded-t-[2.5rem] shadow-[0_-20px_60px_rgba(0,0,0,0.2)] max-h-[85vh] flex flex-col lg:bottom-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-lg lg:rounded-[2rem] lg:max-h-[80vh]">
-                {/* 핸들 (모바일 전용) */}
                 <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0 lg:hidden" />
                 <div className="flex-1 overflow-y-auto px-6 pb-10 lg:pt-8 [&::-webkit-scrollbar]:hidden">
                   {/* 이미지 + 점수 */}
-                  <div className="relative mt-4 rounded-2xl overflow-hidden aspect-[3/2] mb-6">
+                  <div className="relative mt-4 rounded-2xl overflow-hidden aspect-[3/2] mb-5">
                     <img src={selectedFeed.image} alt="OOTD" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    {c.score && (
+                    {c.score != null && (
                       <div className="absolute bottom-4 left-4 flex items-end gap-2">
                         <span className="text-white font-black text-4xl leading-none">{c.score}</span>
                         <span className="text-white/70 font-bold text-sm mb-1">/ 100</span>
@@ -452,44 +465,109 @@ export default function GalleryPage() {
                     </button>
                   </div>
 
-                  {/* Summary */}
-                  {c.summary && (
-                    <div className="mb-5">
-                      <p className="text-[10px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase mb-2">AI Stylist Review</p>
-                      <h2 className="text-xl font-black text-zinc-900 dark:text-white leading-snug break-keep">"{c.summary}"</h2>
+                  {/* 헤드라인 */}
+                  {headline && (
+                    <div className="mb-4">
+                      <p className="text-[9px] font-extrabold tracking-[0.2em] text-zinc-400 uppercase mb-1.5">AI Stylist Verdict</p>
+                      <h2 className="text-lg font-black text-zinc-900 dark:text-white leading-snug break-keep">"{headline}"</h2>
                     </div>
                   )}
 
                   <div className="flex flex-col gap-3">
-                    {c.weatherAdvice && (
-                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Droplets className="w-4 h-4 text-zinc-400" />
-                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">Weather Context</h3>
+                    {/* Score Breakdown */}
+                    {breakdown.some(b => b.val != null) && (
+                      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl p-4">
+                        <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-3">Score Breakdown</span>
+                        <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                          {breakdown.map(({ label, val }) => (
+                            <div key={label}>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-[10px] font-bold text-zinc-500">{label}</span>
+                                <span className="text-[10px] font-extrabold" style={{ color: barCol(val) }}>{val ?? '—'}</span>
+                              </div>
+                              <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-700" style={{ backgroundColor: barCol(val), width: val != null ? `${val}%` : '0%' }} />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <p className="text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">{c.weatherAdvice}</p>
                       </div>
                     )}
-                    {c.fitAndColor && (
-                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
-                        <div className="flex items-center gap-2 mb-2">
-                          <ScanLine className="w-4 h-4 text-zinc-400" />
-                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">Fit & Color</h3>
+
+                    {/* 잘된 점 */}
+                    {c.strengths?.length ? (
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                            <TrendingUp className="w-3 h-3 text-white" />
+                          </div>
+                          <span className="text-[9px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
                         </div>
-                        <p className="text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">{c.fitAndColor}</p>
+                        <ul className="flex flex-col gap-2">
+                          {c.strengths.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-emerald-400 shrink-0 text-sm">✓</span>
+                              <span className="text-[12px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {/* 개선점 */}
+                    {c.improvements?.length ? (
+                      <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
+                            <TrendingDown className="w-3 h-3 text-white" />
+                          </div>
+                          <span className="text-[9px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
+                        </div>
+                        <ul className="flex flex-col gap-2">
+                          {c.improvements.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-amber-400 shrink-0 text-sm">→</span>
+                              <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {/* Stylist Tips */}
+                    {c.tips?.length ? (
+                      <div className="bg-zinc-900 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                          <span className="text-[9px] font-extrabold tracking-widest text-white uppercase">Stylist Tips</span>
+                        </div>
+                        <ol className="flex flex-col gap-2.5">
+                          {c.tips.map((tip, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <span className="shrink-0 w-5 h-5 rounded-full bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-[10px] font-black text-yellow-300">{i + 1}</span>
+                              <span className="text-[12px] text-zinc-200 font-medium leading-snug">{tip}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    ) : null}
+
+                    {/* 날씨 코멘트 */}
+                    {c.weatherNote && (
+                      <div className="flex items-start gap-3 px-4 py-3 bg-sky-50 dark:bg-sky-950/30 rounded-2xl border border-sky-100 dark:border-sky-900">
+                        <div className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-900 flex items-center justify-center shrink-0 mt-0.5">
+                          <CloudSun className="w-3.5 h-3.5 text-sky-500" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-extrabold tracking-widest text-sky-400 uppercase block mb-0.5">날씨 적합성</span>
+                          <p className="text-[12px] text-sky-800 dark:text-sky-200 font-medium leading-relaxed">{c.weatherNote}</p>
+                        </div>
                       </div>
                     )}
-                    {c.stylistRecommendation && (
-                      <div className="p-4 bg-zinc-900 dark:bg-zinc-700 rounded-2xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="w-4 h-4 text-yellow-400" />
-                          <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-white">Stylist Pick</h3>
-                        </div>
-                        <p className="text-[13px] text-white/90 leading-relaxed font-medium">{c.stylistRecommendation}</p>
-                      </div>
-                    )}
-                    {!c.weatherAdvice && !c.fitAndColor && !c.stylistRecommendation && (
-                      <p className="text-center text-zinc-400 text-xs py-6">새로 저장한 OOTD부터 상세 분석이 표시됩니다.</p>
+
+                    {/* Legacy fallback: old format had no detailed fields */}
+                    {!headline && !c.strengths?.length && !c.tips?.length && (
+                      <p className="text-center text-zinc-400 text-xs py-6">분석 데이터가 없습니다.</p>
                     )}
                   </div>
                 </div>
