@@ -18,19 +18,21 @@ export function usePushNotification(userId: string | undefined) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     const checkState = async () => {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        setState('unsupported');
+        if (mounted) setState('unsupported');
         return;
       }
       const permission = Notification.permission;
-      if (permission === 'denied') { setState('denied'); return; }
+      if (permission === 'denied') { if (mounted) setState('denied'); return; }
 
       const reg = await navigator.serviceWorker.register('/sw.js');
       const sub = await reg.pushManager.getSubscription();
-      setState(sub ? 'subscribed' : 'unsubscribed');
+      if (mounted) setState(sub ? 'subscribed' : 'unsubscribed');
     };
     checkState();
+    return () => { mounted = false; };
   }, []);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
