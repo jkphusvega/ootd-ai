@@ -1,6 +1,6 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ScanLine, RefreshCw, Bookmark, Star, ChevronRight, ImagePlus, Camera } from 'lucide-react';
+import { Sparkles, ScanLine, RefreshCw, Bookmark, ChevronRight, ImagePlus, Camera, TrendingUp, TrendingDown, CloudSun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 
@@ -20,6 +20,34 @@ interface Props {
   onSwitchToCuration: () => void;
 }
 
+const BREAKDOWN: { key: keyof Pick<FashionCritique, 'fit' | 'color' | 'styling' | 'weather'>; label: string }[] = [
+  { key: 'fit',     label: '핏·실루엣' },
+  { key: 'color',   label: '컬러 조합' },
+  { key: 'styling', label: '스타일링' },
+  { key: 'weather', label: '날씨 적합' },
+];
+
+function barColor(v: number | undefined) {
+  if (v == null) return '#d4d4d8';
+  if (v >= 80) return '#22c55e';
+  if (v >= 60) return '#eab308';
+  return '#ef4444';
+}
+
+function ScoreBar({ value, delay }: { value: number | undefined; delay: number }) {
+  return (
+    <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+      <motion.div className="h-full rounded-full" style={{ backgroundColor: barColor(value) }}
+        initial={{ width: 0 }} animate={{ width: value != null ? `${value}%` : '0%' }}
+        transition={{ duration: 0.8, ease: 'easeOut', delay }} />
+    </div>
+  );
+}
+
+function Skeleton({ w = 'full' }: { w?: string }) {
+  return <div className={`h-3 w-${w} bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse`} />;
+}
+
 export default function MobileAnalysisTab({
   scanState, setScanState, critique, partialCritique,
   hasCustomImage, base64Image, isStreaming, isRateLimited,
@@ -27,6 +55,7 @@ export default function MobileAnalysisTab({
 }: Props) {
   const router = useRouter();
   const d = critique ?? partialCritique;
+  const scoreColor = barColor(d?.score);
 
   return (
     <motion.div key="analysis-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
@@ -60,11 +89,7 @@ export default function MobileAnalysisTab({
               <motion.div
                 initial={{ y: 0 }} animate={{ y: ['0%', '100%', '0%'] }}
                 transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ willChange: 'transform' }}
-                className="absolute left-0 right-0 h-[1.5px] bg-black shadow-[0_0_12px_rgba(0,0,0,0.4)]"
-              >
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-8 bg-black/8 blur-[12px] rounded-full" />
-              </motion.div>
+                className="absolute left-0 right-0 h-[1.5px] bg-black shadow-[0_0_12px_rgba(0,0,0,0.4)]" />
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
@@ -81,48 +106,84 @@ export default function MobileAnalysisTab({
         {scanState === 'success' && d && (
           <motion.div key="success" initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-950 rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[68vh]">
+            className="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-950 rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[78vh]">
             <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
-            <div className="flex-1 overflow-y-auto px-6 pt-5 pb-24 [&::-webkit-scrollbar]:hidden">
+            <div className="flex-1 overflow-y-auto px-5 pt-4 pb-28 [&::-webkit-scrollbar]:hidden">
 
-              <div className="flex items-start gap-5 mb-6">
-                <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
-                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 96 96">
-                    <circle cx="48" cy="48" r="42" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-100 dark:text-zinc-800" />
-                    <motion.circle cx="48" cy="48" r="42" fill="none"
-                      stroke={d.score != null ? (d.score >= 80 ? '#22c55e' : d.score >= 60 ? '#eab308' : '#ef4444') : '#18181b'}
-                      strokeWidth="5" strokeLinecap="round"
+              {/* 점수 + 헤드라인 */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-100 dark:text-zinc-800" />
+                    <motion.circle cx="40" cy="40" r="34" fill="none" stroke={scoreColor} strokeWidth="5" strokeLinecap="round"
                       initial={{ pathLength: 0 }} animate={{ pathLength: (d.score ?? 0) / 100 }}
                       transition={{ duration: 1.2, ease: 'easeOut' }} />
                   </svg>
                   <div className="flex flex-col items-center">
-                    <span className="text-3xl font-black leading-none tracking-tight">{d.score ?? '—'}</span>
-                    <span className="text-[7px] font-bold text-zinc-400/70 tracking-[0.2em] uppercase mt-0.5">SCORE</span>
+                    <span className="text-2xl font-black leading-none">{d.score ?? '—'}</span>
+                    <span className="text-[7px] font-bold text-zinc-400 tracking-widest uppercase mt-0.5">SCORE</span>
                   </div>
                 </div>
-                <div className="flex-1 pt-1">
-                  <span className="text-[9px] font-bold tracking-[0.25em] text-zinc-400/60 uppercase block mb-1.5">AI Stylist Verdict</span>
+                <div className="flex-1">
+                  <span className="text-[9px] font-bold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Verdict</span>
                   {d.headline
-                    ? <h2 className="text-xl font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
-                    : <div className="flex flex-col gap-2">
-                        <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" />
-                        <div className="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" />
-                      </div>
-                  }
+                    ? <h2 className="text-lg font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
+                    : <div className="flex flex-col gap-1.5"><Skeleton /><Skeleton w="3/4" /></div>}
                 </div>
               </div>
 
-              <div className="p-5 bg-black rounded-2xl flex flex-col gap-3 mb-5">
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Tips</span>
+              {/* 세부 점수 */}
+              <div className="bg-zinc-50 dark:bg-zinc-900 rounded-2xl p-4 mb-3">
+                <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-3">Score Breakdown</span>
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                  {BREAKDOWN.map(({ key, label }, i) => (
+                    <div key={key}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500">{label}</span>
+                        <span className="text-[10px] font-extrabold" style={{ color: barColor(d[key] as number | undefined) }}>
+                          {d[key] ?? '—'}
+                        </span>
+                      </div>
+                      <ScoreBar value={d[key] as number | undefined} delay={0.2 + i * 0.08} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 잘된 점 + 개선점 */}
+              <div className="grid grid-cols-2 gap-2.5 mb-3">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-3.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <TrendingUp className="w-3 h-3 text-emerald-500" />
+                    <span className="text-[9px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
+                  </div>
+                  {d.strengths?.length
+                    ? <ul className="flex flex-col gap-2">{d.strengths.map((s, i) => <li key={i} className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium leading-snug">{s}</li>)}</ul>
+                    : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-3.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <TrendingDown className="w-3 h-3 text-amber-500" />
+                    <span className="text-[9px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
+                  </div>
+                  {d.improvements?.length
+                    ? <ul className="flex flex-col gap-2">{d.improvements.map((s, i) => <li key={i} className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-snug">{s}</li>)}</ul>
+                    : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
+                </div>
+              </div>
+
+              {/* 스타일링 팁 */}
+              <div className="bg-black rounded-2xl p-4 mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <span className="text-[10px] font-extrabold tracking-widest text-white uppercase">Stylist Tips</span>
                 </div>
                 {d.tips?.length ? (
                   <ol className="flex flex-col gap-3">
                     {d.tips.map((tip, i) => (
                       <li key={i} className="flex items-start gap-3">
                         <span className="shrink-0 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black text-white/60">{i + 1}</span>
-                        <span className="text-[13px] text-white/90 font-medium leading-snug">{tip}</span>
+                        <span className="text-[12px] text-white/90 font-medium leading-snug">{tip}</span>
                       </li>
                     ))}
                   </ol>
@@ -133,23 +194,34 @@ export default function MobileAnalysisTab({
                 )}
               </div>
 
+              {/* 날씨 코멘트 */}
+              {(d.weatherNote || isStreaming) && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-sky-50 dark:bg-sky-950/30 rounded-xl border border-sky-100 dark:border-sky-900 mb-4">
+                  <CloudSun className="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0" />
+                  {d.weatherNote
+                    ? <p className="text-[11px] text-sky-700 dark:text-sky-300 font-medium leading-relaxed">{d.weatherNote}</p>
+                    : <Skeleton w="full" />}
+                </div>
+              )}
+
+              {/* 액션 버튼 */}
               {critique && !isStreaming && (
                 <div className="flex flex-col gap-2">
                   <button onClick={handleSaveToFeed}
-                    className="w-full py-4 bg-stone-900 border border-stone-800 text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    className="w-full py-4 bg-zinc-900 text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-95 transition flex items-center justify-center gap-2">
                     <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
                   </button>
                   <div className="grid grid-cols-3 gap-2">
                     <button onClick={() => setScanState('idle')}
-                      className="py-3.5 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform">
+                      className="py-3.5 bg-white border border-zinc-200 text-zinc-800 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition">
                       다시 분석
                     </button>
                     <button onClick={onSwitchToCuration}
-                      className="py-3.5 bg-purple-100 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1">
+                      className="py-3.5 bg-purple-50 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-1">
                       <Sparkles className="w-3 h-3" /> 코디 추천
                     </button>
                     <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
-                      className="py-3.5 bg-black text-white font-extrabold tracking-tighter text-[10px] uppercase rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-0.5">
+                      className="py-3.5 bg-black text-white font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-0.5">
                       AI 추출 <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -168,7 +240,7 @@ export default function MobileAnalysisTab({
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
               className="absolute bottom-24 left-0 right-0 px-10 flex items-center justify-center gap-6 z-40">
               <button onClick={!isRateLimited ? triggerGallery : undefined} disabled={isRateLimited}
-                className="w-14 h-14 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white dark:hover:bg-zinc-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                className="w-14 h-14 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl border border-black/10 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition active:scale-95 disabled:opacity-40">
                 <ImagePlus className="w-6 h-6 text-zinc-700" strokeWidth={1.5} />
               </button>
               <div className={`relative flex items-center justify-center ${isRateLimited ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -177,9 +249,9 @@ export default function MobileAnalysisTab({
                   <circle cx="48" cy="48" r="45" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
                   <motion.circle cx="48" cy="48" r="45" fill="none" stroke="#000000" strokeWidth="4"
                     initial={{ pathLength: 0 }} animate={{ pathLength: scanState === 'scanning' ? 1 : 0 }}
-                    transition={{ duration: 2.8, ease: 'linear' }} strokeDasharray="283" />
+                    transition={{ duration: 2.8, ease: 'linear' }} />
                 </svg>
-                <div className="w-[72px] h-[72px] bg-black rounded-full flex flex-col items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.2)] border-2 border-black/10 transition-all hover:scale-105 active:scale-95">
+                <div className="w-[72px] h-[72px] bg-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.2)] border-2 border-black/10 hover:scale-105 active:scale-95 transition-transform">
                   <Camera className="w-8 h-8 text-white opacity-90" strokeWidth={1.5} />
                 </div>
               </div>

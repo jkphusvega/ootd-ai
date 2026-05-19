@@ -4,8 +4,15 @@ import { logEvent } from '../lib/analytics';
 
 export interface FashionCritique {
   score: number;
+  fit: number;
+  color: number;
+  styling: number;
+  weather: number;
   headline: string;
+  strengths: string[];
+  improvements: string[];
   tips: string[];
+  weatherNote: string;
 }
 
 interface WeatherInfo { temperature: number; condition: string; }
@@ -43,15 +50,20 @@ export function useOotdAnalysis({
 
   const extractPartialFields = (text: string): Partial<FashionCritique> => {
     const r: Partial<FashionCritique> = {};
-    const scoreM = text.match(/"score"\s*:\s*(\d+)/);
-    if (scoreM) r.score = parseInt(scoreM[1]);
-    const headlineM = text.match(/"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-    if (headlineM) r.headline = headlineM[1].replace(/\\"/g, '"');
-    const tipsM = text.match(/"tips"\s*:\s*\[([\s\S]*?)\]/);
-    if (tipsM) {
-      const items = [...tipsM[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(m => m[1].replace(/\\"/g, '"'));
-      if (items.length) r.tips = items;
-    }
+    const num = (key: string) => { const m = text.match(new RegExp(`"${key}"\\s*:\\s*(\\d+)`)); return m ? parseInt(m[1]) : undefined; };
+    const str = (key: string) => { const m = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`)); return m ? m[1].replace(/\\"/g, '"') : undefined; };
+    const arr = (key: string) => { const m = text.match(new RegExp(`"${key}"\\s*:\\s*\\[([\\s\\S]*?)\\]`)); if (!m) return undefined; const items = [...m[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(x => x[1].replace(/\\"/g, '"')); return items.length ? items : undefined; };
+
+    const score = num('score'); if (score !== undefined) r.score = score;
+    const fit = num('fit'); if (fit !== undefined) r.fit = fit;
+    const color = num('color'); if (color !== undefined) r.color = color;
+    const styling = num('styling'); if (styling !== undefined) r.styling = styling;
+    const weather = num('weather'); if (weather !== undefined) r.weather = weather;
+    const headline = str('headline'); if (headline) r.headline = headline;
+    const weatherNote = str('weatherNote'); if (weatherNote) r.weatherNote = weatherNote;
+    const strengths = arr('strengths'); if (strengths) r.strengths = strengths;
+    const improvements = arr('improvements'); if (improvements) r.improvements = improvements;
+    const tips = arr('tips'); if (tips) r.tips = tips;
     return r;
   };
 
@@ -168,7 +180,13 @@ export function useOotdAnalysis({
       const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
       const { error: dbError } = await supabase.from('clothes').insert({
         category: 'ootd_feed',
-        name: JSON.stringify({ score: critique.score, headline: critique.headline, tips: critique.tips }),
+        name: JSON.stringify({
+          score: critique.score,
+          fit: critique.fit, color: critique.color, styling: critique.styling, weather: critique.weather,
+          headline: critique.headline,
+          strengths: critique.strengths, improvements: critique.improvements,
+          tips: critique.tips, weatherNote: critique.weatherNote,
+        }),
         image_url: publicUrl,
         user_id: user.id,
       });
