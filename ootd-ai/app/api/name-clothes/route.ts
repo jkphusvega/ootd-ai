@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { checkRateLimit } from '../../../lib/rateLimit';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -10,6 +11,9 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { allowed } = await checkRateLimit(user.id, 'segment-clothes');
+  if (!allowed) return NextResponse.json({ name: null });
 
   try {
     const { image, category } = await req.json();
