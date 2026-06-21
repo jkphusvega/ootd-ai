@@ -611,7 +611,7 @@ export default function AddClothesPage() {
             {/* 직접 영역 추가 */}
             <button
               onClick={() => setShowManualPicker(true)}
-              className="mt-2 w-full py-3 border-2 border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition"
+              className="mt-3 w-full py-3.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition"
             >
               ✏️ 직접 영역 추가
             </button>
