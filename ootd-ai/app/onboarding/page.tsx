@@ -133,10 +133,11 @@ export default function OnboardingPage() {
         }
       }
 
-      // user_profiles 에는 profile_image 컬럼이 없으므로 제외하고 upsert 수행
+      // user_profiles 테이블에 직접 프로필 이미지 정보(profile_image)를 저장
       const { error } = await supabase.from('user_profiles').upsert({
         user_id: user.id,
         nickname: nameToSave.trim() || 'OOTD User',
+        profile_image: finalImgUrl,
         height: 175,
         weight: 70,
         fit_preference: 'regular',
