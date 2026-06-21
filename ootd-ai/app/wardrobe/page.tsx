@@ -173,8 +173,7 @@ export default function GalleryPage() {
     const counts: Record<string, number> = {};
     const feedItems = localItems.filter(i => i.categoryId === 'ootd_feed');
     feedItems.forEach(item => {
-      try {
-        const parsed = JSON.parse(item.name);
+        const parsed = parseFeedName(item.name);
         if (parsed.worn === true && Array.isArray(parsed.items)) {
           parsed.items.forEach((fit: { name: string }) => {
             if (fit && fit.name) {
@@ -182,9 +181,6 @@ export default function GalleryPage() {
             }
           });
         }
-      } catch (e) {
-        // ignore legacy
-      }
     });
     return counts;
   }, [localItems]);
@@ -306,7 +302,7 @@ export default function GalleryPage() {
                         <>
                           <div className="lg:hidden flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none' }}>
                             {visibleItems.map((item) => {
-                              const pName = (() => { try { return JSON.parse(item.name).n || item.name; } catch { return item.name; } })();
+                              const pName = parseClothName(item.name);
                               return (
                                 <MobileClothCard key={item.id} item={item} editMode={editMode}
                                   pendingDeleteId={pendingDeleteId}
@@ -333,7 +329,7 @@ export default function GalleryPage() {
                           {/* ── DESKTOP: Grid Layout ── */}
                           <div className="hidden lg:grid grid-cols-4 xl:grid-cols-5 gap-6 px-6 pt-8 pb-6 relative z-10">
                             {visibleItems.map((item) => {
-                              const pName = (() => { try { return JSON.parse(item.name).n || item.name; } catch { return item.name; } })();
+                              const pName = parseClothName(item.name);
                               return (
                                 <DesktopClothCard key={item.id} item={item} editMode={editMode}
                                   pendingDeleteId={pendingDeleteId}
@@ -424,11 +420,7 @@ export default function GalleryPage() {
                 {feedView === 'grid' && (
                   <div className="px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {feedItems.map(memory => {
-                      let parsed: { score?: number; headline?: string; summary?: string } = {};
-                      try { parsed = JSON.parse(memory.name); } catch {
-                        const s = memory.name.split(':');
-                        parsed = { score: parseInt(s[0]), summary: s[1]?.trim() };
-                      }
+                      const parsed = parseFeedName(memory.name);
                       const displaySummary = parsed.headline || parsed.summary;
                       return (
                         <motion.div key={memory.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -509,8 +501,7 @@ export default function GalleryPage() {
                             const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                             const item = dateMap[dateKey];
                             const isToday = dateKey === todayStr;
-                            let parsed: { score?: number } = {};
-                            if (item) { try { parsed = JSON.parse(item.name); } catch {} }
+                            const parsed = item ? parseFeedName(item.name) : {};
                             return (
                               <div key={di}
                                 onClick={() => item && setSelectedFeed(item)}
@@ -563,11 +554,7 @@ export default function GalleryPage() {
             headline?: string; summary?: string;
             strengths?: string[]; improvements?: string[]; tips?: string[]; weatherNote?: string;
           };
-          let c: FeedData = {};
-          try { c = JSON.parse(selectedFeed.name); } catch {
-            const s = selectedFeed.name.split(':');
-            c = { score: parseInt(s[0]), summary: s[1]?.trim() };
-          }
+          const c = parseFeedName(selectedFeed.name);
           const headline = c.headline || c.summary;
           const breakdown = [
             { label: '핏·실루엣', val: c.fit },
@@ -774,6 +761,51 @@ export default function GalleryPage() {
   );
 }
 
+/* ───── Parsing Helpers ───── */
+
+function parseClothName(name: string | null | undefined): string {
+  if (!name) return '';
+  try {
+    const parsed = JSON.parse(name);
+    if (parsed && typeof parsed === 'object' && parsed.n) {
+      return parsed.n;
+    }
+  } catch {}
+  return name;
+}
+
+interface ParsedFeedData {
+  score?: number;
+  fit?: number;
+  color?: number;
+  styling?: number;
+  weather?: number;
+  headline?: string;
+  summary?: string;
+  strengths?: string[];
+  improvements?: string[];
+  tips?: string[];
+  weatherNote?: string;
+  worn?: boolean;
+  items?: any[];
+}
+
+function parseFeedName(name: string | null | undefined): ParsedFeedData {
+  if (!name) return {};
+  try {
+    const parsed = JSON.parse(name);
+    if (parsed && typeof parsed === 'object') return parsed;
+  } catch {
+    try {
+      const s = name.split(':');
+      return { score: parseInt(s[0]) || undefined, summary: s[1]?.trim() };
+    } catch {
+      return { summary: name };
+    }
+  }
+  return {};
+}
+
 /* ───── Sub Components ───── */
 
 function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick, wearCount }: {
@@ -788,13 +820,7 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
 }) {
   const isPending = pendingDeleteId === item.id;
   
-  const parsedName = useMemo(() => {
-    try {
-      return JSON.parse(item.name).n || item.name;
-    } catch {
-      return item.name;
-    }
-  }, [item.name]);
+  const parsedName = useMemo(() => parseClothName(item.name), [item.name]);
   return (
     <div className="snap-center shrink-0 w-[150px] cursor-pointer group flex flex-col items-center relative">
       {editMode && !isPending && (
@@ -844,13 +870,7 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
 }) {
   const isPending = pendingDeleteId === item.id;
 
-  const parsedName = useMemo(() => {
-    try {
-      return JSON.parse(item.name).n || item.name;
-    } catch {
-      return item.name;
-    }
-  }, [item.name]);
+  const parsedName = useMemo(() => parseClothName(item.name), [item.name]);
   return (
     <div className="relative group cursor-pointer">
       {editMode && !isPending && (
