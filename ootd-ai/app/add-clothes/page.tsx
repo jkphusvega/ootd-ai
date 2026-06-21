@@ -84,6 +84,8 @@ export default function AddClothesPage() {
   const [manualCategory, setManualCategory] = useState('tops');
   const [isExtractingManual, setIsExtractingManual] = useState(false);
   const pickerImgRef = useRef<HTMLImageElement>(null);
+  const pointerDownRef = useRef(false);
+  const startClientRef = useRef<{x:number,y:number}|null>(null);
 
   // 단계별 진행 상태
   const [extractPhase, setExtractPhase] = useState<1 | 2 | 3>(1);
@@ -661,15 +663,30 @@ export default function AddClothesPage() {
                   className="absolute inset-0 touch-none cursor-crosshair"
                   onPointerDown={e => {
                     e.currentTarget.setPointerCapture(e.pointerId);
+                    pointerDownRef.current = true;
+                    startClientRef.current = { x: e.clientX, y: e.clientY };
                     const rel = toRelative(e.clientX, e.clientY);
-                    if (rel) { setPickStart(rel); setPickEnd(null); }
+                    if (!rel) return;
+                    if (!pickStart || pickEnd) {
+                      // 첫 번째 탭 or 완성된 선택 후 재시작
+                      setPickStart(rel); setPickEnd(null);
+                    } else {
+                      // 두 번째 탭 — 끝점 확정
+                      setPickEnd(rel);
+                      pointerDownRef.current = false;
+                    }
                   }}
                   onPointerMove={e => {
-                    if (!pickStart) return;
-                    const rel = toRelative(e.clientX, e.clientY);
-                    if (rel) setPickEnd(rel);
+                    if (!pointerDownRef.current || !pickStart || !startClientRef.current) return;
+                    const dx = Math.abs(e.clientX - startClientRef.current.x);
+                    const dy = Math.abs(e.clientY - startClientRef.current.y);
+                    // 8px 이상 움직여야 드래그로 인식 (터치 미세 떨림 무시)
+                    if (dx > 8 || dy > 8) {
+                      const rel = toRelative(e.clientX, e.clientY);
+                      if (rel) setPickEnd(rel);
+                    }
                   }}
-                  onPointerUp={() => {}}
+                  onPointerUp={() => { pointerDownRef.current = false; }}
                 />
                 {/* 선택 영역 표시 */}
                 {pickStart && pickEnd && (() => {
