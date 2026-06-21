@@ -136,31 +136,31 @@ export default function MobileAnalysisTab({
               </div>
 
               {/* 헤드라인 */}
-              <div className="absolute bottom-[4.5rem] left-4 right-[4.5rem]">
+              <div className="absolute bottom-4 left-4 right-[4.5rem]">
                 {d.headline
                   ? <p className="text-white font-black text-[15px] leading-snug drop-shadow-lg">"{d.headline}"</p>
                   : isStreaming && <div className="h-4 bg-white/20 rounded-full animate-pulse w-3/4" />}
-              </div>
-
-              {/* 카테고리 점수 배지 행 */}
-              <div className="absolute bottom-3 inset-x-4 flex gap-2">
-                {BREAKDOWN.map(({ key, label }) => {
-                  const val = d[key] as number | undefined;
-                  return (
-                    <div key={key} className="flex-1 bg-black/55 backdrop-blur-sm border border-white/10 rounded-xl px-1.5 py-2 text-center">
-                      <div className="text-[7px] text-white/60 font-bold mb-0.5">{label}</div>
-                      {val != null
-                        ? <div className="text-sm font-black leading-none" style={{ color: barColor(val) }}>{val}</div>
-                        : <div className="text-sm font-black leading-none text-white/25 animate-pulse">…</div>}
-                    </div>
-                  );
-                })}
               </div>
             </div>
 
             {/* ── 디테일 시트 ── */}
             <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950 rounded-t-[2rem] -mt-6 relative z-10 px-5 pt-5 pb-28 [&::-webkit-scrollbar]:hidden">
-              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-5" />
+              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
+
+              {/* 카테고리 점수 배지 행 */}
+              <div className="flex gap-2 mb-5">
+                {BREAKDOWN.map(({ key, label }) => {
+                  const val = d[key] as number | undefined;
+                  return (
+                    <div key={key} className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl px-1.5 py-2.5 text-center">
+                      <div className="text-[7px] text-zinc-400 font-bold mb-0.5">{label}</div>
+                      {val != null
+                        ? <div className="text-sm font-black leading-none" style={{ color: barColor(val) }}>{val}</div>
+                        : <div className="text-sm font-black leading-none text-zinc-200 dark:text-zinc-700 animate-pulse">…</div>}
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* 잘된 점 */}
               <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4 mb-3">
