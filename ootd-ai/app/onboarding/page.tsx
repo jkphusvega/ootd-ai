@@ -129,8 +129,8 @@ export default function OnboardingPage() {
         user_id: user.id,
         nickname: nameToSave.trim() || 'OOTD User',
         profile_image: finalImgUrl,
-        height: 175, // DB 제약 조건 대응 기본값
-        weight: 70,  // DB 제약 조건 대응 기본값
+        height: 175,
+        weight: 70,
         fit_preference: 'regular',
         style_moods: [],
         body_goal: 'none',
@@ -138,15 +138,21 @@ export default function OnboardingPage() {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase DB Error:', error);
+        toast(`DB 저장 에러: ${error.message} (${error.details || '상세없음'})`, 'error');
+        throw error;
+      }
 
       toast('반가워요! 프로필 설정이 완료되었습니다.', 'success');
       localStorage.setItem('ootd_onboarded', 'true');
       router.push('/');
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Save profile error:', err);
-      toast('저장 도중 오류가 발생했습니다. 다시 시도해 주세요.', 'error');
+      if (err.message && !err.message.includes('DB 저장 에러')) {
+        toast(`저장 에러: ${err.message}`, 'error');
+      }
     } finally {
       setIsSaving(false);
     }
