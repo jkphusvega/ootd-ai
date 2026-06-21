@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     let streamResult: Awaited<ReturnType<ReturnType<typeof genAI.getGenerativeModel>['generateContentStream']>> | null = null;
     outer: for (const modelName of MODELS) {
-      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4, maxOutputTokens: 600 } });
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4 } });
       // thinkingConfig는 gemini-2.5-flash 전용 — 다른 모델에 보내면 Invalid Argument 에러 발생
       const callOptions = modelName === 'gemini-2.5-flash'
         ? { thinkingConfig: { thinkingBudget: 0 } }
