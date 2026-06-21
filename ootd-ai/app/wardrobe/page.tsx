@@ -84,6 +84,22 @@ export default function GalleryPage() {
     }
   };
 
+  const wearCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const feedItems = localItems.filter(i => i.categoryId === 'ootd_feed');
+    feedItems.forEach(item => {
+      const parsed = parseFeedName(item.name);
+      if (parsed.worn === true && Array.isArray(parsed.items)) {
+        parsed.items.forEach((fit: { name: string }) => {
+          if (fit && fit.name) {
+            counts[fit.name] = (counts[fit.name] || 0) + 1;
+          }
+        });
+      }
+    });
+    return counts;
+  }, [localItems]);
+
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
   }, [authLoading, user, router]);
@@ -169,21 +185,6 @@ export default function GalleryPage() {
     }
   };
 
-  const wearCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const feedItems = localItems.filter(i => i.categoryId === 'ootd_feed');
-    feedItems.forEach(item => {
-        const parsed = parseFeedName(item.name);
-        if (parsed.worn === true && Array.isArray(parsed.items)) {
-          parsed.items.forEach((fit: { name: string }) => {
-            if (fit && fit.name) {
-              counts[fit.name] = (counts[fit.name] || 0) + 1;
-            }
-          });
-        }
-    });
-    return counts;
-  }, [localItems]);
 
   const getMergedCategories = () => {
     return WARDROBE_DATA.map(cat => {
