@@ -70,7 +70,7 @@ export function useOotdAnalysis({
     return r;
   };
 
-  const compressImage = (file: File, maxDim = 1024, quality = 0.85): Promise<string> =>
+  const compressImage = (file: File, maxDim = 768, quality = 0.75): Promise<string> =>
     new Promise(resolve => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -106,10 +106,15 @@ export function useOotdAnalysis({
       setScanState('idle');
       return;
     }
+    // 서버가 요청을 수락한 즉시 스켈레톤 패널 오픈 — Gemini 첫 토큰까지 기다리지 않음
+    if (mountedRef.current) {
+      setPartialCritique({});
+      setIsStreaming(true);
+      setScanState('success');
+    }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let fullText = '';
-    let panelOpened = false;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -117,7 +122,6 @@ export function useOotdAnalysis({
       const partial = extractPartialFields(fullText);
       if (Object.keys(partial).length > 0 && mountedRef.current) {
         setPartialCritique(partial);
-        if (!panelOpened) { panelOpened = true; setIsStreaming(true); setScanState('success'); }
       }
     }
     const cleaned = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -148,7 +152,7 @@ export function useOotdAnalysis({
   };
 
   const processFile = async (file: File) => {
-    if (scanState === 'scanning' || isRateLimited) return;
+    if (scanState === 'scanning' || isStreaming || isRateLimited) return;
     if (file.size > 10 * 1024 * 1024) {
       toast('사진 용량이 너무 큽니다!\n10MB 이하의 사진을 사용해주세요.', 'error');
       return;

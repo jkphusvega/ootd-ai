@@ -243,6 +243,7 @@ export default function Home() {
             <MobileAnalysisTab
               scanState={analysis.scanState} setScanState={analysis.setScanState}
               critique={analysis.critique} partialCritique={analysis.partialCritique}
+              originalImage={analysis.originalImage}
               hasCustomImage={analysis.hasCustomImage} base64Image={analysis.base64Image}
               isStreaming={analysis.isStreaming} isRateLimited={analysis.isRateLimited}
               wardrobeCount={curation.wardrobeCount ?? 0}

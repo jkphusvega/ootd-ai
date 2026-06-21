@@ -9,6 +9,7 @@ interface Props {
   setScanState: (s: 'idle' | 'scanning' | 'success' | 'error') => void;
   critique: FashionCritique | null;
   partialCritique: Partial<FashionCritique> | null;
+  originalImage: string;
   hasCustomImage: boolean;
   base64Image: string | null;
   isStreaming: boolean;
@@ -35,15 +36,6 @@ function barColor(v: number | undefined) {
   return '#ef4444';
 }
 
-function ScoreBar({ value, delay }: { value: number | undefined; delay: number }) {
-  return (
-    <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-      <motion.div className="h-full rounded-full" style={{ backgroundColor: barColor(value) }}
-        initial={{ width: 0 }} animate={{ width: value != null ? `${value}%` : '0%' }}
-        transition={{ duration: 0.8, ease: 'easeOut', delay }} />
-    </div>
-  );
-}
 
 function Skeleton({ w = 'full' }: { w?: string }) {
   return <div className={`h-3 w-${w} bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse`} />;
@@ -51,12 +43,11 @@ function Skeleton({ w = 'full' }: { w?: string }) {
 
 export default function MobileAnalysisTab({
   scanState, setScanState, critique, partialCritique,
-  hasCustomImage, base64Image, isStreaming, isRateLimited, wardrobeCount,
+  originalImage, hasCustomImage, base64Image, isStreaming, isRateLimited, wardrobeCount,
   retryAnalysis, handleSaveToFeed, triggerCamera, triggerGallery, onSwitchToCuration,
 }: Props) {
   const router = useRouter();
   const d = critique ?? partialCritique;
-  const scoreColor = barColor(d?.score);
   const isFirstTime = wardrobeCount < 5;
 
   return (
@@ -120,93 +111,94 @@ export default function MobileAnalysisTab({
         )}
       </AnimatePresence>
 
-      {/* Result Bottom Sheet */}
+      {/* Result — Option A: 사진 + 스코어 오버레이 */}
       <AnimatePresence>
         {scanState === 'success' && d && (
-          <motion.div key="success" initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-950 rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] flex flex-col h-[78vh]">
-            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mt-4 shrink-0" />
-            <div className="flex-1 overflow-y-auto px-5 pt-4 pb-28 [&::-webkit-scrollbar]:hidden">
+          <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="absolute inset-0 z-40 bg-black flex flex-col">
 
-              {/* 점수 + 헤드라인 */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-100 dark:text-zinc-800" />
-                    <motion.circle cx="40" cy="40" r="34" fill="none" stroke={scoreColor} strokeWidth="5" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: (d.score ?? 0) / 100 }}
-                      transition={{ duration: 1.2, ease: 'easeOut' }} />
-                  </svg>
-                  <div className="flex flex-col items-center">
-                    <span className="text-2xl font-black leading-none">{d.score ?? '—'}</span>
-                    <span className="text-[7px] font-bold text-zinc-400 tracking-widest uppercase mt-0.5">SCORE</span>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <span className="text-[9px] font-bold tracking-[0.2em] text-zinc-400 uppercase block mb-1">AI Stylist Verdict</span>
-                  {d.headline
-                    ? <h2 className="text-lg font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
-                    : <div className="flex flex-col gap-1.5"><Skeleton /><Skeleton w="3/4" /></div>}
-                </div>
+            {/* ── 사진 + 점수 오버레이 ── */}
+            <div className="relative flex-shrink-0 h-[46vh]">
+              {originalImage && (
+                <img src={originalImage} alt="OOTD" className="w-full h-full object-cover" />
+              )}
+              {/* 하단 그라데이션 */}
+              <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+
+              {/* 총점 배지 — 우상단 */}
+              <div className="absolute top-4 right-4 bg-black/55 backdrop-blur-md border border-white/15 rounded-2xl px-3.5 py-2.5 flex flex-col items-center min-w-[52px]">
+                {d.score != null
+                  ? <span className="text-3xl font-black text-white leading-none">{d.score}</span>
+                  : <span className="text-3xl font-black text-white/30 leading-none animate-pulse">…</span>}
+                <span className="text-[7px] font-bold text-white/50 uppercase tracking-widest mt-0.5">총점</span>
               </div>
 
-              {/* 세부 점수 */}
-              <div className="bg-zinc-50 dark:bg-zinc-900 rounded-2xl p-4 mb-3">
-                <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-3">Score Breakdown</span>
-                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-                  {BREAKDOWN.map(({ key, label }, i) => (
-                    <div key={key}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold text-zinc-500">{label}</span>
-                        <span className="text-[10px] font-extrabold" style={{ color: barColor(d[key] as number | undefined) }}>
-                          {d[key] ?? '—'}
-                        </span>
-                      </div>
-                      <ScoreBar value={d[key] as number | undefined} delay={0.2 + i * 0.08} />
-                    </div>
-                  ))}
-                </div>
+              {/* 헤드라인 */}
+              <div className="absolute bottom-[4.5rem] left-4 right-[4.5rem]">
+                {d.headline
+                  ? <p className="text-white font-black text-[15px] leading-snug drop-shadow-lg">"{d.headline}"</p>
+                  : isStreaming && <div className="h-4 bg-white/20 rounded-full animate-pulse w-3/4" />}
               </div>
 
-              {/* 잘된 점 + 개선점 */}
-              <div className="flex flex-col gap-2 mb-3">
-                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
-                      <TrendingUp className="w-3 h-3 text-white" />
+              {/* 카테고리 점수 배지 행 */}
+              <div className="absolute bottom-3 inset-x-4 flex gap-2">
+                {BREAKDOWN.map(({ key, label }) => {
+                  const val = d[key] as number | undefined;
+                  return (
+                    <div key={key} className="flex-1 bg-black/55 backdrop-blur-sm border border-white/10 rounded-xl px-1.5 py-2 text-center">
+                      <div className="text-[7px] text-white/60 font-bold mb-0.5">{label}</div>
+                      {val != null
+                        ? <div className="text-sm font-black leading-none" style={{ color: barColor(val) }}>{val}</div>
+                        : <div className="text-sm font-black leading-none text-white/25 animate-pulse">…</div>}
                     </div>
-                    <span className="text-[10px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── 디테일 시트 ── */}
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950 rounded-t-[2rem] -mt-6 relative z-10 px-5 pt-5 pb-28 [&::-webkit-scrollbar]:hidden">
+              <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-5" />
+
+              {/* 잘된 점 */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4 mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-3 h-3 text-white" />
                   </div>
-                  {d.strengths?.length
-                    ? <ul className="flex flex-col gap-2.5">
-                        {d.strengths.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="text-emerald-400 mt-0.5 shrink-0 text-sm">✓</span>
-                            <span className="text-[12px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
+                  <span className="text-[10px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
                 </div>
-                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
-                      <TrendingDown className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="text-[10px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
+                {d.strengths?.length
+                  ? <ul className="flex flex-col gap-2.5">
+                      {d.strengths.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-0.5 shrink-0 text-sm">✓</span>
+                          <span className="text-[12px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
+              </div>
+
+              {/* 개선점 */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4 mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
+                    <TrendingDown className="w-3 h-3 text-white" />
                   </div>
-                  {d.improvements?.length
-                    ? <ul className="flex flex-col gap-2.5">
-                        {d.improvements.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="text-amber-400 mt-0.5 shrink-0 text-sm">→</span>
-                            <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
+                  <span className="text-[10px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
                 </div>
+                {d.improvements?.length
+                  ? <ul className="flex flex-col gap-2.5">
+                      {d.improvements.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-amber-400 mt-0.5 shrink-0 text-sm">→</span>
+                          <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
               </div>
 
               {/* 스타일링 팁 */}
@@ -226,7 +218,7 @@ export default function MobileAnalysisTab({
                   </ol>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {[0, 1, 2].map(i => <div key={i} className="h-3 bg-zinc-700 rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }} />)}
+                    {[0, 1].map(i => <div key={i} className="h-3 bg-zinc-700 rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }} />)}
                   </div>
                 )}
               </div>
@@ -246,7 +238,7 @@ export default function MobileAnalysisTab({
                 </div>
               )}
 
-              {/* 액션 버튼 — 옷장 등록이 메인 CTA */}
+              {/* 액션 버튼 */}
               {critique && !isStreaming && (
                 <div className="flex flex-col gap-2">
                   <button

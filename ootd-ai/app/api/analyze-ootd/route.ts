@@ -60,30 +60,34 @@ export async function POST(request: Request) {
   "headline": "<전체 룩을 꿰뚫는 한 줄 평, 20자 이내, 직설적, 한국어>",
   "strengths": ["<이 룩에서 잘된 점 1, 구체적 아이템 언급>", "<잘된 점 2>"],
   "improvements": ["<구체적 개선점 1, 아이템+방향>", "<구체적 개선점 2>"],
-  "tips": ["<실행 가능한 스타일링 팁 1>", "<팁 2>", "<팁 3>"],
+  "tips": ["<실행 가능한 스타일링 팁 1>", "<팁 2>"],
   "weatherNote": "<현재 날씨 기준 이 옷차림의 적합성 한 줄>"
 }
 
 작성 규칙:
 - headline: 직설적이고 핵심을 찌를 것 (예: "컬러는 완벽, 비율이 발목 잡는 룩")
 - strengths/improvements: 각 2개, 구체적인 아이템 언급 필수
-- tips: 3개, 당장 실행 가능한 것 (착장 변경, 아이템 추가/교체)
+- tips: 2개, 당장 실행 가능한 것 (착장 변경, 아이템 추가/교체)
 - weatherNote: 날씨와 옷차림의 관계를 한 문장으로
 - 모든 텍스트 한국어, JSON만 반환`;
 
-    // retry + fallback: 2.5-flash 2회 시도 → 1.5-flash
     let streamResult: Awaited<ReturnType<ReturnType<typeof genAI.getGenerativeModel>['generateContentStream']>> | null = null;
     outer: for (const modelName of MODELS) {
-      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4 } });
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4, maxOutputTokens: 600 } });
+      // thinkingConfig는 gemini-2.5-flash 전용 — 다른 모델에 보내면 Invalid Argument 에러 발생
+      const callOptions = modelName === 'gemini-2.5-flash'
+        ? { thinkingConfig: { thinkingBudget: 0 } }
+        : {};
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           // @ts-expect-error: thinkingConfig is valid at runtime for gemini-2.5-flash
-          streamResult = await model.generateContentStream([prompt, imagePart], { thinkingConfig: { thinkingBudget: 0 } });
+          streamResult = await model.generateContentStream([prompt, imagePart], callOptions);
           break outer;
         } catch (e) {
           const msg = e instanceof Error ? e.message : '';
-          const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
-          if (!isOverloaded) throw e;
+          console.error(`[analyze-ootd] ${modelName} attempt ${attempt + 1} failed:`, msg);
+          const isRetryable = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
+          if (!isRetryable) throw e;
           if (attempt === 0) await new Promise(r => setTimeout(r, 800));
         }
       }
