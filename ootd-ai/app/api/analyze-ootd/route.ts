@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       inlineData: { data: base64Data, mimeType: 'image/jpeg' as const }
     };
 
-    const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
+    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
 
     let profileContext = '';
     if (userProfile) {
