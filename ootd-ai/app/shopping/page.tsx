@@ -196,9 +196,9 @@ export default function ShoppingPage() {
                             <span className="text-[10px] font-bold text-white">무신사</span>
                           </a>
                           <a href={getSearchUrls(item.name).cm29} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2.5 py-1 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition">
-                            <ExternalLink className="w-3 h-3 text-zinc-600" />
-                            <span className="text-[10px] font-bold text-zinc-700">29CM</span>
+                            className="flex items-center gap-1 px-2.5 py-1 bg-[#ff3e5c] rounded-lg hover:bg-[#e63550] transition">
+                            <ExternalLink className="w-3 h-3 text-white" />
+                            <span className="text-[10px] font-bold text-white">29CM</span>
                           </a>
                         </div>
 

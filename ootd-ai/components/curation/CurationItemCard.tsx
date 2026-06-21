@@ -64,9 +64,9 @@ export default function CurationItemCard({ item, index, showWeather, weather }: 
             <span className="text-[9px] font-bold text-white dark:text-zinc-900">무신사</span>
           </a>
           <a href={urls.cm29} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
-            <ExternalLink className="w-2.5 h-2.5 text-zinc-600 dark:text-zinc-400" />
-            <span className="text-[9px] font-bold text-zinc-700 dark:text-zinc-300">29CM</span>
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#ff3e5c] rounded-lg hover:bg-[#e63550] transition">
+            <ExternalLink className="w-2.5 h-2.5 text-white" />
+            <span className="text-[9px] font-bold text-white">29CM</span>
           </a>
         </div>
       </div>
