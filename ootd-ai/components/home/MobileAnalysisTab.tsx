@@ -244,12 +244,26 @@ export default function MobileAnalysisTab({
               {critique && !isStreaming && (
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => {
-                      if (base64Image) {
-                        sessionStorage.setItem('ootd_transfer_image', base64Image);
+                    onClick={async () => {
+                      if (!base64Image) return;
+                      try {
+                        // 폰 사진은 base64로 10MB+이므로 sessionStorage(5MB 한도) 저장 전 1024px로 압축
+                        const img = new Image();
+                        await new Promise<void>(r => { img.onload = () => r(); img.src = base64Image; });
+                        const MAX = 1024;
+                        let w = img.width, h = img.height;
+                        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+                        else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+                        const compressed = canvas.toDataURL('image/jpeg', 0.85);
+                        sessionStorage.setItem('ootd_transfer_image', compressed);
                         sessionStorage.setItem('ootd_auto_start', 'true');
-                        router.push('/add-clothes');
+                      } catch {
+                        // 압축 실패 시에도 페이지 이동 (add-clothes에서 수동 업로드 가능)
                       }
+                      router.push('/add-clothes');
                     }}
                     className="w-full py-4 bg-black text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-95 transition flex items-center justify-center gap-2"
                   >
