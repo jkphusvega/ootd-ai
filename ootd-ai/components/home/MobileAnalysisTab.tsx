@@ -42,6 +42,7 @@ function Skeleton({ w = 'full' }: { w?: string }) {
   return <div className={`h-3 w-${w} bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse`} />;
 }
 
+
 export default function MobileAnalysisTab({
   scanState, setScanState, critique, partialCritique,
   originalImage, hasCustomImage, base64Image, isStreaming, isRateLimited, isSaving, wardrobeCount,

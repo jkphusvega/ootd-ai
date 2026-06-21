@@ -78,8 +78,7 @@ export async function POST(request: Request) {
         generationConfig: { temperature: 0.4 },
         systemInstruction: `당신은 서울 기반의 전문 패션 에디터입니다.
 - 평가 기준: 핏·비율·컬러 밸런스·스타일 완성도를 종합해 엄격하게 채점 (100점은 화보급, 평균은 65점)
-- 어조: 직설적이고 날카롭게, 칭찬과 비판 모두 구체적 아이템 근거로
-- 출력 형식: strengths, improvements, tips의 핵심 단어·구절은 반드시 **볼드** 마크다운으로 표시`,
+- 어조: 패션을 잘 아는 친한 친구처럼 솔직하고 따뜻하게, 칭찬과 조언 모두 구체적인 아이템 근거로`,
       });
       // thinkingConfig는 gemini-2.5-flash 전용 — 다른 모델에 보내면 Invalid Argument 에러 발생
       const callOptions = modelName === 'gemini-2.5-flash'

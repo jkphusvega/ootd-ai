@@ -65,10 +65,6 @@ export default function DesktopLayout({
     <div className={`h-3 w-${w} bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse`} />
   );
 
-  const B = ({ text }: { text: string }) => {
-    const parts = text.split(/\*\*(.*?)\*\*/g);
-    return <>{parts.map((p, i) => i % 2 === 1 ? <strong key={i} className="font-extrabold">{p}</strong> : p)}</>;
-  };
 
   return (
     <div className="hidden lg:block min-h-screen">
@@ -360,7 +356,7 @@ export default function DesktopLayout({
                         ? <ul className="flex flex-col gap-3">{d.strengths.map((s, i) => (
                             <li key={i} className="flex items-start gap-2.5">
                               <span className="text-emerald-400 shrink-0 text-sm mt-0.5">✓</span>
-                              <span className="text-[13px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug"><B text={s} /></span>
+                              <span className="text-[13px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
                             </li>
                           ))}</ul>
                         : <div className="flex flex-col gap-2"><Sk /><Sk w="4/5" /></div>}
@@ -376,7 +372,7 @@ export default function DesktopLayout({
                         ? <ul className="flex flex-col gap-3">{d.improvements.map((s, i) => (
                             <li key={i} className="flex items-start gap-2.5">
                               <span className="text-amber-400 shrink-0 text-sm mt-0.5">→</span>
-                              <span className="text-[13px] text-amber-900 dark:text-amber-200 font-medium leading-snug"><B text={s} /></span>
+                              <span className="text-[13px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
                             </li>
                           ))}</ul>
                         : <div className="flex flex-col gap-2"><Sk /><Sk w="4/5" /></div>}
@@ -394,7 +390,7 @@ export default function DesktopLayout({
                         {d.tips.map((tip, i) => (
                           <li key={i} className="flex items-start gap-3">
                             <span className="shrink-0 w-5 h-5 rounded-full bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-[10px] font-black text-yellow-300">{i + 1}</span>
-                            <span className="text-[13px] text-white/90 font-medium leading-relaxed"><B text={tip} /></span>
+                            <span className="text-[13px] text-white/90 font-medium leading-relaxed">{tip}</span>
                           </li>
                         ))}
                       </ol>
