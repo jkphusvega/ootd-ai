@@ -5,6 +5,7 @@ import { Menu, Settings, Shirt, X } from 'lucide-react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { createClient } from '../lib/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useWeather } from '../hooks/useWeather';
@@ -13,9 +14,10 @@ import { useOotdAnalysis } from '../hooks/useOotdAnalysis';
 import { useMobileCuration } from '../hooks/useMobileCuration';
 import LandingContent from '../components/LandingContent';
 import SplashScreen from '../components/home/SplashScreen';
-import DesktopLayout from '../components/home/DesktopLayout';
-import MobileCurationTab from '../components/home/MobileCurationTab';
-import MobileAnalysisTab from '../components/home/MobileAnalysisTab';
+
+const DesktopLayout = dynamic(() => import('../components/home/DesktopLayout'), { ssr: false });
+const MobileCurationTab = dynamic(() => import('../components/home/MobileCurationTab'), { ssr: false });
+const MobileAnalysisTab = dynamic(() => import('../components/home/MobileAnalysisTab'), { ssr: false });
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();

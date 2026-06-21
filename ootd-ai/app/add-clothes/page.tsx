@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { removeBackground } from '@imgly/background-removal';
 import { Sparkles, ImagePlus, ChevronLeft, Check, X, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +7,16 @@ import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
 import { logEvent } from '../../lib/analytics';
+
+let removeBackgroundFn: typeof import('@imgly/background-removal').removeBackground | null = null;
+
+async function getRemoveBackground() {
+  if (!removeBackgroundFn) {
+    const { removeBackground } = await import('@imgly/background-removal');
+    removeBackgroundFn = removeBackground;
+  }
+  return removeBackgroundFn;
+}
 
 interface ExtractedItem {
   id: string;
@@ -160,8 +169,9 @@ export default function AddClothesPage() {
         const sYmin = Math.max(0, ymin - strategy.yExpand);
         const sYmax = Math.min(1, ymax + strategy.yExpand);
         const cropped = await getSegmentedBlob(imgSrc, sXmin, sYmin, sXmax, sYmax, strategy);
+        const removeBg = await getRemoveBackground();
         const removed = await Promise.race([
-          removeBackground(cropped),
+          removeBg(cropped),
           new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000)),
         ]);
         return await blobToBase64(removed);
