@@ -119,16 +119,24 @@ export default function OnboardingPage() {
     try {
       let finalImgUrl = imgUrlToSave;
       
-      // 새로 선택한 파일이 있으면 스토리지 업로드 진행
+      // 새로 선택한 파일이 있으면 스토리지 업로드 진행 후 Auth 메타데이터 업데이트
       if (profileFile) {
         const uploadedUrl = await uploadProfileImage(profileFile);
-        if (uploadedUrl) finalImgUrl = uploadedUrl;
+        if (uploadedUrl) {
+          finalImgUrl = uploadedUrl;
+          const { error: authErr } = await supabase.auth.updateUser({
+            data: { avatar_url: uploadedUrl }
+          });
+          if (authErr) {
+            console.error('Auth metadata update error:', authErr);
+          }
+        }
       }
 
+      // user_profiles 에는 profile_image 컬럼이 없으므로 제외하고 upsert 수행
       const { error } = await supabase.from('user_profiles').upsert({
         user_id: user.id,
         nickname: nameToSave.trim() || 'OOTD User',
-        profile_image: finalImgUrl,
         height: 175,
         weight: 70,
         fit_preference: 'regular',
