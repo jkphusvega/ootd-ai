@@ -245,7 +245,7 @@ export default function Home() {
               critique={analysis.critique} partialCritique={analysis.partialCritique}
               originalImage={analysis.originalImage}
               hasCustomImage={analysis.hasCustomImage} base64Image={analysis.base64Image}
-              isStreaming={analysis.isStreaming} isRateLimited={analysis.isRateLimited}
+              isStreaming={analysis.isStreaming} isRateLimited={analysis.isRateLimited} isSaving={analysis.isSaving}
               wardrobeCount={curation.wardrobeCount ?? 0}
               retryAnalysis={analysis.retryAnalysis} handleSaveToFeed={analysis.handleSaveToFeed}
               triggerCamera={analysis.triggerCamera} triggerGallery={analysis.triggerGallery}

@@ -14,6 +14,7 @@ interface Props {
   base64Image: string | null;
   isStreaming: boolean;
   isRateLimited: boolean;
+  isSaving: boolean;
   wardrobeCount: number;
   retryAnalysis: () => void;
   handleSaveToFeed: () => void;
@@ -43,7 +44,7 @@ function Skeleton({ w = 'full' }: { w?: string }) {
 
 export default function MobileAnalysisTab({
   scanState, setScanState, critique, partialCritique,
-  originalImage, hasCustomImage, base64Image, isStreaming, isRateLimited, wardrobeCount,
+  originalImage, hasCustomImage, base64Image, isStreaming, isRateLimited, isSaving, wardrobeCount,
   retryAnalysis, handleSaveToFeed, triggerCamera, triggerGallery, onSwitchToCuration,
 }: Props) {
   const router = useRouter();
@@ -262,9 +263,9 @@ export default function MobileAnalysisTab({
                       className="py-3.5 bg-purple-50 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-1">
                       <Sparkles className="w-3 h-3" /> 코디 추천
                     </button>
-                    <button onClick={handleSaveToFeed}
-                      className="py-3.5 bg-zinc-100 border border-zinc-200 text-zinc-700 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-0.5">
-                      <Bookmark className="w-3 h-3" /> 저장
+                    <button onClick={handleSaveToFeed} disabled={isSaving}
+                      className="py-3.5 bg-zinc-100 border border-zinc-200 text-zinc-700 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-0.5 disabled:opacity-50">
+                      <Bookmark className="w-3 h-3" /> {isSaving ? '저장 중' : '저장'}
                     </button>
                   </div>
                 </div>

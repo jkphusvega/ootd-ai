@@ -42,6 +42,7 @@ export function useOotdAnalysis({
   const [partialCritique, setPartialCritique] = useState<Partial<FashionCritique> | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -184,8 +185,8 @@ export function useOotdAnalysis({
   };
 
   const handleSaveToFeed = async () => {
-    if (!base64Image || !critique || !user) return;
-    setScanState('scanning');
+    if (!base64Image || !critique || !user || isSaving) return;
+    setIsSaving(true);
     try {
       const base64Data = base64Image.split(',')[1];
       const mimeMatch = base64Image.match(/data:(.*?);/);
@@ -215,10 +216,10 @@ export function useOotdAnalysis({
       }
       toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
       logEvent(user.id, 'ootd_saved_to_feed', { score: critique.score });
-      setScanState('success');
     } catch (e: unknown) {
       toast('저장 실패: ' + (e instanceof Error ? e.message : '알 수 없는 오류'), 'error');
-      setScanState('success');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -243,7 +244,7 @@ export function useOotdAnalysis({
     scanState, setScanState,
     critique, partialCritique,
     originalImage, hasCustomImage, base64Image,
-    isStreaming, isRateLimited, isDragging,
+    isStreaming, isRateLimited, isSaving, isDragging,
     fileInputRef, galleryInputRef, desktopFileInputRef,
     handleFileChange, handleDragOver, handleDragLeave, handleDrop,
     processFile, retryAnalysis, handleSaveToFeed, resetAnalysis,
