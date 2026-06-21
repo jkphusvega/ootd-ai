@@ -77,6 +77,7 @@ export default function AddClothesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [stickerMode] = useState(true);
+  const autoStartRef = useRef(false);
 
   // 단계별 진행 상태
   const [extractPhase, setExtractPhase] = useState<1 | 2 | 3>(1);
@@ -320,26 +321,35 @@ export default function AddClothesPage() {
 
   // sessionStorage 자동 시작 (OOTD → AI 추출 연동)
   useEffect(() => {
-    let mounted = true;
     const transferImage = sessionStorage.getItem('ootd_transfer_image');
     const autoStart = sessionStorage.getItem('ootd_auto_start');
-    if (transferImage) {
+    if (!transferImage) return;
+    sessionStorage.removeItem('ootd_transfer_image');
+    sessionStorage.removeItem('ootd_auto_start');
+    try {
+      // fetch()는 data: URL을 지원하지 않는 환경이 있으므로 직접 변환
+      const [header, b64] = transferImage.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mime });
+      if (autoStart === 'true') autoStartRef.current = true;
       setBase64Original(transferImage);
-      fetch(transferImage)
-        .then(r => {
-          if (!r.ok) throw new Error('fetch failed');
-          return r.blob();
-        })
-        .then(blob => {
-          if (!mounted) return;
-          setOriginalImage(URL.createObjectURL(blob));
-          sessionStorage.removeItem('ootd_transfer_image');
-          if (autoStart === 'true') sessionStorage.removeItem('ootd_auto_start');
-        })
-        .catch(e => console.error('[add-clothes] sessionStorage transfer failed:', e));
+      setOriginalImage(URL.createObjectURL(blob));
+    } catch (e) {
+      console.error('[add-clothes] sessionStorage transfer failed:', e);
     }
-    return () => { mounted = false; };
   }, []);
+
+  // 이미지 준비 완료 시 자동 스캔 시작
+  useEffect(() => {
+    if (autoStartRef.current && originalImage && base64Original) {
+      autoStartRef.current = false;
+      handleScan();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originalImage, base64Original]);
 
   useEffect(() => {
     return () => { if (originalImage?.startsWith('blob:')) URL.revokeObjectURL(originalImage); };
