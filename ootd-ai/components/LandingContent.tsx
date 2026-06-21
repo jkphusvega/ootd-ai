@@ -58,11 +58,6 @@ export default function LandingContent() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="flex flex-col items-center w-full"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 mb-8 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[12px] font-bold text-zinc-600 dark:text-zinc-400">Gemini 2.5 AI 엔진 가동 중</span>
-          </div>
-
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-zinc-900 dark:text-white mb-6 max-w-3xl leading-[1.15] tracking-tight">
             당신의 옷장을 가장 완벽하게<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-600 to-zinc-900 dark:from-zinc-400 dark:to-white">

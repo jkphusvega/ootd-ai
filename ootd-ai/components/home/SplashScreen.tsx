@@ -17,14 +17,6 @@ export default function SplashScreen() {
       >
         <img src="/logo.png" alt="OOTD Logo" className="w-[60vw] md:w-64 h-auto object-contain dark:invert" />
       </motion.div>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 1 }}
-        className="absolute bottom-12 left-0 right-0 text-center"
-      >
-        <p className="text-zinc-400 text-[10px] font-bold tracking-widest uppercase">Powered by Ai.dev</p>
-      </motion.div>
     </motion.div>
   );
 }
