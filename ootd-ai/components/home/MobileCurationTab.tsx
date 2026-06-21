@@ -194,9 +194,9 @@ export default function MobileCurationTab({
                     </a>
                     <a href={getSearchUrls(item.name).cm29} target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1 px-2 py-1 bg-zinc-100 rounded-md hover:bg-zinc-200 transition active:scale-95">
-                      <ExternalLink className="w-2 h-2 text-zinc-600" />
-                      <span className="text-[8px] font-bold text-zinc-700">29CM</span>
+                      className="flex items-center gap-1 px-2 py-1 bg-[#ff3e5c] text-white rounded-md hover:bg-[#e63550] transition active:scale-95">
+                      <ExternalLink className="w-2 h-2 text-white" />
+                      <span className="text-[8px] font-bold">29CM</span>
                     </a>
                   </div>
                 </div>
