@@ -73,7 +73,7 @@ Return ONLY raw JSON (no markdown, no code fences):
     };
 
     // 3.5-flash 과부하 시 2.5-flash로 fallback, 각 모델 최대 2회 재시도
-    const MODELS = ['gemini-2.5-flash'];
+    const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
     let responseText = '';
     let lastError: unknown;
 

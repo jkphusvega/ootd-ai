@@ -5,7 +5,7 @@ import { checkRateLimit } from '../../../lib/rateLimit';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const MODELS = ['gemini-2.5-flash'];
+const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
 
 export async function POST(req: Request) {
   const supabase = await createClient();
