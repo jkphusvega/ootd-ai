@@ -78,6 +78,12 @@ export default function AddClothesPage() {
   const [editingName, setEditingName] = useState('');
   const [stickerMode] = useState(true);
   const autoStartRef = useRef(false);
+  const [showManualPicker, setShowManualPicker] = useState(false);
+  const [pickStart, setPickStart] = useState<{x:number,y:number}|null>(null);
+  const [pickEnd, setPickEnd] = useState<{x:number,y:number}|null>(null);
+  const [manualCategory, setManualCategory] = useState('tops');
+  const [isExtractingManual, setIsExtractingManual] = useState(false);
+  const pickerImgRef = useRef<HTMLImageElement>(null);
 
   // 단계별 진행 상태
   const [extractPhase, setExtractPhase] = useState<1 | 2 | 3>(1);
@@ -184,6 +190,65 @@ export default function AddClothesPage() {
     // 배경제거 모두 실패 → 크롭 이미지라도 반환
     if (fallbackCropped) return fallbackCropped;
     throw new Error('추출 실패');
+  };
+
+  const toRelative = (clientX: number, clientY: number) => {
+    const rect = pickerImgRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    return {
+      x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)),
+    };
+  };
+
+  const handleManualExtract = async () => {
+    if (!pickStart || !pickEnd || !originalImage) return;
+    setIsExtractingManual(true);
+    try {
+      const xmin = Math.min(pickStart.x, pickEnd.x);
+      const xmax = Math.max(pickStart.x, pickEnd.x);
+      const ymin = Math.min(pickStart.y, pickEnd.y);
+      const ymax = Math.max(pickStart.y, pickEnd.y);
+      if (xmax - xmin < 0.03 || ymax - ymin < 0.03) {
+        toast('영역이 너무 작아요. 더 크게 드래그해주세요.', 'error');
+        return;
+      }
+      const baseStrategy = STRATEGIES[0];
+      let fallback: string | null = null;
+      try {
+        const c = await getSegmentedBlob(originalImage, xmin, ymin, xmax, ymax, baseStrategy);
+        fallback = await blobToBase64(c);
+      } catch { /* ignore */ }
+
+      let extracted = fallback;
+      for (let s = 0; s < STRATEGIES.length; s++) {
+        try {
+          const cropped = await getSegmentedBlob(originalImage, xmin, ymin, xmax, ymax, STRATEGIES[s]);
+          const removeBg = await getRemoveBackground();
+          const removed = await Promise.race([
+            removeBg(cropped),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000)),
+          ]);
+          extracted = await blobToBase64(removed);
+          break;
+        } catch {
+          if (s < STRATEGIES.length - 1) await new Promise(r => setTimeout(r, 500));
+        }
+      }
+      if (!extracted) throw new Error('추출 실패');
+      const id = Math.random().toString(36).slice(2);
+      setResultItems(prev => [...prev, {
+        id, category: manualCategory, image: extracted!,
+        name: CATEGORY_LABELS[manualCategory] || manualCategory, nameLoading: false,
+      }]);
+      setShowManualPicker(false);
+      setPickStart(null);
+      setPickEnd(null);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '추출 실패', 'error');
+    } finally {
+      setIsExtractingManual(false);
+    }
   };
 
   const handleScan = async () => {
@@ -543,6 +608,14 @@ export default function AddClothesPage() {
               ))}
             </div>
 
+            {/* 직접 영역 추가 */}
+            <button
+              onClick={() => setShowManualPicker(true)}
+              className="mt-2 w-full py-3 border-2 border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition"
+            >
+              ✏️ 직접 영역 추가
+            </button>
+
             {/* 저장 버튼 (fixed bottom) */}
             <div className="fixed bottom-0 left-0 right-0 p-5 bg-white/90 dark:bg-[#0c0c0f]/90 backdrop-blur-xl border-t border-zinc-100 dark:border-zinc-800">
               <div className="max-w-md mx-auto">
@@ -565,6 +638,97 @@ export default function AddClothesPage() {
           </motion.div>
         )}
 
+      </AnimatePresence>
+
+      {/* ── 수동 영역 크롭 피커 ── */}
+      <AnimatePresence>
+        {showManualPicker && originalImage && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black flex flex-col"
+          >
+            <div className="flex-1 flex items-center justify-center overflow-hidden">
+              <div className="relative select-none">
+                <img
+                  ref={pickerImgRef}
+                  src={originalImage}
+                  alt="crop-picker"
+                  className="max-h-[72vh] max-w-full object-contain"
+                  draggable={false}
+                />
+                {/* 드래그 캡처 오버레이 */}
+                <div
+                  className="absolute inset-0 touch-none cursor-crosshair"
+                  onPointerDown={e => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    const rel = toRelative(e.clientX, e.clientY);
+                    if (rel) { setPickStart(rel); setPickEnd(null); }
+                  }}
+                  onPointerMove={e => {
+                    if (!pickStart) return;
+                    const rel = toRelative(e.clientX, e.clientY);
+                    if (rel) setPickEnd(rel);
+                  }}
+                  onPointerUp={() => {}}
+                />
+                {/* 선택 영역 표시 */}
+                {pickStart && pickEnd && (() => {
+                  const x1 = Math.min(pickStart.x, pickEnd.x) * 100;
+                  const y1 = Math.min(pickStart.y, pickEnd.y) * 100;
+                  const w  = Math.abs(pickEnd.x - pickStart.x) * 100;
+                  const h  = Math.abs(pickEnd.y - pickStart.y) * 100;
+                  return (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${x1}%`, top: `${y1}%`,
+                        width: `${w}%`, height: `${h}%`,
+                        border: '2px solid #fff',
+                        background: 'rgba(255,255,255,0.12)',
+                        boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
+                      }}
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* 하단 컨트롤 */}
+            <div className="p-4 bg-zinc-950 flex flex-col gap-3">
+              <p className="text-xs text-zinc-400 text-center">원하는 옷 부분을 드래그해서 선택하세요</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400 shrink-0">카테고리</span>
+                <select
+                  value={manualCategory}
+                  onChange={e => setManualCategory(e.target.value)}
+                  className="flex-1 text-sm font-bold bg-zinc-800 text-white border border-zinc-700 rounded-lg px-3 py-2"
+                >
+                  {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowManualPicker(false); setPickStart(null); setPickEnd(null); }}
+                  className="flex-1 py-3 bg-zinc-800 text-white font-bold text-sm rounded-xl"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleManualExtract}
+                  disabled={!pickStart || !pickEnd || isExtractingManual}
+                  className="flex-1 py-3 bg-white text-black font-extrabold text-sm rounded-xl disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {isExtractingManual ? (
+                    <><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full" /> 추출 중...</>
+                  ) : '✂️ 추출하기'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
