@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { createClient as createServiceClient, SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../../../lib/supabase/server';
 
-const supabase = createServiceClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy-loaded services
+let supabaseInstance: SupabaseClient | null = null;
+
+function getSupabase() {
+  if (!supabaseInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase URL or Key is missing');
+    }
+    supabaseInstance = createServiceClient(url, key);
+  }
+  return supabaseInstance;
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getSupabase();
     // Verify caller is authenticated and owns the userId they're registering
     const authClient = await createClient();
     const { data: { user } } = await authClient.auth.getUser();
@@ -52,6 +63,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const supabase = getSupabase();
     // Verify caller is authenticated before allowing unsubscribe
     const authClient = await createClient();
     const { data: { user } } = await authClient.auth.getUser();

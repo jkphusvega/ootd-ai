@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-loaded services
+let supabaseInstance: SupabaseClient | null = null;
+let webpushInitialized = false;
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+function getSupabase() {
+  if (!supabaseInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase URL or Service Role Key is missing');
+    }
+    supabaseInstance = createClient(url, key);
+  }
+  return supabaseInstance;
+}
+
+function initWebpush() {
+  if (!webpushInitialized) {
+    const subject = process.env.VAPID_SUBJECT;
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    if (!subject || !publicKey || !privateKey) {
+      throw new Error('VAPID details are missing');
+    }
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+    webpushInitialized = true;
+  }
+}
 
 // Vercel Cron이 매일 UTC 00:00 (KST 09:00)에 호출합니다
 export async function GET(req: NextRequest) {
@@ -22,6 +40,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const supabase = getSupabase();
+    initWebpush();
+
     // 구독 중인 모든 유저 가져오기
     const { data: subs, error } = await supabase
       .from('push_subscriptions')

@@ -1,21 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy-loaded services
+let supabaseInstance: SupabaseClient | null = null;
+let webpushInitialized = false;
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+function getSupabase() {
+  if (!supabaseInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase URL or Key is missing');
+    }
+    supabaseInstance = createClient(url, key);
+  }
+  return supabaseInstance;
+}
+
+function initWebpush() {
+  if (!webpushInitialized) {
+    const subject = process.env.VAPID_SUBJECT;
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    if (!subject || !publicKey || !privateKey) {
+      throw new Error('VAPID details are missing');
+    }
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+    webpushInitialized = true;
+  }
+}
 
 // This endpoint sends a push to a single user (internal server-to-server only)
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getSupabase();
+    initWebpush();
+
     // Only allow calls from internal server routes via shared secret
     const secret = req.headers.get('x-internal-secret');
     if (!process.env.INTERNAL_API_SECRET || !secret || secret !== process.env.INTERNAL_API_SECRET) {
