@@ -33,12 +33,22 @@ export default function Home() {
   const [nudgeClosed, setNudgeClosed] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem('ootd_nudge_closed') === 'true') {
+    if (localStorage.getItem('ootd_nudge_closed') === 'true') {
       setNudgeClosed(true);
     }
   }, []);
 
-  const showNudge = user && userProfile && userProfile.body_goal === 'none' && !nudgeClosed;
+  const isForceMode = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('force') === 'true';
+  }, []);
+
+  const showNudge = (user && userProfile && userProfile.body_goal === 'none' && !nudgeClosed) || isForceMode;
+
+  const handleCloseNudge = () => {
+    setNudgeClosed(true);
+    localStorage.setItem('ootd_nudge_closed', 'true');
+  };
 
   const analysis = useOotdAnalysis({ user, weather, userProfile, supabase, toast });
   const curation = useMobileCuration({ user, weather, supabase });
@@ -113,6 +123,8 @@ export default function Home() {
         wardrobeCount={curation.wardrobeCount}
         analysis={analysis}
         onLogout={() => {}}
+        showNudge={showNudge}
+        onCloseNudge={handleCloseNudge}
       />
 
       {/* Mobile */}
@@ -138,8 +150,7 @@ export default function Home() {
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  setNudgeClosed(true);
-                  sessionStorage.setItem('ootd_nudge_closed', 'true');
+                  handleCloseNudge();
                 }}
                 className="p-1 hover:bg-white/10 dark:hover:bg-black/10 rounded-full transition-colors shrink-0 text-zinc-400 dark:text-zinc-500"
               >

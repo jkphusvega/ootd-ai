@@ -1,6 +1,6 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ImagePlus, RefreshCw, Bookmark, ChevronRight, Sun, Cloud, CloudRain, CloudSnow, LogOut, TrendingUp, TrendingDown, CloudSun, Star, Plus } from 'lucide-react';
+import { Sparkles, ImagePlus, RefreshCw, Bookmark, ChevronRight, Sun, Cloud, CloudRain, CloudSnow, LogOut, TrendingUp, TrendingDown, CloudSun, Star, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
@@ -37,6 +37,8 @@ interface Props {
   wardrobeCount: number;
   analysis: AnalysisState;
   onLogout: () => void;
+  showNudge: boolean;
+  onCloseNudge: () => void;
 }
 
 function WeatherIcon({ condition }: { condition: string }) {
@@ -48,6 +50,7 @@ function WeatherIcon({ condition }: { condition: string }) {
 
 export default function DesktopLayout({
   weather, userProfile, greeting, wardrobeCount, analysis, onLogout,
+  showNudge, onCloseNudge,
 }: Props) {
   const router = useRouter();
   const {
@@ -99,6 +102,29 @@ export default function DesktopLayout({
             ) : null}
           </div>
         </header>
+
+        {/* 데스크탑 넛지 배너 */}
+        <AnimatePresence>
+          {showNudge && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-8 p-4 bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-zinc-200 text-white dark:text-zinc-900 rounded-3xl shadow-md flex items-center justify-between gap-4 text-xs font-bold border border-white/5 dark:border-black/5"
+            >
+              <Link href="/settings" className="flex items-center gap-2.5">
+                <span className="text-base">📏</span>
+                <span>체형과 스타일 목표를 입력하면 AI 스타일리스트가 내 신체 조건에 최적화된 핏과 코디를 추천해 줍니다.</span>
+              </Link>
+              <button 
+                onClick={onCloseNudge}
+                className="p-1 hover:bg-white/10 dark:hover:bg-black/10 rounded-full transition-colors text-zinc-400 dark:text-zinc-500"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-2 gap-8 items-start">
           {/* Upload Area */}
