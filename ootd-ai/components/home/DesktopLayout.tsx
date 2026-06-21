@@ -294,10 +294,10 @@ export default function DesktopLayout({
 
               {d && (
                 <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }} className="flex flex-col gap-4">
+                  transition={{ duration: 0.4, ease: 'easeOut' }} className="flex flex-col gap-5">
 
                   {/* 점수 + 헤드라인 */}
-                  <div className="flex items-center gap-5 p-6 bg-zinc-50/80 dark:bg-zinc-900/60 rounded-3xl border border-zinc-100 dark:border-zinc-800/60">
+                  <div className="flex items-center gap-5 px-5 py-5 bg-zinc-50/80 dark:bg-zinc-900/60 rounded-3xl border border-zinc-100 dark:border-zinc-800/60">
                     <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
                       <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 96 96">
                         <circle cx="48" cy="48" r="42" fill="none" stroke="currentColor" strokeWidth="4" className="text-zinc-100 dark:text-zinc-800" />
@@ -314,73 +314,64 @@ export default function DesktopLayout({
                         <span className="text-[7px] font-bold text-zinc-400 tracking-widest uppercase mt-0.5">SCORE</span>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <span className="text-[9px] font-bold tracking-[0.25em] text-zinc-400 uppercase block mb-1.5">AI Stylist Verdict</span>
+                    <div className="flex-1 min-w-0">
                       {d.headline
-                        ? <h2 className="text-xl font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
-                        : <div className="flex flex-col gap-2"><Sk /><Sk w="3/4" /></div>}
+                        ? <h2 className="text-[22px] font-black tracking-tight text-black dark:text-white leading-snug break-keep">"{d.headline}"</h2>
+                        : <div className="flex flex-col gap-2.5"><Sk /><Sk w="3/4" /></div>}
                     </div>
                   </div>
 
-                  {/* 세부 점수 */}
-                  <div className="bg-zinc-50 dark:bg-zinc-900 rounded-2xl p-4">
-                    <span className="text-[9px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-3">Score Breakdown</span>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                      {([
-                        { key: 'fit' as const,     label: '핏·실루엣' },
-                        { key: 'color' as const,   label: '컬러 조합' },
-                        { key: 'styling' as const, label: '스타일링' },
-                        { key: 'weather' as const, label: '날씨 적합' },
-                      ]).map(({ key, label }, i) => {
-                        const val = d[key] as number | undefined;
-                        const c = val == null ? '#d4d4d8' : val >= 80 ? '#22c55e' : val >= 60 ? '#eab308' : '#ef4444';
-                        return (
-                          <div key={key}>
-                            <div className="flex justify-between mb-1">
-                              <span className="text-[11px] font-bold text-zinc-500">{label}</span>
-                              <span className="text-[11px] font-extrabold" style={{ color: c }}>{val ?? '—'}</span>
-                            </div>
-                            <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                              <motion.div className="h-full rounded-full" style={{ backgroundColor: c }}
-                                initial={{ width: 0 }} animate={{ width: val != null ? `${val}%` : '0%' }}
-                                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 + i * 0.08 }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {/* 카테고리 점수 배지 */}
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {([
+                      { key: 'fit' as const,     label: '핏·실루엣' },
+                      { key: 'color' as const,   label: '컬러 조합' },
+                      { key: 'styling' as const, label: '스타일링' },
+                      { key: 'weather' as const, label: '날씨 적합' },
+                    ]).map(({ key, label }) => {
+                      const val = d[key] as number | undefined;
+                      const c = val == null ? '#a1a1aa' : val >= 80 ? '#22c55e' : val >= 60 ? '#eab308' : '#ef4444';
+                      return (
+                        <div key={key} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl px-3 py-3.5 text-center">
+                          <div className="text-[10px] text-zinc-400 font-bold mb-1.5">{label}</div>
+                          {val != null
+                            ? <div className="text-2xl font-black leading-none" style={{ color: c }}>{val}</div>
+                            : <div className="text-2xl font-black leading-none animate-pulse text-zinc-200 dark:text-zinc-700">…</div>}
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* 잘된 점 + 개선점 */}
-                  <div className="flex flex-col gap-3">
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
+                  {/* 잘된 점 + 개선점 — 나란히 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
                         <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
                           <TrendingUp className="w-3 h-3 text-white" />
                         </div>
-                        <span className="text-[9px] font-extrabold tracking-widest text-emerald-600 uppercase">잘된 점</span>
+                        <span className="text-xs font-extrabold text-emerald-600">잘된 점</span>
                       </div>
                       {d.strengths?.length
-                        ? <ul className="flex flex-col gap-2.5">{d.strengths.map((s, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-emerald-400 mt-0.5 shrink-0 text-sm">✓</span>
-                              <span className="text-[12px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
+                        ? <ul className="flex flex-col gap-3">{d.strengths.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <span className="text-emerald-400 shrink-0 text-sm mt-0.5">✓</span>
+                              <span className="text-[13px] text-emerald-900 dark:text-emerald-200 font-medium leading-snug">{s}</span>
                             </li>
                           ))}</ul>
                         : <div className="flex flex-col gap-2"><Sk /><Sk w="4/5" /></div>}
                     </div>
-                    <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
+                    <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
                         <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
                           <TrendingDown className="w-3 h-3 text-white" />
                         </div>
-                        <span className="text-[9px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
+                        <span className="text-xs font-extrabold text-amber-600">개선점</span>
                       </div>
                       {d.improvements?.length
-                        ? <ul className="flex flex-col gap-2.5">{d.improvements.map((s, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-amber-400 mt-0.5 shrink-0 text-sm">→</span>
-                              <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
+                        ? <ul className="flex flex-col gap-3">{d.improvements.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <span className="text-amber-400 shrink-0 text-sm mt-0.5">→</span>
+                              <span className="text-[13px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
                             </li>
                           ))}</ul>
                         : <div className="flex flex-col gap-2"><Sk /><Sk w="4/5" /></div>}
@@ -388,37 +379,37 @@ export default function DesktopLayout({
                   </div>
 
                   {/* 스타일링 팁 */}
-                  <div className="p-5 bg-black rounded-2xl flex flex-col gap-3">
+                  <div className="p-5 bg-zinc-950 dark:bg-black rounded-2xl flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="text-[11px] font-extrabold tracking-widest uppercase text-white">Stylist Tips</span>
+                      <span className="text-xs font-extrabold tracking-wider uppercase text-white">Stylist Tips</span>
                     </div>
                     {d.tips?.length ? (
-                      <ol className="flex flex-col gap-2.5">
+                      <ol className="flex flex-col gap-3.5">
                         {d.tips.map((tip, i) => (
                           <li key={i} className="flex items-start gap-3">
                             <span className="shrink-0 w-5 h-5 rounded-full bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-[10px] font-black text-yellow-300">{i + 1}</span>
-                            <span className="text-[13px] text-white/90 font-medium leading-snug">{tip}</span>
+                            <span className="text-[13px] text-white/90 font-medium leading-relaxed">{tip}</span>
                           </li>
                         ))}
                       </ol>
                     ) : (
                       <div className="flex flex-col gap-2">
-                        {[0, 1, 2].map(i => <div key={i} className="h-3 bg-zinc-700 rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }} />)}
+                        {[0, 1].map(i => <div key={i} className="h-3 bg-zinc-700 rounded-full animate-pulse" style={{ width: `${85 - i * 10}%` }} />)}
                       </div>
                     )}
                   </div>
 
                   {/* 날씨 코멘트 */}
                   {(d.weatherNote || isStreaming) && (
-                    <div className="flex items-start gap-3 px-4 py-3 bg-sky-50 dark:bg-sky-950/30 rounded-2xl border border-sky-100 dark:border-sky-900">
+                    <div className="flex items-start gap-3 px-5 py-4 bg-sky-50 dark:bg-sky-950/30 rounded-2xl border border-sky-100 dark:border-sky-900">
                       <div className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-900 flex items-center justify-center shrink-0 mt-0.5">
                         <CloudSun className="w-3.5 h-3.5 text-sky-500" />
                       </div>
                       <div>
-                        <span className="text-[9px] font-extrabold tracking-widest text-sky-400 uppercase block mb-0.5">날씨 적합성</span>
+                        <span className="text-xs font-extrabold text-sky-500 block mb-1">날씨 적합성</span>
                         {d.weatherNote
-                          ? <p className="text-[12px] text-sky-800 dark:text-sky-200 font-medium leading-relaxed">{d.weatherNote}</p>
+                          ? <p className="text-[13px] text-sky-800 dark:text-sky-200 font-medium leading-relaxed">{d.weatherNote}</p>
                           : <Sk />}
                       </div>
                     </div>
