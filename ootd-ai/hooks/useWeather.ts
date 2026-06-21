@@ -84,7 +84,10 @@ const getPosition = (): Promise<{ lat: number; lon: number }> =>
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => resolve({ lat: 37.5665, lon: 126.978 }),
+      (err) => {
+        console.warn('[useWeather] Geolocation error:', err.code, err.message);
+        resolve({ lat: 37.5665, lon: 126.978 });
+      },
       { timeout: 15000, maximumAge: 0 }
     );
   });
