@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, Settings, Shirt, X } from 'lucide-react';
+import { Menu, Settings, Shirt, X, User } from 'lucide-react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -115,10 +115,20 @@ export default function Home() {
 
         {/* Top HUD */}
         <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-center z-20">
-          {/* 앱 아이콘 */}
-          <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-xl shrink-0">
-            <img src="/logo.png" alt="OOTD AI" className="w-full h-full object-cover" />
-          </div>
+          {/* 프로필 이미지 또는 기본 사용자 아이콘 */}
+          <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden shadow-xl shrink-0 border border-zinc-200/50 dark:border-zinc-800/50 block bg-zinc-50 dark:bg-zinc-900">
+            {user?.user_metadata?.avatar_url || user?.user_metadata?.picture || userProfile?.profile_image ? (
+              <img 
+                src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture || userProfile?.profile_image} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-400 dark:text-zinc-500">
+                <User className="w-5 h-5" />
+              </div>
+            )}
+          </Link>
 
           <div className="flex p-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-full shadow-xl">
             {(['curation', 'analysis'] as const).map(tab => (
