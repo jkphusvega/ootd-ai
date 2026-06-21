@@ -194,14 +194,36 @@ export default function DesktopLayout({
                           </p>
                           <p className="text-[11px] font-bold text-white/40">← 왼쪽에 사진을 올려주세요</p>
                         </div>
-                        <div className="w-full max-w-[340px] p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
-                          <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded-xl flex items-center justify-center shrink-0">
-                            <Sparkles className="w-4 h-4 text-zinc-500" />
+                        <div className="w-full max-w-[340px] p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded-xl flex items-center justify-center shrink-0">
+                              <Sparkles className="w-4 h-4 text-zinc-500" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-300 mb-0.5">AI 코디 추천까지</p>
+                              <p className="text-[11px] text-zinc-400">
+                                {wardrobeCount > 0
+                                  ? `${5 - wardrobeCount}개 더 찍으면 코디 추천이 시작돼요 ✨`
+                                  : '아이템 5개 이상부터 날씨·TPO 기반 추천이 시작돼요'}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-300 mb-0.5">옷장이 쌓이면 AI 코디 추천 시작</p>
-                            <p className="text-[11px] text-zinc-400">아이템 5개 이상부터 날씨·TPO 기반 추천이 시작돼요</p>
-                          </div>
+                          {wardrobeCount > 0 && (
+                            <>
+                              <div className="flex justify-between items-center mb-1.5">
+                                <span className="text-[10px] font-bold text-zinc-400">{wardrobeCount} / 5</span>
+                                <span className="text-[10px] font-bold text-zinc-400">{Math.round((wardrobeCount / 5) * 100)}%</span>
+                              </div>
+                              <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                                <motion.div
+                                  className="h-full bg-black dark:bg-white rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${(wardrobeCount / 5) * 100}%` }}
+                                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                                />
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     ) : (

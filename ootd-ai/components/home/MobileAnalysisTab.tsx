@@ -282,6 +282,35 @@ export default function MobileAnalysisTab({
         )}
       </AnimatePresence>
 
+      {/* Progress Nudge — Bottom Dock 위 */}
+      <AnimatePresence>
+        {scanState === 'idle' && isFirstTime && wardrobeCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+            transition={{ delay: 0.2 }}
+            className="absolute bottom-[calc(6rem+72px+16px)] left-6 right-6 z-40 pointer-events-none"
+          >
+            <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 rounded-2xl px-4 py-3 shadow-lg">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[9px] font-extrabold text-zinc-500 dark:text-zinc-400 tracking-widest uppercase">AI 코디 오픈까지</span>
+                <span className="text-[10px] font-extrabold text-zinc-800 dark:text-zinc-200">{wardrobeCount} / 5</span>
+              </div>
+              <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-black dark:bg-white rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(wardrobeCount / 5) * 100}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
+                />
+              </div>
+              <p className="text-[9px] text-zinc-400 mt-1.5 text-center">
+                {5 - wardrobeCount}개 더 찍으면 코디 추천이 시작돼요 ✨
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom Dock */}
       <AnimatePresence>
         {scanState !== 'success' && (
