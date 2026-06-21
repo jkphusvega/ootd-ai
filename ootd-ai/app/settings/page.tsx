@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { User, Ruler, Sparkles, LogOut, Loader2, ChevronRight, Moon, Sun, Trash2, AlertTriangle, Bell, BellOff, Share2, Copy, MessageSquare, Send } from 'lucide-react';
+import { User, Ruler, Sparkles, LogOut, Loader2, Moon, Sun, Trash2, AlertTriangle, Bell, BellOff, Share2, Copy, MessageSquare, Send } from 'lucide-react';
 import { usePushNotification } from '../../hooks/usePushNotification';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -65,7 +65,7 @@ export default function SettingsPage() {
       }
       
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', user.id)
@@ -135,29 +135,17 @@ export default function SettingsPage() {
     if (!user) return;
     setIsDeleting(true);
     try {
-      // 1. 옷장 이미지 스토리지 삭제
-      const { data: clothes } = await supabase.from('clothes').select('image_url').eq('user_id', user.id);
-      if (clothes) {
-        const fileNames = clothes.map(c => {
-          const prefix = '/storage/v1/object/public/clothes/';
-          const idx = c.image_url.indexOf(prefix);
-          return idx !== -1 ? c.image_url.slice(idx + prefix.length) : null;
-        }).filter(Boolean) as string[];
-        if (fileNames.length > 0) await supabase.storage.from('clothes').remove(fileNames);
+      const res = await fetch('/api/delete-account', { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || '계정 삭제 중 오류가 발생했습니다.');
       }
-
-      // 2. DB 데이터 삭제
-      await supabase.from('clothes').delete().eq('user_id', user.id);
-      await supabase.from('user_profiles').delete().eq('user_id', user.id);
-
-      // 3. 로그아웃
-      await supabase.auth.signOut();
       toast('계정이 삭제되었습니다. 이용해주셔서 감사합니다.', 'success');
       router.push('/login');
       router.refresh();
     } catch (err) {
       console.error('Account deletion error:', err);
-      toast('계정 삭제 중 오류가 발생했습니다.', 'error');
+      toast(err instanceof Error ? err.message : '계정 삭제 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -599,7 +587,7 @@ export default function SettingsPage() {
 
         {/* App Info */}
         <div className="text-center pb-8">
-          <p className="text-[10px] text-zinc-300 font-bold tracking-widest uppercase">OOTD AI v1.0 — Powered by Gemini AI</p>
+          <p className="text-[10px] text-zinc-300 font-bold tracking-widest uppercase">OOTD AI v1.0</p>
         </div>
       </div>
     </div>

@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: <Shirt className="w-5 h-5 text-emerald-500" />,
     title: '옷장 분석 & 아이템 큐레이션',
-    desc: '내 옷장에 부족한 필수 아이템을 분석하고, 무신사 및 29CM 등에서 바로 구매할 수 있는 링크를 제공합니다.',
+    desc: 'AI 코디 추천 결과에서 각 아이템을 무신사 및 29CM 등에서 바로 구매할 수 있는 링크를 제공합니다.',
     tag: '스마트 쇼핑',
   },
 ];
@@ -197,11 +197,6 @@ export default function LandingContent() {
               <p className="text-[11px] text-zinc-400 mt-2">© 2026 OOTD AI. All rights reserved.</p>
             </div>
             
-            <div className="flex items-center gap-4">
-              <div className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full">
-                <p className="text-[10px] font-extrabold text-zinc-500 dark:text-zinc-400">SYSTEM STATUS: OPERATIONAL</p>
-              </div>
-            </div>
           </div>
         </div>
       </footer>
