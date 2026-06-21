@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Sparkles, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Check, Sparkles, Loader2, ArrowRight, ArrowLeft, Camera, ImagePlus, Upload, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
@@ -35,8 +35,74 @@ function deriveStyleEmbedding(selectedIds: string[]) {
   };
 }
 
-const TOTAL_STEPS = 3;
-const COMPLETION_PCT = [33, 66, 100];
+const TOTAL_STEPS = 4;
+const COMPLETION_PCT = [25, 50, 75, 100];
+
+interface ExtractedItem {
+  id: string;
+  category: string;
+  image: string;
+  name: string;
+  nameLoading: boolean;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  outer: '아우터', tops: '상의', bottoms: '하의', shoes: '신발', socks: '양말',
+  bag: '가방', accessory: '액세서리',
+};
+
+const cropImage = (
+  imgSrc: string,
+  xmin: number,
+  ymin: number,
+  xmax: number,
+  ymax: number,
+  category: string
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const pxX = xmin * img.width;
+      const pxY = ymin * img.height;
+      const pxW = (xmax - xmin) * img.width;
+      const pxH = (ymax - ymin) * img.height;
+
+      const padding = 0.08;
+      const padX = pxW * padding;
+      const padY = pxH * padding;
+
+      const fx = Math.max(0, pxX - padX);
+      const fy = Math.max(0, pxY - padY);
+      const fw = Math.min(img.width - fx, pxW + padX * 2);
+      const fh = Math.min(img.height - fy, pxH + padY * 2);
+
+      const maxDim = 512;
+      let ow = fw, oh = fh;
+      if (ow > oh) {
+        if (ow > maxDim) {
+          oh *= maxDim / ow;
+          ow = maxDim;
+        }
+      } else {
+        if (oh > maxDim) {
+          ow *= maxDim / oh;
+          oh = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = ow;
+      canvas.height = oh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject('no canvas context');
+      ctx.drawImage(img, fx, fy, fw, fh, 0, 0, ow, oh);
+      resolve(canvas.toDataURL('image/webp', 0.9));
+    };
+    img.onerror = () => reject('img load error');
+    img.src = imgSrc;
+  });
+};
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -44,7 +110,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
   const [selectedGoal, setSelectedGoal] = useState('');
@@ -53,6 +119,15 @@ export default function OnboardingPage() {
   const [fitPreference, setFitPreference] = useState<'slim' | 'regular' | 'oversized'>('regular');
   const [isSaving, setIsSaving] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+
+  // Step 0 States
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [base64Original, setBase64Original] = useState<string | null>(null);
+  const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
+  const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -88,21 +163,150 @@ export default function OnboardingPage() {
     );
   };
 
-  const handleNext = () => {
-    if (step === 1) {
-      if (selectedPhotos.length < 2) { toast('마음에 드는 스타일을 2개 이상 골라주세요!', 'info'); return; }
-      setStep(2);
-    } else if (step === 2) {
-      if (selectedContexts.length === 0) { toast('착장 상황을 최소 1개 선택해주세요!', 'info'); return; }
-      setStep(3);
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file?.type.startsWith('image/')) {
+      await handleScan(file);
+    }
+  };
+
+  const triggerUpload = () => fileInputRef.current?.click();
+  
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleScan(file);
+    }
+  };
+
+  const handleScan = async (file: File) => {
+    if (scanState === 'scanning') return;
+    setScanState('scanning');
+    setExtractedItems([]);
+    
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      setOriginalImage(objectUrl);
+
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const img = new Image();
+          img.onload = () => {
+            const MAX = 1024;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+            else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          };
+          img.src = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+      setBase64Original(base64);
+
+      const res = await fetch('/api/segment-clothes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || '의류 분석에 실패했습니다.');
+      }
+      const data = await res.json();
+      if (!data.items?.length) {
+        throw new Error('사진에서 옷을 찾지 못했어요. 전신 정면 사진으로 다시 시도해 보세요!');
+      }
+
+      const croppedItems: ExtractedItem[] = [];
+      for (const item of data.items) {
+        try {
+          const croppedBase64 = await cropImage(objectUrl, item.xmin, item.ymin, item.xmax, item.ymax, item.category);
+          const id = Math.random().toString(36).slice(2);
+          croppedItems.push({
+            id,
+            category: item.category,
+            image: croppedBase64,
+            name: CATEGORY_LABELS[item.category] || item.category,
+            nameLoading: true,
+          });
+        } catch (e) {
+          console.error('Failed to crop item', e);
+        }
+      }
+
+      if (croppedItems.length === 0) {
+        throw new Error('옷을 추출하는 데 실패했습니다.');
+      }
+
+      setExtractedItems(croppedItems);
+      setScanState('success');
+
+      for (let i = 0; i < croppedItems.length; i++) {
+        const item = croppedItems[i];
+        fetch('/api/name-clothes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: item.image, category: item.category }),
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(nameData => {
+            setExtractedItems(prev => prev.map(p => p.id === item.id ? {
+              ...p,
+              name: nameData?.name || CATEGORY_LABELS[p.category] || p.category,
+              nameLoading: false
+            } : p));
+          })
+          .catch(() => {
+            setExtractedItems(prev => prev.map(p => p.id === item.id ? { ...p, nameLoading: false } : p));
+          });
+      }
+    } catch (e: any) {
+      toast(e.message || '분석 중 오류가 발생했습니다.', 'error');
+      setScanState('idle');
+      setOriginalImage(null);
+      setBase64Original(null);
+    }
+  };
+
+  const handleSaveFirstWardrobe = async () => {
+    if (!user || extractedItems.length === 0) return;
+    setIsUploading(true);
+    try {
+      for (const item of extractedItems) {
+        const res = await fetch(item.image);
+        if (!res.ok) throw new Error(`이미지 로드 실패: ${res.statusText}`);
+        const blob = await res.blob();
+        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
+        const { error: uploadErr } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
+        if (uploadErr) throw new Error(uploadErr.message);
+        const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
+        const { error: dbErr } = await supabase.from('clothes').insert({
+          category: item.category,
+          name: item.name,
+          image_url: publicUrl,
+          user_id: user.id,
+        });
+        if (dbErr) throw new Error(dbErr.message);
+      }
+      toast('첫 착장의 옷들이 옷장에 등록되었습니다!', 'success');
+      setStep(1);
+    } catch (e: any) {
+      toast(e.message || '저장 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleFinish = async () => {
-    if (!selectedGoal) {
-      toast('스타일 목표를 선택해주세요!', 'info');
-      return;
-    }
     setIsSaving(true);
     try {
       if (!user) return;
@@ -111,7 +315,7 @@ export default function OnboardingPage() {
         user.user_metadata?.full_name ||
         user.email?.split('@')[0] || 'OOTD User';
 
-      const styleEmbedding = deriveStyleEmbedding(selectedPhotos);
+      const styleEmbedding = selectedPhotos.length > 0 ? deriveStyleEmbedding(selectedPhotos) : null;
 
       const { error } = await supabase.from('user_profiles').upsert({
         user_id: user.id,
@@ -120,9 +324,9 @@ export default function OnboardingPage() {
         weight,
         fit_preference: fitPreference,
         style_moods: styleEmbedding?.dominant_styles || [],
-        body_goal: selectedGoal,
+        body_goal: selectedGoal || 'none',
         style_embedding: styleEmbedding,
-        style_contexts: selectedContexts,
+        style_contexts: selectedContexts || [],
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
@@ -252,14 +456,13 @@ export default function OnboardingPage() {
 
             <div className="mt-auto">
               <p className="text-center text-[11px] font-bold text-zinc-400 tracking-widest uppercase mb-4">
-                {selectedPhotos.length}개 선택됨 {selectedPhotos.length >= 2 ? '✓' : '· 최소 2개'}
+                {selectedPhotos.length}개 선택됨 {selectedPhotos.length > 0 ? '✓' : '· 선택 시 맞춤 추천 가능'}
               </p>
               <button
-                onClick={handleNext}
-                disabled={selectedPhotos.length < 2}
-                className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-30 shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
+                onClick={() => setStep(2)}
+                className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
               >
-                다음 <ArrowRight className="w-4 h-4" />
+                {selectedPhotos.length === 0 ? '건너뛰기' : '다음'} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </motion.main>
@@ -313,15 +516,11 @@ export default function OnboardingPage() {
               })}
             </div>
 
-            <p className="text-center text-[11px] font-bold text-zinc-400 tracking-widest uppercase mb-6">
-              {selectedContexts.length} / 3 선택됨
-            </p>
             <button
-              onClick={handleNext}
-              disabled={selectedContexts.length === 0}
-              className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-30 shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
+              onClick={() => setStep(3)}
+              className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
             >
-              다음 <ArrowRight className="w-4 h-4" />
+              {selectedContexts.length === 0 ? '건너뛰기' : '다음'} <ArrowRight className="w-4 h-4" />
             </button>
           </motion.main>
         )}
@@ -414,13 +613,13 @@ export default function OnboardingPage() {
 
             <button
               onClick={handleFinish}
-              disabled={!selectedGoal || isSaving}
-              className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] disabled:opacity-30 shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
+              disabled={isSaving}
+              className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
             >
               {isSaving ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
               ) : (
-                <>시작하기 <ArrowRight className="w-4 h-4" /></>
+                <>{!selectedGoal ? '건너뛰고 시작하기' : '시작하기'} <ArrowRight className="w-4 h-4" /></>
               )}
             </button>
           </motion.main>

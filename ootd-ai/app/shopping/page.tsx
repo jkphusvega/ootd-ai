@@ -7,6 +7,7 @@ import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useWeather } from '../../hooks/useWeather';
 import { useToast } from '../../components/ToastProvider';
+import StyleSubNav from '../../components/StyleSubNav';
 
 interface ShoppingSuggestion {
   name: string;
@@ -112,6 +113,8 @@ export default function ShoppingPage() {
             </button>
           )}
         </div>
+
+        <StyleSubNav />
 
         <AnimatePresence mode="wait">
           {/* Initial State */}

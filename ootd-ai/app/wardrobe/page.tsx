@@ -169,6 +169,26 @@ export default function GalleryPage() {
     }
   };
 
+  const wearCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const feedItems = localItems.filter(i => i.categoryId === 'ootd_feed');
+    feedItems.forEach(item => {
+      try {
+        const parsed = JSON.parse(item.name);
+        if (parsed.worn === true && Array.isArray(parsed.items)) {
+          parsed.items.forEach((fit: { name: string }) => {
+            if (fit && fit.name) {
+              counts[fit.name] = (counts[fit.name] || 0) + 1;
+            }
+          });
+        }
+      } catch (e) {
+        // ignore legacy
+      }
+    });
+    return counts;
+  }, [localItems]);
+
   const getMergedCategories = () => {
     return WARDROBE_DATA.map(cat => {
       const dbItems = localItems.filter(i => i.categoryId === cat.id);
@@ -285,14 +305,18 @@ export default function GalleryPage() {
                       return (
                         <>
                           <div className="lg:hidden flex gap-5 overflow-x-auto px-6 pt-5 pb-10 snap-x snap-mandatory relative z-10 [&::-webkit-scrollbar]:hidden items-start" style={{ scrollbarWidth: 'none' }}>
-                            {visibleItems.map((item) => (
-                              <MobileClothCard key={item.id} item={item} editMode={editMode}
-                                pendingDeleteId={pendingDeleteId}
-                                onRequestDelete={setPendingDeleteId}
-                                onConfirmDelete={handleDelete}
-                                onCancelDelete={() => setPendingDeleteId(null)}
-                                onClick={() => handleItemClick(item)} />
-                            ))}
+                            {visibleItems.map((item) => {
+                              const pName = (() => { try { return JSON.parse(item.name).n || item.name; } catch { return item.name; } })();
+                              return (
+                                <MobileClothCard key={item.id} item={item} editMode={editMode}
+                                  pendingDeleteId={pendingDeleteId}
+                                  onRequestDelete={setPendingDeleteId}
+                                  onConfirmDelete={handleDelete}
+                                  onCancelDelete={() => setPendingDeleteId(null)}
+                                  onClick={() => handleItemClick(item)}
+                                  wearCount={wearCounts[pName] || 0} />
+                              );
+                            })}
                             {hasMore && (
                               <div className="snap-center shrink-0 w-[100px] h-[160px] mt-[20px] flex flex-col items-center justify-center cursor-pointer group" onClick={() => toggleCategory(category.id)}>
                                 <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition">
@@ -308,14 +332,18 @@ export default function GalleryPage() {
 
                           {/* ── DESKTOP: Grid Layout ── */}
                           <div className="hidden lg:grid grid-cols-4 xl:grid-cols-5 gap-6 px-6 pt-8 pb-6 relative z-10">
-                            {visibleItems.map((item) => (
-                              <DesktopClothCard key={item.id} item={item} editMode={editMode}
-                                pendingDeleteId={pendingDeleteId}
-                                onRequestDelete={setPendingDeleteId}
-                                onConfirmDelete={handleDelete}
-                                onCancelDelete={() => setPendingDeleteId(null)}
-                                onClick={() => handleItemClick(item)} />
-                            ))}
+                            {visibleItems.map((item) => {
+                              const pName = (() => { try { return JSON.parse(item.name).n || item.name; } catch { return item.name; } })();
+                              return (
+                                <DesktopClothCard key={item.id} item={item} editMode={editMode}
+                                  pendingDeleteId={pendingDeleteId}
+                                  onRequestDelete={setPendingDeleteId}
+                                  onConfirmDelete={handleDelete}
+                                  onCancelDelete={() => setPendingDeleteId(null)}
+                                  onClick={() => handleItemClick(item)}
+                                  wearCount={wearCounts[pName] || 0} />
+                              );
+                            })}
                             <Link href="/add-clothes">
                               <div className="aspect-square rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all">
                                 <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition">
@@ -748,7 +776,7 @@ export default function GalleryPage() {
 
 /* ───── Sub Components ───── */
 
-function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick }: {
+function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick, wearCount }: {
   item: ClothItem;
   editMode: boolean;
   pendingDeleteId: string | null;
@@ -756,6 +784,7 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
   onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
   onClick?: () => void;
+  wearCount: number;
 }) {
   const isPending = pendingDeleteId === item.id;
   
@@ -786,6 +815,11 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
           </button>
         </div>
       )}
+      {wearCount > 0 && (
+        <div className="absolute top-2 left-2 z-20 px-2 py-0.5 bg-black/80 dark:bg-white/95 backdrop-blur rounded-full shadow-sm flex items-center">
+          <span className="text-[8px] font-black text-white dark:text-black">{wearCount}회 착용</span>
+        </div>
+      )}
       <div className="relative flex flex-col items-center w-[140px] transition-transform duration-500 z-10 group-hover:-translate-y-3" onClick={() => !editMode && onClick?.()}>
         <div className="w-[140px] h-[160px] relative flex items-center justify-center">
           <img src={item.image} alt={parsedName} loading="lazy" className="max-w-[100%] max-h-[100%] object-contain transition-transform duration-500 group-hover:scale-[1.15] sticker-effect" draggable={false} />
@@ -798,7 +832,7 @@ function MobileClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onC
   );
 }
 
-function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick }: {
+function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, onConfirmDelete, onCancelDelete, onClick, wearCount }: {
   item: ClothItem;
   editMode: boolean;
   pendingDeleteId: string | null;
@@ -806,6 +840,7 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
   onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
   onClick?: () => void;
+  wearCount: number;
 }) {
   const isPending = pendingDeleteId === item.id;
 
@@ -834,6 +869,11 @@ function DesktopClothCard({ item, editMode, pendingDeleteId, onRequestDelete, on
             className="bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[9px] font-black px-2 py-1 rounded-full shadow-lg border-2 border-white dark:border-zinc-950 hover:bg-zinc-100 transition">
             취소
           </button>
+        </div>
+      )}
+      {wearCount > 0 && (
+        <div className="absolute top-3 left-3 z-20 px-2.5 py-0.5 bg-black/80 dark:bg-white/95 backdrop-blur rounded-full shadow-sm flex items-center">
+          <span className="text-[9px] font-black text-white dark:text-black">{wearCount}회 착용</span>
         </div>
       )}
       <div className="aspect-square bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-1" onClick={() => !editMode && onClick?.()}>

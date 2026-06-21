@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
+import StyleSubNav from '../../components/StyleSubNav';
 
 interface ClothItem {
   id: string;
@@ -154,6 +155,8 @@ export default function StatsPage() {
           <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">스타일 통계</h1>
           <p className="text-[10px] text-zinc-400 dark:text-zinc-600 tracking-widest uppercase mt-1">Style Analytics</p>
         </div>
+
+        <StyleSubNav />
 
         {/* Overview Cards */}
         <div className="grid grid-cols-2 gap-3 mb-6">

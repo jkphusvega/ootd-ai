@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
+import StyleSubNav from '../../components/StyleSubNav';
 
 export default function SharePage() {
   const { user, loading: authLoading } = useAuth();
@@ -102,7 +103,7 @@ export default function SharePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0c0c0f] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
       </div>
     );
@@ -110,13 +111,15 @@ export default function SharePage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0c0c0f] font-sans pb-28 lg:pb-8">
-      <div className="max-w-lg mx-auto px-6 pt-14 lg:pt-8">
+      <div className="max-w-2xl mx-auto px-5 pt-14 lg:pt-8">
 
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">옷장 공유</h1>
           <p className="text-[10px] text-zinc-400 tracking-widest uppercase mt-1">Share Wardrobe</p>
         </div>
+
+        <StyleSubNav />
 
         {/* Preview Grid */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}

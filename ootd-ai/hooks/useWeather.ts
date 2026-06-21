@@ -100,6 +100,37 @@ export function useWeather() {
       const { lat, lon } = await getPosition();
       const isSeoul = lat === 37.5665 && lon === 126.978;
 
+      if (!OWM_KEY) {
+        // Fallback mock weather data when API key is missing
+        const currentHour = new Date().getHours();
+        const mockHourly: HourlyForecast[] = Array.from({ length: 6 }).map((_, idx) => {
+          const hour = (currentHour + (idx + 1) * 3) % 24;
+          return {
+            hour,
+            temperature: 24 - idx,
+            weatherCode: 800,
+            condition: 'Clear',
+            precipitation: 0
+          };
+        });
+        const result: WeatherData = {
+          temperature: 24.5,
+          condition: 'Clear',
+          feelsLike: 25,
+          humidity: 60,
+          windSpeed: 2.1,
+          tempMin: 20,
+          tempMax: 28,
+          precipitationProbability: 10,
+          hourly: mockHourly,
+          weatherTip: '쾌적한 날씨 — 가벼운 레이어드',
+          locationLabel: '서울 (데모 모드)',
+          cityName: 'Seoul',
+        };
+        setWeather(result);
+        return;
+      }
+
       // Current weather
       const [currentRes, forecastRes] = await Promise.all([
         fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWM_KEY}&units=metric`),
