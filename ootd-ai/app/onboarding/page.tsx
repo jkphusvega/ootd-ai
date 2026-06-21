@@ -1,108 +1,11 @@
 'use client';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Sparkles, Loader2, ArrowRight, ArrowLeft, Camera, ImagePlus, Upload, ChevronRight } from 'lucide-react';
+import { Camera, Loader2, ArrowRight, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
-import { STYLE_PHOTOS, CONTEXTS, BODY_GOALS } from '../../lib/onboarding-constants';
-
-function deriveStyleEmbedding(selectedIds: string[]) {
-  const selected = STYLE_PHOTOS.filter(p => selectedIds.includes(p.id));
-  if (selected.length === 0) return null;
-
-  const freq = <T extends string>(arr: T[]) =>
-    arr.reduce((acc, v) => ({ ...acc, [v]: (acc[v] || 0) + 1 }), {} as Record<string, number>);
-
-  const topN = (obj: Record<string, number>, n: number) =>
-    Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
-
-  const allColors = selected.flatMap(p => p.tags.colors);
-  const allVibes  = selected.flatMap(p => p.tags.vibe);
-  const allFits   = selected.map(p => p.tags.fit);
-  const allStyles = selected.map(p => p.style);
-
-  const fitFreq   = freq(allFits);
-  const dominantFit = Object.entries(fitFreq).sort((a, b) => b[1] - a[1])[0]?.[0] || 'regular';
-
-  return {
-    dominant_styles:  [...new Set(allStyles)],
-    dominant_colors:  topN(freq(allColors), 3),
-    dominant_vibes:   topN(freq(allVibes), 4),
-    fit_tendency:     dominantFit,
-    photo_ids:        selectedIds,
-  };
-}
-
-const TOTAL_STEPS = 4;
-const COMPLETION_PCT = [25, 50, 75, 100];
-
-interface ExtractedItem {
-  id: string;
-  category: string;
-  image: string;
-  name: string;
-  nameLoading: boolean;
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  outer: '아우터', tops: '상의', bottoms: '하의', shoes: '신발', socks: '양말',
-  bag: '가방', accessory: '액세서리',
-};
-
-const cropImage = (
-  imgSrc: string,
-  xmin: number,
-  ymin: number,
-  xmax: number,
-  ymax: number,
-  category: string
-): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = () => {
-      const pxX = xmin * img.width;
-      const pxY = ymin * img.height;
-      const pxW = (xmax - xmin) * img.width;
-      const pxH = (ymax - ymin) * img.height;
-
-      const padding = 0.08;
-      const padX = pxW * padding;
-      const padY = pxH * padding;
-
-      const fx = Math.max(0, pxX - padX);
-      const fy = Math.max(0, pxY - padY);
-      const fw = Math.min(img.width - fx, pxW + padX * 2);
-      const fh = Math.min(img.height - fy, pxH + padY * 2);
-
-      const maxDim = 512;
-      let ow = fw, oh = fh;
-      if (ow > oh) {
-        if (ow > maxDim) {
-          oh *= maxDim / ow;
-          ow = maxDim;
-        }
-      } else {
-        if (oh > maxDim) {
-          ow *= maxDim / oh;
-          oh = maxDim;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = ow;
-      canvas.height = oh;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return reject('no canvas context');
-      ctx.drawImage(img, fx, fy, fw, fh, 0, 0, ow, oh);
-      resolve(canvas.toDataURL('image/webp', 0.9));
-    };
-    img.onerror = () => reject('img load error');
-    img.src = imgSrc;
-  });
-};
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -110,521 +13,271 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
-  const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
-  const [selectedGoal, setSelectedGoal] = useState('');
-  const [height, setHeight] = useState(170);
-  const [weight, setWeight] = useState(60);
-  const [fitPreference, setFitPreference] = useState<'slim' | 'regular' | 'oversized'>('regular');
+  const [nickname, setNickname] = useState('');
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-
-  // Step 0 States
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [base64Original, setBase64Original] = useState<string | null>(null);
-  const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
-  const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ?force=true 쿼리 스트링 감지 (개발/테스트용 강제 진입)
+  const isForceMode = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('force') === 'true';
+  }, []);
+
+  // 인증 감지 및 리다이렉트 제어
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       router.replace('/login');
       return;
     }
-    supabase
-      .from('user_profiles')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
+
+    const checkExistingProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('user_id, nickname, profile_image')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data && !isForceMode) {
+          // 이미 프로필이 존재하고 force 모드가 아니면 메인 홈으로 바로 보냄
           router.replace('/');
         } else {
+          // 신규 유저 또는 강제 진입 모드일 때 입력 기본값 매핑
+          if (data) {
+            setNickname(data.nickname || '');
+            setProfilePreview(data.profile_image || null);
+          } else {
+            const defaultName =
+              user.user_metadata?.name ||
+              user.user_metadata?.full_name ||
+              user.email?.split('@')[0] || '';
+            setNickname(defaultName);
+            setProfilePreview(
+              user.user_metadata?.avatar_url || 
+              user.user_metadata?.picture || 
+              null
+            );
+          }
           setIsChecking(false);
         }
-      });
-  }, [user, authLoading, router, supabase]);
+      } catch (err) {
+        console.error('Profile check error:', err);
+        setIsChecking(false);
+      }
+    };
 
-  const togglePhoto = (id: string) => {
-    setSelectedPhotos(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) :
-      prev.length < 6 ? [...prev, id] : prev
-    );
-  };
+    checkExistingProfile();
+  }, [user, authLoading, router, supabase, isForceMode]);
 
-  const toggleContext = (id: string) => {
-    setSelectedContexts(prev =>
-      prev.includes(id) ? prev.filter(c => c !== id) :
-      prev.length < 3 ? [...prev, id] : prev
-    );
-  };
-
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = () => setIsDragging(false);
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file?.type.startsWith('image/')) {
-      await handleScan(file);
-    }
-  };
-
-  const triggerUpload = () => fileInputRef.current?.click();
-  
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 파일 선택 및 이미지 미리보기 생성
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await handleScan(file);
+      if (file.size > 5 * 1024 * 1024) {
+        toast('5MB 이하의 이미지만 업로드할 수 있습니다.', 'error');
+        return;
+      }
+      setProfileFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleScan = async (file: File) => {
-    if (scanState === 'scanning') return;
-    setScanState('scanning');
-    setExtractedItems([]);
+  // Supabase Storage 이미지 업로드
+  const uploadProfileImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop() || 'png';
+      const fileName = `profile_${user?.id}_${Date.now()}.${fileExt}`;
+      const filePath = `profiles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('clothes')
+        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('clothes').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (err) {
+      console.error('Image upload error:', err);
+      return null;
+    }
+  };
+
+  // 프로필 데이터 저장 공통 함수
+  const saveProfileData = async (nameToSave: string, imgUrlToSave: string | null) => {
+    if (!user) return;
+    setIsSaving(true);
     
     try {
-      const objectUrl = URL.createObjectURL(file);
-      setOriginalImage(objectUrl);
-
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const img = new Image();
-          img.onload = () => {
-            const MAX = 1024;
-            let w = img.width, h = img.height;
-            if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-            else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
-            const canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.85));
-          };
-          img.src = reader.result as string;
-        };
-        reader.readAsDataURL(file);
-      });
-      setBase64Original(base64);
-
-      const res = await fetch('/api/segment-clothes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || '의류 분석에 실패했습니다.');
+      let finalImgUrl = imgUrlToSave;
+      
+      // 새로 선택한 파일이 있으면 스토리지 업로드 진행
+      if (profileFile) {
+        const uploadedUrl = await uploadProfileImage(profileFile);
+        if (uploadedUrl) finalImgUrl = uploadedUrl;
       }
-      const data = await res.json();
-      if (!data.items?.length) {
-        throw new Error('사진에서 옷을 찾지 못했어요. 전신 정면 사진으로 다시 시도해 보세요!');
-      }
-
-      const croppedItems: ExtractedItem[] = [];
-      for (const item of data.items) {
-        try {
-          const croppedBase64 = await cropImage(objectUrl, item.xmin, item.ymin, item.xmax, item.ymax, item.category);
-          const id = Math.random().toString(36).slice(2);
-          croppedItems.push({
-            id,
-            category: item.category,
-            image: croppedBase64,
-            name: CATEGORY_LABELS[item.category] || item.category,
-            nameLoading: true,
-          });
-        } catch (e) {
-          console.error('Failed to crop item', e);
-        }
-      }
-
-      if (croppedItems.length === 0) {
-        throw new Error('옷을 추출하는 데 실패했습니다.');
-      }
-
-      setExtractedItems(croppedItems);
-      setScanState('success');
-
-      for (let i = 0; i < croppedItems.length; i++) {
-        const item = croppedItems[i];
-        fetch('/api/name-clothes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: item.image, category: item.category }),
-        })
-          .then(r => r.ok ? r.json() : null)
-          .then(nameData => {
-            setExtractedItems(prev => prev.map(p => p.id === item.id ? {
-              ...p,
-              name: nameData?.name || CATEGORY_LABELS[p.category] || p.category,
-              nameLoading: false
-            } : p));
-          })
-          .catch(() => {
-            setExtractedItems(prev => prev.map(p => p.id === item.id ? { ...p, nameLoading: false } : p));
-          });
-      }
-    } catch (e: any) {
-      toast(e.message || '분석 중 오류가 발생했습니다.', 'error');
-      setScanState('idle');
-      setOriginalImage(null);
-      setBase64Original(null);
-    }
-  };
-
-  const handleSaveFirstWardrobe = async () => {
-    if (!user || extractedItems.length === 0) return;
-    setIsUploading(true);
-    try {
-      for (const item of extractedItems) {
-        const res = await fetch(item.image);
-        if (!res.ok) throw new Error(`이미지 로드 실패: ${res.statusText}`);
-        const blob = await res.blob();
-        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
-        const { error: uploadErr } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
-        if (uploadErr) throw new Error(uploadErr.message);
-        const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
-        const { error: dbErr } = await supabase.from('clothes').insert({
-          category: item.category,
-          name: item.name,
-          image_url: publicUrl,
-          user_id: user.id,
-        });
-        if (dbErr) throw new Error(dbErr.message);
-      }
-      toast('첫 착장의 옷들이 옷장에 등록되었습니다!', 'success');
-      setStep(1);
-    } catch (e: any) {
-      toast(e.message || '저장 중 오류가 발생했습니다.', 'error');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleFinish = async () => {
-    setIsSaving(true);
-    try {
-      if (!user) return;
-      const nickname =
-        user.user_metadata?.name ||
-        user.user_metadata?.full_name ||
-        user.email?.split('@')[0] || 'OOTD User';
-
-      const styleEmbedding = selectedPhotos.length > 0 ? deriveStyleEmbedding(selectedPhotos) : null;
 
       const { error } = await supabase.from('user_profiles').upsert({
         user_id: user.id,
-        nickname,
-        height,
-        weight,
-        fit_preference: fitPreference,
-        style_moods: styleEmbedding?.dominant_styles || [],
-        body_goal: selectedGoal || 'none',
-        style_embedding: styleEmbedding,
-        style_contexts: selectedContexts || [],
+        nickname: nameToSave.trim() || 'OOTD User',
+        profile_image: finalImgUrl,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
       if (error) throw error;
+
+      toast('반가워요! 프로필 설정이 완료되었습니다.', 'success');
       localStorage.setItem('ootd_onboarded', 'true');
       router.push('/');
-    } catch {
-      toast('저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+      router.refresh();
+    } catch (err) {
+      console.error('Save profile error:', err);
+      toast('저장 도중 오류가 발생했습니다. 다시 시도해 주세요.', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isChecking) {
+  // '시작하기' 버튼 핸들러
+  const handleStart = () => {
+    if (!nickname.trim()) {
+      toast('닉네임을 입력해 주세요.', 'error');
+      return;
+    }
+    saveProfileData(nickname, profilePreview);
+  };
+
+  // '건너뛰기' 버튼 핸들러
+  const handleSkip = () => {
+    const defaultName =
+      nickname.trim() ||
+      user?.user_metadata?.name ||
+      user?.user_metadata?.full_name ||
+      user?.email?.split('@')[0] ||
+      'OOTD User';
+
+    const defaultImg = 
+      profilePreview || 
+      user?.user_metadata?.avatar_url || 
+      user?.user_metadata?.picture || 
+      null;
+
+    saveProfileData(defaultName, defaultImg);
+  };
+
+  if (isChecking || authLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
+      <div className="min-h-screen bg-[#F9F9FB] dark:bg-[#0c0c0f] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-300 dark:text-zinc-700" />
       </div>
     );
   }
 
-  const completionPct = COMPLETION_PCT[step - 1];
-
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white font-sans flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-[#0c0c0f] dark:to-[#16161a] text-zinc-900 dark:text-white font-sans flex flex-col justify-center items-center px-6 py-12">
+      <input 
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+      />
 
-      {/* Progress */}
-      <div className="pt-14 px-8 max-w-2xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            {step > 1 && (
-              <button
-                onClick={() => setStep(s => (s - 1) as 1 | 2 | 3)}
-                className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-90 transition"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
-              </button>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="w-full max-w-md bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-2xl rounded-3xl p-8 md:p-10 flex flex-col items-center relative overflow-hidden"
+      >
+        {/* Decorative subtle background lights */}
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header copy */}
+        <div className="text-center mb-8 relative z-10">
+          <span className="text-2xl mb-2 block">✨</span>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-700 dark:from-white dark:via-zinc-200 dark:to-zinc-400 bg-clip-text text-transparent">
+            반가워요!
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs md:text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
+            나만의 프로필 정보를 설정하고<br />스마트 AI 코디 추천을 시작하세요.
+          </p>
+        </div>
+
+        {/* Profile Image Uploader */}
+        <div className="mb-8 relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center shadow-md relative transition-transform duration-300 active:scale-95 group-hover:border-zinc-400 dark:group-hover:border-zinc-600">
+            {profilePreview ? (
+              <img src={profilePreview} alt="Profile Preview" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-10 h-10 text-zinc-400" />
             )}
-            <div className="flex gap-1.5">
-              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-                <div key={i} className={`h-1 w-8 rounded-full transition-all duration-500 ${i < step ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-800'}`} />
-              ))}
+            
+            {/* Dimmed hover effect */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+              <Camera className="w-6 h-6 text-white" />
             </div>
           </div>
-          <span className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase">
-            스타일 프로필 {completionPct}% 완료
-          </span>
+          
+          {/* Badge */}
+          <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-lg border-2 border-white dark:border-zinc-900 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+            <Camera className="w-3.5 h-3.5" />
+          </div>
         </div>
-        <div className="h-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-0">
-          <motion.div
-            className="h-full bg-zinc-900 dark:bg-white rounded-full"
-            animate={{ width: `${completionPct}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+
+        {/* Nickname Input Form */}
+        <div className="w-full mb-8 relative z-10">
+          <label className="text-[10px] font-extrabold tracking-widest uppercase text-zinc-400 dark:text-zinc-500 block mb-2">
+            사용할 닉네임
+          </label>
+          <input
+            type="text"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            maxLength={20}
+            placeholder="닉네임을 입력해 주세요"
+            disabled={isSaving}
+            className="w-full px-4 py-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white outline-none transition-all dark:text-white font-semibold text-sm disabled:opacity-50"
           />
         </div>
-      </div>
 
-      <AnimatePresence mode="wait">
-
-        {/* ── STEP 1: 스타일 포토 픽커 ── */}
-        {step === 1 && (
-          <motion.main key="step1"
-            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col px-6 pb-8 max-w-2xl mx-auto w-full">
-
-            <div className="pt-8 pb-6">
-              <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl flex items-center justify-center mb-5 shadow-lg">
-                <Sparkles className="w-6 h-6 text-black dark:text-white" />
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight mb-2">
-                마음에 드는 룩을<br />골라주세요
-              </h1>
-              <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">
-                AI가 취향을 분석해 코디를 추천해요 · 최대 6개 선택
-              </p>
-            </div>
-
-            {/* Photo Grid */}
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              {STYLE_PHOTOS.map((photo, idx) => {
-                const isSelected = selectedPhotos.includes(photo.id);
-                return (
-                  <motion.button
-                    key={photo.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.04, duration: 0.3 }}
-                    onClick={() => togglePhoto(photo.id)}
-                    className={`relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-200 ${
-                      isSelected
-                        ? 'ring-[3px] ring-black dark:ring-white scale-[0.97]'
-                        : 'opacity-90 hover:opacity-100 active:scale-[0.97]'
-                    }`}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.styleLabel}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                    <span className="absolute bottom-2 left-2 text-[9px] font-extrabold tracking-widest text-white/80 uppercase">
-                      {photo.styleLabel}
-                    </span>
-
-                    {/* Check badge */}
-                    <AnimatePresence>
-                      {isSelected && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0, opacity: 0 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                          className="absolute top-2 right-2 w-7 h-7 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-lg"
-                        >
-                          <Check className="w-4 h-4 text-white dark:text-black" strokeWidth={3} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            <div className="mt-auto">
-              <p className="text-center text-[11px] font-bold text-zinc-400 tracking-widest uppercase mb-4">
-                {selectedPhotos.length}개 선택됨 {selectedPhotos.length > 0 ? '✓' : '· 선택 시 맞춤 추천 가능'}
-              </p>
-              <button
-                onClick={() => setStep(2)}
-                className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
-              >
-                {selectedPhotos.length === 0 ? '건너뛰기' : '다음'} <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.main>
-        )}
-
-        {/* ── STEP 2: 착장 상황 ── */}
-        {step === 2 && (
-          <motion.main key="step2"
-            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col justify-center px-8 pb-8 max-w-lg mx-auto w-full">
-
-            <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-              <span className="text-xl">👕</span>
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight mb-2">
-              주로 언제<br />옷을 입나요?
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed mb-8">
-              최대 3개 선택 — 상황에 딱 맞는 코디를 추천해요.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {CONTEXTS.map((ctx, idx) => {
-                const isSelected = selectedContexts.includes(ctx.id);
-                return (
-                  <motion.button
-                    key={ctx.id}
-                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.06, duration: 0.4 }}
-                    onClick={() => toggleContext(ctx.id)}
-                    className={`relative p-5 rounded-[1.75rem] text-left transition-all duration-200 ${
-                      isSelected
-                        ? 'bg-black dark:bg-white border-2 border-black dark:border-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]'
-                        : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-[0.97]'
-                    }`}
-                  >
-                    {isSelected && (
-                      <div className="absolute top-4 right-4 text-white dark:text-black">
-                        <Check className="w-4 h-4" strokeWidth={3} />
-                      </div>
-                    )}
-                    <span className="block text-[10px] tracking-widest uppercase mb-1.5 font-bold text-zinc-400">
-                      {ctx.desc}
-                    </span>
-                    <span className={`block font-extrabold text-xl ${isSelected ? 'text-white dark:text-black' : 'text-zinc-800 dark:text-white'}`}>
-                      {ctx.label}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setStep(3)}
-              className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
-            >
-              {selectedContexts.length === 0 ? '건너뛰기' : '다음'} <ArrowRight className="w-4 h-4" />
-            </button>
-          </motion.main>
-        )}
-
-        {/* ── STEP 3: 체형 & 목표 ── */}
-        {step === 3 && (
-          <motion.main key="step3"
-            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col justify-center px-8 pb-8 max-w-lg mx-auto w-full">
-
-            <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-              <span className="text-xl">📏</span>
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight mb-2">
-              핏과 스타일<br />목표를 알려주세요
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed mb-6">
-              AI가 체형에 맞는 핏과 코디를 추천해 드려요.
-            </p>
-
-            <div className="space-y-5 mb-6">
-              {/* 키 / 몸무게 */}
-              <div className="grid grid-cols-2 gap-3">
-                {([
-                  { label: '키', unit: 'cm', value: height, set: setHeight, min: 140, max: 210 },
-                  { label: '몸무게', unit: 'kg', value: weight, set: setWeight, min: 35, max: 130 },
-                ]).map(({ label, unit, value, set, min, max }) => (
-                  <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col items-center gap-2">
-                    <span className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">{label}</span>
-                    <span className="text-2xl font-black">{value}<span className="text-sm font-bold text-zinc-400 ml-0.5">{unit}</span></span>
-                    <input
-                      type="range"
-                      min={min} max={max} value={value}
-                      onChange={e => set(Number(e.target.value))}
-                      className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-zinc-900 dark:accent-white bg-zinc-200 dark:bg-zinc-700"
-                    />
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => set(v => Math.max(min, v - 1))}
-                        className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-bold hover:bg-zinc-200 active:scale-90 transition">−</button>
-                      <button onClick={() => set(v => Math.min(max, v + 1))}
-                        className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-bold hover:bg-zinc-200 active:scale-90 transition">+</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* 핏 선호도 */}
-              <div>
-                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">선호하는 핏</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { id: 'slim', label: '슬림', desc: '몸에 딱 맞게' },
-                    { id: 'regular', label: '레귤러', desc: '적당히 편하게' },
-                    { id: 'oversized', label: '오버핏', desc: '여유 있게' },
-                  ] as const).map(fit => (
-                    <button key={fit.id} onClick={() => setFitPreference(fit.id)}
-                      className={`p-3 rounded-2xl text-center transition-all border ${
-                        fitPreference === fit.id
-                          ? 'bg-black dark:bg-white text-white dark:text-zinc-900 border-black dark:border-white shadow-md'
-                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-                      }`}>
-                      <span className={`block font-bold text-sm ${fitPreference === fit.id ? '' : 'text-zinc-800 dark:text-zinc-200'}`}>{fit.label}</span>
-                      <span className={`block text-[10px] mt-0.5 ${fitPreference === fit.id ? 'opacity-60' : 'text-zinc-400'}`}>{fit.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 스타일 목표 */}
-              <div>
-                <p className="text-[11px] font-extrabold tracking-widest text-zinc-400 uppercase mb-3">옷을 입을 때 가장 신경쓰는 부분</p>
-                <div className="flex flex-col gap-2">
-                  {BODY_GOALS.map(goal => (
-                    <button key={goal.id} onClick={() => setSelectedGoal(goal.id)}
-                      className={`p-4 rounded-2xl text-left transition-all border flex gap-3 items-center ${
-                        selectedGoal === goal.id
-                          ? 'bg-black dark:bg-white border-black dark:border-white shadow-md'
-                          : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-                      }`}>
-                      <span className="text-xl shrink-0">{goal.emoji}</span>
-                      <span className={`block font-bold text-sm ${selectedGoal === goal.id ? 'text-white dark:text-zinc-900' : 'text-zinc-800 dark:text-zinc-200'}`}>
-                        {goal.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleFinish}
-              disabled={isSaving}
-              className="w-full flex items-center justify-center gap-2 py-5 bg-black dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-[0.15em] text-[12px] uppercase rounded-[1.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-[0.98]"
-            >
-              {isSaving ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
-              ) : (
-                <>{!selectedGoal ? '건너뛰고 시작하기' : '시작하기'} <ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
-          </motion.main>
-        )}
-      </AnimatePresence>
+        {/* Action Buttons */}
+        <div className="w-full flex flex-col gap-3 relative z-10">
+          <button
+            onClick={handleStart}
+            disabled={isSaving}
+            className="w-full flex items-center justify-center gap-2 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-extrabold tracking-widest text-[12px] uppercase rounded-2xl shadow-lg hover:bg-black dark:hover:bg-zinc-100 active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                저장 중...
+              </>
+            ) : (
+              <>
+                시작하기
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={handleSkip}
+            disabled={isSaving}
+            className="w-full py-4 text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-widest uppercase hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors disabled:opacity-50"
+          >
+            건너뛰기
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
