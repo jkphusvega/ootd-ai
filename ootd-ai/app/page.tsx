@@ -29,7 +29,16 @@ export default function Home() {
   const [mobileTab, setMobileTab] = useState<'curation' | 'analysis'>('analysis');
   const [initialTabSet, setInitialTabSet] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ nickname?: string; profile_image?: string; [key: string]: unknown } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ nickname?: string; profile_image?: string; body_goal?: string; [key: string]: unknown } | null>(null);
+  const [nudgeClosed, setNudgeClosed] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('ootd_nudge_closed') === 'true') {
+      setNudgeClosed(true);
+    }
+  }, []);
+
+  const showNudge = user && userProfile && userProfile.body_goal === 'none' && !nudgeClosed;
 
   const analysis = useOotdAnalysis({ user, weather, userProfile, supabase, toast });
   const curation = useMobileCuration({ user, weather, supabase });
@@ -112,6 +121,33 @@ export default function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,_#ffffff_0%,_#F2F2F7_100%)] dark:bg-none dark:bg-[#0c0c0f]" />
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
         </div>
+
+        {/* Floating Nudge Banner */}
+        <AnimatePresence>
+          {showNudge && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="absolute top-28 left-6 right-6 z-20 bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-zinc-200 text-white dark:text-zinc-900 px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-[10px] font-bold border border-white/10 dark:border-black/5 backdrop-blur-md"
+            >
+              <Link href="/settings" className="flex-1 flex items-center gap-2">
+                <span className="text-xs">📏</span>
+                <span>체형과 스타일 목표를 입력하면 AI 코디가 내 핏에 딱 맞춰서 큐레이션해 줘요!</span>
+              </Link>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNudgeClosed(true);
+                  sessionStorage.setItem('ootd_nudge_closed', 'true');
+                }}
+                className="p-1 hover:bg-white/10 dark:hover:bg-black/10 rounded-full transition-colors shrink-0 text-zinc-400 dark:text-zinc-500"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Top HUD */}
         <header className="absolute top-12 left-0 right-0 px-6 flex justify-between items-center z-20">
