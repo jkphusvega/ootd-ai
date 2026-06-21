@@ -129,6 +129,12 @@ export default function OnboardingPage() {
         user_id: user.id,
         nickname: nameToSave.trim() || 'OOTD User',
         profile_image: finalImgUrl,
+        height: 175, // DB 제약 조건 대응 기본값
+        weight: 70,  // DB 제약 조건 대응 기본값
+        fit_preference: 'regular',
+        style_moods: [],
+        body_goal: 'none',
+        style_contexts: [],
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
