@@ -1,11 +1,11 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ImagePlus, RefreshCw, Bookmark, ChevronRight, Sun, Cloud, CloudRain, CloudSnow, LogOut, TrendingUp, TrendingDown, CloudSun, Star } from 'lucide-react';
+import { Sparkles, ImagePlus, RefreshCw, Bookmark, ChevronRight, Sun, Cloud, CloudRain, CloudSnow, LogOut, TrendingUp, TrendingDown, CloudSun, Star, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 import type { WeatherData } from '../../hooks/useWeather';
-import WeatherDashboard from './WeatherDashboard';
+import DesktopWeatherDashboard from './DesktopWeatherDashboard';
 interface UserProfile { nickname?: string; [key: string]: unknown; }
 
 type ScanState = 'idle' | 'scanning' | 'success' | 'error';
@@ -66,37 +66,39 @@ export default function DesktopLayout({
     <div className="hidden lg:block min-h-screen">
       <div className="max-w-6xl mx-auto px-8 py-12 pb-24">
 
-        <div className="flex items-start justify-between mb-12">
-          <div className="pt-2">
-            <div className="flex items-center gap-4 mb-2">
-              <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+        {/* 상단바 (Header Top Bar) */}
+        <header className="flex items-center justify-between p-6 mb-10 bg-zinc-50/40 dark:bg-zinc-950/20 backdrop-blur-md rounded-3xl border border-zinc-200/50 dark:border-zinc-800/40">
+          <div>
+            <div className="flex items-center gap-3.5 mb-1">
+              <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
                 {greeting}
               </h1>
-              <button onClick={onLogout} className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-full transition-colors active:scale-95" title="로그아웃">
-                <LogOut className="w-4 h-4" />
+              <button 
+                onClick={onLogout} 
+                className="p-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-full transition-all border border-zinc-200/60 dark:border-zinc-800/60 active:scale-95 shadow-sm" 
+                title="로그아웃"
+              >
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
-            <p className="text-zinc-400 dark:text-zinc-500 text-sm font-medium">
-              오늘의 OOTD를 업로드하고 AI 스타일리스트의 리뷰를 받아보세요
+            <p className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold">
+              {wardrobeCount < 5
+                ? '오늘 입은 착장을 찍으면 AI가 옷장을 자동으로 만들어드려요'
+                : '오늘의 착장을 찍거나, AI 코디 추천을 받아보세요'}
             </p>
           </div>
           
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             {weather && 'hourly' in weather ? (
-              <div className="w-[320px]">
-                <WeatherDashboard weather={weather} />
-              </div>
+              <DesktopWeatherDashboard weather={weather} />
             ) : weather ? (
-              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl shadow-sm">
                 <WeatherIcon condition={(weather as any).condition} />
-                <div>
-                  <span className="text-xl font-extrabold text-zinc-900 dark:text-white">{(weather as any).temperature}°C</span>
-                  <span className="text-xs text-zinc-400 ml-2 font-semibold">{(weather as any).condition}</span>
-                </div>
+                <span className="text-sm font-extrabold text-zinc-900 dark:text-white">{(weather as any).temperature}°C</span>
               </div>
             ) : null}
           </div>
-        </div>
+        </header>
 
         <div className="grid grid-cols-2 gap-8 items-start">
           {/* Upload Area */}
@@ -129,7 +131,9 @@ export default function DesktopLayout({
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-bold text-zinc-600 mb-1">{isDragging ? '여기에 놓으세요!' : '사진을 드래그하거나 클릭하세요'}</p>
-                    <p className="text-xs text-zinc-400">오늘의 OOTD 전신 사진을 올려주세요</p>
+                    <p className="text-xs text-zinc-400">
+                      {wardrobeCount < 5 ? 'AI가 상의·하의·아우터를 자동으로 옷장에 등록해줘요' : '오늘의 착장 전신 사진을 올려주세요'}
+                    </p>
                     <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-2 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg inline-block">
                       🔒 사진은 AI 분석에만 사용되며 서버에 저장되지 않습니다
                     </p>
@@ -175,21 +179,48 @@ export default function DesktopLayout({
                       </div>
                     </>
                   ) : (
-                    <>
-                      <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">AI 리뷰 대기 중</h3>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mb-6">왼쪽에 OOTD 사진을 업로드하면<br />AI 스타일리스트가 분석을 시작합니다</p>
-                      
-                      <div className="w-full max-w-[340px] mt-4 p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 text-left flex items-start gap-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer shadow-sm group" onClick={() => router.push('/curation')}>
-                        <div className="w-12 h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700 group-hover:scale-105 transition-transform">
-                          <Sparkles className="w-5 h-5 text-indigo-500" />
+                    wardrobeCount < 5 ? (
+                      /* 신규 유저: 옷장 구축 안내가 메인 */
+                      <div className="flex flex-col items-center gap-5">
+                        <div className="w-full max-w-[340px] p-6 bg-black rounded-3xl text-white text-center">
+                          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Plus className="w-6 h-6 text-white" />
+                          </div>
+                          <h3 className="text-base font-extrabold mb-2 tracking-tight">착장 사진 → 옷장 자동 완성</h3>
+                          <p className="text-xs text-white/60 leading-relaxed mb-4">
+                            오늘 입은 착장을 찍으면<br />
+                            AI가 상의·하의·아우터를 분류해<br />
+                            옷장에 자동으로 등록해줘요
+                          </p>
+                          <p className="text-[11px] font-bold text-white/40">← 왼쪽에 사진을 올려주세요</p>
                         </div>
-                        <div className="flex-1">
-                          <h4 className="text-sm font-extrabold text-zinc-900 dark:text-white mb-1">오늘의 코디 추천받기</h4>
-                          <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">옷장 아이템으로 완벽한 코디 제안</p>
+                        <div className="w-full max-w-[340px] p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
+                          <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded-xl flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4 text-zinc-500" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-extrabold text-zinc-700 dark:text-zinc-300 mb-0.5">옷장이 쌓이면 AI 코디 추천 시작</p>
+                            <p className="text-[11px] text-zinc-400">아이템 5개 이상부터 날씨·TPO 기반 추천이 시작돼요</p>
+                          </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-zinc-300 dark:text-zinc-600 self-center group-hover:translate-x-1 transition-transform" />
                       </div>
-                    </>
+                    ) : (
+                      /* 기존 유저: 큐레이션 카드 강조 */
+                      <>
+                        <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">착장을 찍거나 코디를 추천받으세요</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mb-6">왼쪽에 오늘 착장 사진을 올리거나<br />AI 코디 추천을 받아보세요</p>
+                        <div className="w-full max-w-[340px] mt-2 p-5 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 text-left flex items-start gap-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer shadow-sm group" onClick={() => router.push('/curation')}>
+                          <div className="w-12 h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700 group-hover:scale-105 transition-transform">
+                            <Sparkles className="w-5 h-5 text-indigo-500" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-extrabold text-zinc-900 dark:text-white mb-1">오늘의 코디 추천받기</h4>
+                            <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">내 옷장 {wardrobeCount}개 아이템으로 완벽한 코디 제안</p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-zinc-300 dark:text-zinc-600 self-center group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </>
+                    )
                   )}
                   {wardrobeCount === 0 && !isRateLimited && (
                     <div className="mt-2 px-5 py-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl text-center">
@@ -345,9 +376,14 @@ export default function DesktopLayout({
 
                   {critique && !isStreaming && (
                     <div className="flex flex-col gap-2.5 mt-1">
-                      <button onClick={handleSaveToFeed} className="w-full py-3.5 bg-zinc-900 text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-[0.98] transition flex items-center justify-center gap-2 hover:bg-zinc-800">
-                        <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
+                      {/* 메인 CTA: 옷장 등록 */}
+                      <button
+                        onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
+                        className="w-full py-3.5 bg-black text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-[0.98] transition flex items-center justify-center gap-2 hover:bg-zinc-800"
+                      >
+                        <Plus className="w-4 h-4" /> 옷장에 자동 등록하기
                       </button>
+                      {/* 보조 액션 */}
                       <div className="grid grid-cols-3 gap-2">
                         <button onClick={() => { setScanState('idle'); resetAnalysis(); }}
                           className="py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl active:scale-95 transition hover:bg-zinc-50">
@@ -358,9 +394,9 @@ export default function DesktopLayout({
                             <Sparkles className="w-3.5 h-3.5" /> 코디 추천
                           </button>
                         </Link>
-                        <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
-                          className="py-3 bg-black text-white font-extrabold tracking-tighter text-[11px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-0.5 hover:bg-zinc-800">
-                          AI 추출 <ChevronRight className="w-3.5 h-3.5" />
+                        <button onClick={handleSaveToFeed}
+                          className="py-3 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-1 hover:bg-zinc-200">
+                          <Bookmark className="w-3.5 h-3.5" /> 저장
                         </button>
                       </div>
                     </div>

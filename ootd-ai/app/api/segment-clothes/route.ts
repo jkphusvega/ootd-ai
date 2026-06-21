@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     const mimeType = image.slice(0, commaIdx).split(':')[1]?.split(';')[0] || 'image/jpeg';
     const base64Data = image.slice(commaIdx + 1);
     
-    // 환경 변수 검증 (Milestone 2에서는 Gemini 2.5 Flash를 사용하여 최고 속도로 바운딩 박스를 뽑습니다)
+    // 환경 변수 검증 (gemini-3.5-flash 사용으로 속도 및 안정성 개선)
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("Gemini API Key가 설정되지 않았습니다.");
 
@@ -72,8 +72,8 @@ Return ONLY raw JSON (no markdown, no code fences):
       }
     };
 
-    // 2.5-flash 과부하 시 1.5-flash로 fallback, 각 모델 최대 2회 재시도
-    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    // 3.5-flash 과부하 시 2.5-flash로 fallback, 각 모델 최대 2회 재시도
+    const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
     let responseText = '';
     let lastError: unknown;
 
@@ -93,7 +93,7 @@ Return ONLY raw JSON (no markdown, no code fences):
           const msg = e instanceof Error ? e.message : '';
           const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
           if (!isOverloaded) break;
-          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+          if (attempt === 0) await new Promise(r => setTimeout(r, 800));
         }
       }
     }

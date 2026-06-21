@@ -1,6 +1,6 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ScanLine, RefreshCw, Bookmark, ChevronRight, ImagePlus, Camera, TrendingUp, TrendingDown, CloudSun } from 'lucide-react';
+import { Sparkles, ScanLine, RefreshCw, Bookmark, ImagePlus, Camera, TrendingUp, TrendingDown, CloudSun, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 
@@ -13,6 +13,7 @@ interface Props {
   base64Image: string | null;
   isStreaming: boolean;
   isRateLimited: boolean;
+  wardrobeCount: number;
   retryAnalysis: () => void;
   handleSaveToFeed: () => void;
   triggerCamera: () => void;
@@ -50,12 +51,13 @@ function Skeleton({ w = 'full' }: { w?: string }) {
 
 export default function MobileAnalysisTab({
   scanState, setScanState, critique, partialCritique,
-  hasCustomImage, base64Image, isStreaming, isRateLimited,
+  hasCustomImage, base64Image, isStreaming, isRateLimited, wardrobeCount,
   retryAnalysis, handleSaveToFeed, triggerCamera, triggerGallery, onSwitchToCuration,
 }: Props) {
   const router = useRouter();
   const d = critique ?? partialCritique;
   const scoreColor = barColor(d?.score);
+  const isFirstTime = wardrobeCount < 5;
 
   return (
     <motion.div key="analysis-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
@@ -64,15 +66,32 @@ export default function MobileAnalysisTab({
       <AnimatePresence>
         {scanState === 'idle' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-x-12 top-[25%] bottom-[30%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex flex-col items-center justify-center gap-3 drop-shadow-md">
+            className="absolute inset-x-12 top-[22%] bottom-[32%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex flex-col items-center justify-center gap-4 drop-shadow-md px-4">
             {hasCustomImage && base64Image ? (
               <button onClick={retryAnalysis}
                 className="pointer-events-auto px-6 py-3 rounded-full bg-black text-white text-[11px] font-extrabold tracking-widest uppercase flex items-center gap-2 shadow-xl active:scale-95 transition">
                 <RefreshCw className="w-4 h-4" /> 다시 분석하기
               </button>
             ) : (
-              <div className="px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-zinc-800 text-[10px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg">
-                <ScanLine className="w-4 h-4" /> 카메라 버튼을 눌러 OOTD를 촬영하세요
+              <div className="flex flex-col items-center gap-3 text-center">
+                {isFirstTime ? (
+                  <>
+                    <div className="px-5 py-2.5 rounded-full bg-black/80 backdrop-blur-md text-white text-[11px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg pointer-events-none">
+                      <Camera className="w-3.5 h-3.5" /> 오늘 착장을 찍어주세요
+                    </div>
+                    <div className="px-4 py-2.5 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200 shadow-sm pointer-events-none">
+                      <p className="text-[10px] font-bold text-zinc-600 text-center leading-relaxed">
+                        사진 한 장이면 AI가<br />
+                        <span className="text-black font-extrabold">상의·하의·아우터</span>를 자동으로<br />
+                        옷장에 등록해줘요
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-zinc-800 text-[10px] tracking-widest font-extrabold uppercase flex items-center gap-2 shadow-lg pointer-events-none">
+                    <ScanLine className="w-4 h-4" /> 오늘 착장을 촬영하세요
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
@@ -94,7 +113,7 @@ export default function MobileAnalysisTab({
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
                 className="px-6 py-4 bg-white/95 backdrop-blur-xl rounded-full border border-zinc-200 text-black font-extrabold tracking-widest text-[11px] uppercase shadow-xl flex items-center gap-3">
-                <Sparkles className="w-4 h-4" /> 에디터 모델 분석 중...
+                <Sparkles className="w-4 h-4" /> 착장 분석 중...
               </motion.div>
             </div>
           </motion.div>
@@ -227,12 +246,20 @@ export default function MobileAnalysisTab({
                 </div>
               )}
 
-              {/* 액션 버튼 */}
+              {/* 액션 버튼 — 옷장 등록이 메인 CTA */}
               {critique && !isStreaming && (
                 <div className="flex flex-col gap-2">
-                  <button onClick={handleSaveToFeed}
-                    className="w-full py-4 bg-zinc-900 text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-95 transition flex items-center justify-center gap-2">
-                    <Bookmark className="w-4 h-4" /> OOTD 피드에 저장하기
+                  <button
+                    onClick={() => {
+                      if (base64Image) {
+                        sessionStorage.setItem('ootd_transfer_image', base64Image);
+                        sessionStorage.setItem('ootd_auto_start', 'true');
+                        router.push('/add-clothes');
+                      }
+                    }}
+                    className="w-full py-4 bg-black text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-95 transition flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> 옷장에 자동 등록하기
                   </button>
                   <div className="grid grid-cols-3 gap-2">
                     <button onClick={() => setScanState('idle')}
@@ -243,9 +270,9 @@ export default function MobileAnalysisTab({
                       className="py-3.5 bg-purple-50 border border-purple-200 text-purple-900 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-1">
                       <Sparkles className="w-3 h-3" /> 코디 추천
                     </button>
-                    <button onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
-                      className="py-3.5 bg-black text-white font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-0.5">
-                      AI 추출 <ChevronRight className="w-3 h-3" />
+                    <button onClick={handleSaveToFeed}
+                      className="py-3.5 bg-zinc-100 border border-zinc-200 text-zinc-700 font-extrabold tracking-tighter text-[10px] uppercase rounded-xl active:scale-95 transition flex items-center justify-center gap-0.5">
+                      <Bookmark className="w-3 h-3" /> 저장
                     </button>
                   </div>
                 </div>

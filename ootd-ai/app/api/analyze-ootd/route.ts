@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       inlineData: { data: base64Data, mimeType: 'image/jpeg' as const }
     };
 
-    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
 
     let profileContext = '';
     if (userProfile) {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           const msg = e instanceof Error ? e.message : '';
           const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
           if (!isOverloaded) throw e;
-          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+          if (attempt === 0) await new Promise(r => setTimeout(r, 800));
         }
       }
     }

@@ -141,7 +141,7 @@ Return JSON only:
 IMPORTANT: Only return raw JSON. No markdown. Write title, description, and reasons in Korean.`;
 
     // Gemini 호출 — 2.5-flash 실패 시 1.5-flash로 fallback, 각 모델 최대 2회 재시도
-    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
     let responseText = '';
     let lastError: unknown;
 
@@ -161,7 +161,7 @@ IMPORTANT: Only return raw JSON. No markdown. Write title, description, and reas
           const msg = e instanceof Error ? e.message : '';
           const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
           if (!isOverloaded) break; // 과부하 아닌 에러는 즉시 fallback
-          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+          if (attempt === 0) await new Promise(r => setTimeout(r, 800));
         }
       }
     }

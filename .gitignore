@@ -1,0 +1,19 @@
+# 다른 프로젝트 폴더 - git 추적 제외
+pathfinder/
+
+# node_modules (하위 프로젝트 포함)
+**/node_modules/
+
+# 빌드 결과물
+**/dist/
+**/.next/
+**/out/
+**/build/
+
+# 환경 변수
+**/.env*
+
+# 기타
+.DS_Store
+*.pem
+*.tsbuildinfo

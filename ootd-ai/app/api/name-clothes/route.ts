@@ -5,7 +5,7 @@ import { checkRateLimit } from '../../../lib/rateLimit';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -46,7 +46,7 @@ Return ONLY raw JSON: { "name": "<Korean name, 15 chars max>" }`;
           const msg = e instanceof Error ? e.message : '';
           const isOverloaded = msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE');
           if (!isOverloaded) break;
-          if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+          if (attempt === 0) await new Promise(r => setTimeout(r, 800));
         }
       }
     }

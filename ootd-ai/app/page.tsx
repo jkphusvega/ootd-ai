@@ -24,7 +24,8 @@ export default function Home() {
   const weather = useWeather();
   const { toast } = useToast();
   const [showSplash, setShowSplash] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'curation' | 'analysis'>('curation');
+  const [mobileTab, setMobileTab] = useState<'curation' | 'analysis'>('analysis');
+  const [initialTabSet, setInitialTabSet] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{ nickname?: string; profile_image?: string; [key: string]: unknown } | null>(null);
 
@@ -59,6 +60,14 @@ export default function Home() {
       } catch (e) { console.error('[profile]', e); }
     })();
   }, [user, authLoading, router, supabase]);
+
+  // 옷장 데이터 기반 초기 탭 설정: 아이템 5개 이상이면 큐레이션이 기본
+  useEffect(() => {
+    if (!initialTabSet && curation.wardrobeCount !== undefined) {
+      setMobileTab(curation.wardrobeCount >= 5 ? 'curation' : 'analysis');
+      setInitialTabSet(true);
+    }
+  }, [curation.wardrobeCount, initialTabSet]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -177,6 +186,7 @@ export default function Home() {
               critique={analysis.critique} partialCritique={analysis.partialCritique}
               hasCustomImage={analysis.hasCustomImage} base64Image={analysis.base64Image}
               isStreaming={analysis.isStreaming} isRateLimited={analysis.isRateLimited}
+              wardrobeCount={curation.wardrobeCount ?? 0}
               retryAnalysis={analysis.retryAnalysis} handleSaveToFeed={analysis.handleSaveToFeed}
               triggerCamera={analysis.triggerCamera} triggerGallery={analysis.triggerGallery}
               onSwitchToCuration={() => setMobileTab('curation')}
