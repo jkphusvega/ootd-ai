@@ -66,14 +66,18 @@ export async function POST(request: Request) {
 
 작성 규칙:
 - headline: 직설적이고 핵심을 찌를 것 (예: "컬러는 완벽, 비율이 발목 잡는 룩")
-- strengths/improvements: 각 2개, 구체적인 아이템 언급 필수
-- tips: 2개, 당장 실행 가능한 것 (착장 변경, 아이템 추가/교체)
+- strengths/improvements: 각 2개, 구체적인 아이템 언급 필수, 핵심 단어·구절은 **볼드**로 표시
+- tips: 2개, 당장 실행 가능한 것 (착장 변경, 아이템 추가/교체), 핵심 행동은 **볼드**로 표시
 - weatherNote: 날씨와 옷차림의 관계를 한 문장으로
 - 모든 텍스트 한국어, JSON만 반환`;
 
     let streamResult: Awaited<ReturnType<ReturnType<typeof genAI.getGenerativeModel>['generateContentStream']>> | null = null;
     outer: for (const modelName of MODELS) {
-      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4 } });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { temperature: 0.4 },
+        systemInstruction: '당신은 서울 기반의 전문 패션 에디터입니다. strengths, improvements, tips 항목에서 핵심 단어·구절은 반드시 **볼드** 마크다운으로 표시하세요.',
+      });
       // thinkingConfig는 gemini-2.5-flash 전용 — 다른 모델에 보내면 Invalid Argument 에러 발생
       const callOptions = modelName === 'gemini-2.5-flash'
         ? { thinkingConfig: { thinkingBudget: 0 } }
