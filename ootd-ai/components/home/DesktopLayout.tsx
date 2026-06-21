@@ -420,7 +420,24 @@ export default function DesktopLayout({
                     <div className="flex flex-col gap-2.5 mt-1">
                       {/* 메인 CTA: 옷장 등록 */}
                       <button
-                        onClick={() => { if (base64Image) { sessionStorage.setItem('ootd_transfer_image', base64Image); sessionStorage.setItem('ootd_auto_start', 'true'); router.push('/add-clothes'); } }}
+                        onClick={async () => {
+                          if (!base64Image) return;
+                          try {
+                            const img = new Image();
+                            await new Promise<void>(r => { img.onload = () => r(); img.src = base64Image; });
+                            const MAX = 1024;
+                            let w = img.width, h = img.height;
+                            if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+                            else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w; canvas.height = h;
+                            canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+                            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+                            sessionStorage.setItem('ootd_transfer_image', compressed);
+                            sessionStorage.setItem('ootd_auto_start', 'true');
+                          } catch { /* fallback: navigate without image */ }
+                          router.push('/add-clothes');
+                        }}
                         className="w-full py-3.5 bg-black text-white font-extrabold tracking-widest text-[11px] uppercase rounded-2xl active:scale-[0.98] transition flex items-center justify-center gap-2 hover:bg-zinc-800"
                       >
                         <Plus className="w-4 h-4" /> 옷장에 자동 등록하기
