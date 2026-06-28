@@ -386,6 +386,40 @@ export default function AddClothesPage() {
     img.src = objectUrl;
   };
 
+  // 클립보드 붙여넣기 (Ctrl+V / Win+Shift+S 후 붙여넣기)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (step !== 'upload') return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (!file) break;
+          if (originalImage?.startsWith('blob:')) URL.revokeObjectURL(originalImage);
+          const objectUrl = URL.createObjectURL(file);
+          setOriginalImage(objectUrl);
+          const img = new Image();
+          img.onload = () => {
+            const MAX = 1024;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+            else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+            setBase64Original(canvas.toDataURL('image/jpeg', 0.85));
+          };
+          img.src = objectUrl;
+          toast('이미지가 붙여넣기됐어요', 'success');
+          break;
+        }
+      }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [step, originalImage]);
+
   // sessionStorage 자동 시작 (OOTD → AI 추출 연동)
   useEffect(() => {
     const transferImage = sessionStorage.getItem('ootd_transfer_image');
@@ -470,7 +504,7 @@ export default function AddClothesPage() {
                     <ImagePlus className="w-7 h-7 text-zinc-400" strokeWidth={1.5} />
                   </div>
                   <p className="text-sm font-bold text-zinc-500">사진을 탭해서 올려주세요</p>
-                  <p className="text-xs text-zinc-400">정면 전신샷 권장</p>
+                  <p className="text-xs text-zinc-400">정면 전신샷 권장 · Ctrl+V로 붙여넣기 가능</p>
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
