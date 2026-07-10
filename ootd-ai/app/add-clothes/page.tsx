@@ -653,7 +653,8 @@ export default function AddClothesPage() {
             </button>
 
             {/* 저장 버튼 (fixed bottom) */}
-            <div className="fixed bottom-0 left-0 right-0 p-5 bg-white/90 dark:bg-[#0c0c0f]/90 backdrop-blur-xl border-t border-zinc-100 dark:border-zinc-800">
+            <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#0c0c0f]/90 backdrop-blur-xl border-t border-zinc-100 dark:border-zinc-800 safe-area-bottom"
+              style={{ paddingTop: '1.25rem', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}>
               <div className="max-w-md mx-auto">
                 <button
                   onClick={handleSave}

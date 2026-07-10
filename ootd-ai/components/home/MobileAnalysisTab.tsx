@@ -145,7 +145,7 @@ export default function MobileAnalysisTab({
             </div>
 
             {/* ── 디테일 시트 ── */}
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950 rounded-t-[2rem] -mt-6 relative z-10 px-5 pt-5 pb-28 [&::-webkit-scrollbar]:hidden">
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950 rounded-t-[2rem] -mt-6 relative z-10 px-5 pt-5 pb-40 [&::-webkit-scrollbar]:hidden">
               <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
 
               {/* 카테고리 점수 배지 행 */}
