@@ -7,6 +7,7 @@ import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
 import { logEvent } from '../../lib/analytics';
+import { logCorrections, CorrectionEntry } from '../../lib/logCorrection';
 
 let removeBackgroundFn: typeof import('@imgly/background-removal').removeBackground | null = null;
 
@@ -24,6 +25,7 @@ interface ExtractedItem {
   image: string;
   name: string;
   nameLoading: boolean;
+  isManual?: boolean;
 }
 
 interface FailedItem {
@@ -78,6 +80,8 @@ export default function AddClothesPage() {
   const [editingName, setEditingName] = useState('');
   const [stickerMode] = useState(true);
   const autoStartRef = useRef(false);
+  // AI 최초 출력 스냅샷 — 저장 시점에 사용자 수정 내용과 비교해 correction_logs에 기록
+  const originalItemsRef = useRef<Map<string, ExtractedItem>>(new Map());
   const [showManualPicker, setShowManualPicker] = useState(false);
   const [pickStart, setPickStart] = useState<{x:number,y:number}|null>(null);
   const [pickEnd, setPickEnd] = useState<{x:number,y:number}|null>(null);
@@ -242,6 +246,7 @@ export default function AddClothesPage() {
       setResultItems(prev => [...prev, {
         id, category: manualCategory, image: extracted!,
         name: CATEGORY_LABELS[manualCategory] || manualCategory, nameLoading: false,
+        isManual: true,
       }]);
       setShowManualPicker(false);
       setPickStart(null);
@@ -329,6 +334,7 @@ export default function AddClothesPage() {
       }
 
       setResultItems(newItems);
+      originalItemsRef.current = new Map(newItems.map(i => [i.id, { ...i }]));
       setStep('confirm');
     } catch (e) {
       toast(e instanceof Error ? e.message : '오류가 발생했어요.', 'error');
@@ -340,6 +346,8 @@ export default function AddClothesPage() {
     if (!user || resultItems.length === 0) return;
     setIsSaving(true);
     try {
+      const uploadedUrls = new Map<string, string>(); // item.id → publicUrl
+
       for (const item of resultItems) {
         const res = await fetch(item.image);
         if (!res.ok) throw new Error(`이미지 로드 실패: ${res.statusText}`);
@@ -348,6 +356,7 @@ export default function AddClothesPage() {
         const { error: uploadErr } = await supabase.storage.from('clothes').upload(fileName, blob, { contentType: 'image/webp' });
         if (uploadErr) throw new Error(uploadErr.message);
         const { data: { publicUrl } } = supabase.storage.from('clothes').getPublicUrl(fileName);
+        uploadedUrls.set(item.id, publicUrl);
         const { error: dbErr } = await supabase.from('clothes').insert({
           category: item.category,
           name: item.name,
@@ -356,6 +365,42 @@ export default function AddClothesPage() {
         });
         if (dbErr) throw new Error(dbErr.message);
       }
+
+      // ── 수정 로그 수집 ──────────────────────────────────────
+      const corrections: CorrectionEntry[] = [];
+      const savedIds = new Set(resultItems.map(i => i.id));
+
+      // AI가 찾았으나 사용자가 삭제한 아이템
+      for (const [id, orig] of originalItemsRef.current) {
+        if (!savedIds.has(id)) {
+          corrections.push({ action: 'item_delete', ai_name: orig.name, ai_category: orig.category });
+        }
+      }
+
+      // 저장된 아이템 — 수동 추가 vs AI 출력 대비 수정
+      for (const item of resultItems) {
+        if (item.isManual) {
+          corrections.push({ action: 'manual_add', user_category: item.category, user_name: item.name });
+          continue;
+        }
+        const orig = originalItemsRef.current.get(item.id);
+        if (!orig) continue;
+        const nameChanged = orig.name !== item.name;
+        const catChanged  = orig.category !== item.category;
+        if (!nameChanged && !catChanged) continue;
+        corrections.push({
+          action: nameChanged && catChanged ? 'name_and_category' : nameChanged ? 'name_edit' : 'category_change',
+          ai_name: orig.name,
+          ai_category: orig.category,
+          user_name: nameChanged ? item.name : null,
+          user_category: catChanged ? item.category : null,
+          item_image_url: uploadedUrls.get(item.id) ?? null,
+        });
+      }
+
+      await logCorrections(supabase, user.id, corrections);
+      // ────────────────────────────────────────────────────────
+
       logEvent(user.id, 'clothes_added', { count: resultItems.length, pipeline: 'auto' });
       router.push('/wardrobe');
     } catch (e) {
