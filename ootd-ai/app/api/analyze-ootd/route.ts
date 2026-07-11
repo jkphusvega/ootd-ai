@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 - strengths/improvements: 각 2개, 구체적인 아이템 언급 필수
 - tips: 2개, 당장 실행 가능한 것 (착장 변경, 아이템 추가/교체)
 - weatherNote: 날씨와 옷차림의 관계를 한 문장으로
-- itemAnnotations: 3-4개, 사진에 보이는 아이템별 핵심 평가 (15자 이내). zone — head(모자/헤어), upper(상의/어깨), mid(허리/코어), lower(하의/다리), feet(신발) 중 하나
+- itemAnnotations: 3-4개, 핵심 평가만. zone 선택 기준 — head(모자·헤어스타일에 대한 코멘트일 때만), upper(셔츠·자켓·어깨·소매 등 상의), mid(허리선·벨트·상하의 비율), lower(팬츠·스커트 등 하의·다리 라인), feet(신발·양말). 드롭숄더 셔츠는 반드시 upper. text는 15자 이내 한국어
 - 모든 텍스트 한국어, JSON만 반환`;
 
     let streamResult: Awaited<ReturnType<ReturnType<typeof genAI.getGenerativeModel>['generateContentStream']>> | null = null;

@@ -2,50 +2,76 @@
 import { motion } from 'framer-motion';
 import type { ItemAnnotation } from '../../hooks/useOotdAnalysis';
 
-const ZONE_Y: Record<string, number> = { head: 8, upper: 25, mid: 42, lower: 60, feet: 80 };
+const ZONE_Y: Record<string, number> = { head: 8, upper: 26, mid: 44, lower: 62, feet: 82 };
 
 export default function AnnotationOverlay({ annotations }: { annotations: ItemAnnotation[] }) {
   const sorted = [...annotations].sort((a, b) => (ZONE_Y[a.zone] ?? 50) - (ZONE_Y[b.zone] ?? 50));
+
   return (
     <motion.div
       className="absolute inset-0 pointer-events-none overflow-hidden"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}
     >
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {sorted.map((ann, i) => {
-          const y = ZONE_Y[ann.zone] ?? 50;
-          const isLeft = i % 2 === 0;
-          const lineEndX = isLeft ? 37 : 63;
-          const color = ann.type === 'strength' ? '#22c55e' : '#f59e0b';
-          return (
-            <g key={i}>
-              <circle cx={50} cy={y} r="2" fill={color} opacity="0.85" />
-              <circle cx={50} cy={y} r="0.9" fill="white" />
-              <line x1={50} y1={y} x2={lineEndX} y2={y} stroke={color} strokeWidth="0.4" opacity="0.8" />
-              <circle cx={lineEndX} cy={y} r="0.7" fill={color} />
-            </g>
-          );
-        })}
-      </svg>
       {sorted.map((ann, i) => {
         const y = ZONE_Y[ann.zone] ?? 50;
         const isLeft = i % 2 === 0;
         const isStrength = ann.type === 'strength';
+        const dotColor = isStrength ? '#16a34a' : '#d97706';
+        const bgColor = isStrength ? 'rgba(22,163,74,0.88)' : 'rgba(217,119,6,0.88)';
+
         return (
-          <div
+          <motion.div
             key={i}
-            className={`absolute flex items-center gap-1 px-2 py-1 rounded-full text-[8px] font-bold backdrop-blur-md leading-tight max-w-[34%]
-              ${isStrength ? 'bg-emerald-500/80 text-white' : 'bg-amber-500/80 text-white'}`}
-            style={{
-              top: `${y}%`,
-              transform: 'translateY(-50%)',
-              ...(isLeft ? { left: '2%' } : { right: '2%' }),
-              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
-            }}
+            initial={{ opacity: 0, x: isLeft ? -6 : 6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 + i * 0.12, duration: 0.35, ease: 'easeOut' }}
           >
-            <span className="shrink-0">{isStrength ? '✓' : '↑'}</span>
-            <span className="truncate">{ann.text}</span>
-          </div>
+            {/* Dot */}
+            <div
+              className="absolute rounded-full border-[2px] border-white"
+              style={{
+                width: 10, height: 10,
+                left: '50%', top: `${y}%`,
+                transform: 'translate(-50%, -50%)',
+                background: dotColor,
+                boxShadow: `0 0 0 3px ${dotColor}40, 0 1px 4px rgba(0,0,0,0.4)`,
+              }}
+            />
+            {/* Line */}
+            <div
+              className="absolute"
+              style={{
+                height: 1.5,
+                top: `${y}%`,
+                background: `linear-gradient(${isLeft ? 'to left' : 'to right'}, transparent, ${dotColor}cc)`,
+                ...(isLeft
+                  ? { left: '35%', right: '50%' }
+                  : { left: '50%', right: '33%' }
+                ),
+              }}
+            />
+            {/* Badge */}
+            <div
+              className="absolute flex items-center gap-1.5 rounded-xl text-white font-semibold shadow-lg max-w-[32%]"
+              style={{
+                fontSize: 10,
+                lineHeight: 1.3,
+                padding: '5px 9px',
+                top: `${y}%`,
+                transform: 'translateY(-50%)',
+                background: bgColor,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                ...(isLeft ? { left: '2%' } : { right: '2%' }),
+              }}
+            >
+              <span style={{ fontSize: 9, flexShrink: 0 }}>{isStrength ? '✓' : '!'}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {ann.text}
+              </span>
+            </div>
+          </motion.div>
         );
       })}
     </motion.div>
