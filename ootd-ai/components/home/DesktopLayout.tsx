@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 import type { WeatherData } from '../../hooks/useWeather';
 import DesktopWeatherDashboard from './DesktopWeatherDashboard';
+import AnnotationOverlay from './AnnotationOverlay';
 interface UserProfile { nickname?: string; [key: string]: unknown; }
 
 type ScanState = 'idle' | 'scanning' | 'success' | 'error';
@@ -144,6 +145,9 @@ export default function DesktopLayout({
               {hasCustomImage ? (
                 <>
                   <img src={originalImage} alt="Uploaded OOTD" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+                  {critique?.itemAnnotations && critique.itemAnnotations.length > 0 && (
+                    <AnnotationOverlay annotations={critique.itemAnnotations} />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="px-4 py-2 bg-white/90 backdrop-blur rounded-xl text-center text-xs font-bold text-zinc-700 shadow">
