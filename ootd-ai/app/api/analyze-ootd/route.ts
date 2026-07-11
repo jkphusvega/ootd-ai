@@ -61,7 +61,8 @@ export async function POST(request: Request) {
   "strengths": ["<이 룩에서 잘된 점 1, 구체적 아이템 언급>", "<잘된 점 2>"],
   "improvements": ["<구체적 개선점 1, 아이템+방향>", "<구체적 개선점 2>"],
   "tips": ["<실행 가능한 스타일링 팁 1>", "<팁 2>"],
-  "weatherNote": "<현재 날씨 기준 이 옷차림의 적합성 한 줄>"
+  "weatherNote": "<현재 날씨 기준 이 옷차림의 적합성 한 줄>",
+  "itemAnnotations": [{"zone":"<head|upper|mid|lower|feet>","type":"<strength|improvement>","text":"<15자 이내 한국어>"}]
 }
 
 작성 규칙:
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
 - strengths/improvements: 각 2개, 구체적인 아이템 언급 필수
 - tips: 2개, 당장 실행 가능한 것 (착장 변경, 아이템 추가/교체)
 - weatherNote: 날씨와 옷차림의 관계를 한 문장으로
+- itemAnnotations: 3-4개, 사진에 보이는 아이템별 핵심 평가 (15자 이내). zone — head(모자/헤어), upper(상의/어깨), mid(허리/코어), lower(하의/다리), feet(신발) 중 하나
 - 모든 텍스트 한국어, JSON만 반환`;
 
     let streamResult: Awaited<ReturnType<ReturnType<typeof genAI.getGenerativeModel>['generateContentStream']>> | null = null;

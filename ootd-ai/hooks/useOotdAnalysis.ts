@@ -2,6 +2,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { logEvent } from '../lib/analytics';
 
+export interface ItemAnnotation {
+  zone: 'head' | 'upper' | 'mid' | 'lower' | 'feet';
+  type: 'strength' | 'improvement';
+  text: string;
+}
+
 export interface FashionCritique {
   score: number;
   fit: number;
@@ -13,6 +19,7 @@ export interface FashionCritique {
   improvements: string[];
   tips: string[];
   weatherNote: string;
+  itemAnnotations?: ItemAnnotation[];
 }
 
 interface WeatherInfo { temperature: number; condition: string; }
@@ -68,6 +75,26 @@ export function useOotdAnalysis({
     const strengths = arr('strengths'); if (strengths) r.strengths = strengths;
     const improvements = arr('improvements'); if (improvements) r.improvements = improvements;
     const tips = arr('tips'); if (tips) r.tips = tips;
+
+    // itemAnnotations — bracket-counting parser for array of objects
+    const annIdx = text.indexOf('"itemAnnotations"');
+    if (annIdx !== -1) {
+      const arrStart = text.indexOf('[', annIdx);
+      if (arrStart !== -1) {
+        let depth = 0, arrEnd = -1;
+        for (let j = arrStart; j < text.length; j++) {
+          if (text[j] === '[' || text[j] === '{') depth++;
+          else if (text[j] === ']' || text[j] === '}') { depth--; if (depth === 0) { arrEnd = j + 1; break; } }
+        }
+        if (arrEnd !== -1) {
+          try {
+            const parsed = JSON.parse(text.slice(arrStart, arrEnd));
+            if (Array.isArray(parsed) && parsed.length > 0) r.itemAnnotations = parsed;
+          } catch {}
+        }
+      }
+    }
+
     return r;
   };
 
@@ -206,6 +233,7 @@ export function useOotdAnalysis({
           headline: critique.headline,
           strengths: critique.strengths, improvements: critique.improvements,
           tips: critique.tips, weatherNote: critique.weatherNote,
+          itemAnnotations: critique.itemAnnotations ?? [],
         }),
         image_url: publicUrl,
         user_id: user.id,
