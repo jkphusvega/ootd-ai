@@ -7,6 +7,7 @@ import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 import type { WeatherData } from '../../hooks/useWeather';
 import DesktopWeatherDashboard from './DesktopWeatherDashboard';
 import AnnotationOverlay from './AnnotationOverlay';
+import StylistChat from './StylistChat';
 interface UserProfile { nickname?: string; [key: string]: unknown; }
 
 type ScanState = 'idle' | 'scanning' | 'success' | 'error';
@@ -317,6 +318,7 @@ export default function DesktopLayout({
                           ? <span className="text-3xl font-black leading-none">{d.score}</span>
                           : <span className="text-3xl font-black leading-none animate-pulse text-zinc-300">…</span>}
                         <span className="text-[7px] font-bold text-zinc-400 tracking-widest uppercase mt-0.5">SCORE</span>
+                        <span className="text-[7px] text-zinc-300 dark:text-zinc-600 mt-0.5">평균 65</span>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -373,12 +375,23 @@ export default function DesktopLayout({
                         <span className="text-xs font-extrabold text-amber-600">개선점</span>
                       </div>
                       {d.improvements?.length
-                        ? <ul className="flex flex-col gap-3">{d.improvements.map((s, i) => (
-                            <li key={i} className="flex items-start gap-2.5">
-                              <span className="text-amber-400 shrink-0 text-sm mt-0.5">→</span>
-                              <span className="text-[13px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
-                            </li>
-                          ))}</ul>
+                        ? <ul className="flex flex-col gap-3">{d.improvements.map((s, i) => {
+                            const [issue, fix] = s.split(' → ');
+                            return (
+                              <li key={i} className="flex flex-col gap-1">
+                                <div className="flex items-start gap-2.5">
+                                  <span className="text-amber-400 shrink-0 text-sm mt-0.5">!</span>
+                                  <span className="text-[13px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{issue}</span>
+                                </div>
+                                {fix && (
+                                  <div className="flex items-start gap-2 ml-5">
+                                    <span className="text-amber-300 shrink-0 text-[11px] mt-0.5">→</span>
+                                    <span className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold leading-snug">{fix}</span>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}</ul>
                         : <div className="flex flex-col gap-2"><Sk /><Sk w="4/5" /></div>}
                     </div>
                   </div>
@@ -418,6 +431,11 @@ export default function DesktopLayout({
                           : <Sk />}
                       </div>
                     </div>
+                  )}
+
+                  {/* 스타일리스트 팔로우업 채팅 */}
+                  {critique && !isStreaming && (
+                    <StylistChat critique={critique} />
                   )}
 
                   {critique && !isStreaming && (

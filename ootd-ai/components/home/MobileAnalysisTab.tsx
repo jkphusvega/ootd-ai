@@ -1,6 +1,7 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ScanLine, RefreshCw, Bookmark, ImagePlus, Camera, TrendingUp, TrendingDown, CloudSun, Plus } from 'lucide-react';
+import StylistChat from './StylistChat';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 import AnnotationOverlay from './AnnotationOverlay';
@@ -140,6 +141,7 @@ export default function MobileAnalysisTab({
                   ? <span className="text-3xl font-black text-white leading-none">{d.score}</span>
                   : <span className="text-3xl font-black text-white/30 leading-none animate-pulse">…</span>}
                 <span className="text-[7px] font-bold text-white/50 uppercase tracking-widest mt-0.5">총점</span>
+                <span className="text-[7px] text-white/30 mt-0.5">평균 65</span>
               </div>
 
               {/* 헤드라인 */}
@@ -198,13 +200,24 @@ export default function MobileAnalysisTab({
                   <span className="text-[10px] font-extrabold tracking-widest text-amber-600 uppercase">개선점</span>
                 </div>
                 {d.improvements?.length
-                  ? <ul className="flex flex-col gap-2.5">
-                      {d.improvements.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-amber-400 mt-0.5 shrink-0 text-sm">→</span>
-                          <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{s}</span>
-                        </li>
-                      ))}
+                  ? <ul className="flex flex-col gap-3">
+                      {d.improvements.map((s, i) => {
+                        const [issue, fix] = s.split(' → ');
+                        return (
+                          <li key={i} className="flex flex-col gap-1">
+                            <div className="flex items-start gap-2">
+                              <span className="text-amber-400 mt-0.5 shrink-0 text-sm">!</span>
+                              <span className="text-[12px] text-amber-900 dark:text-amber-200 font-medium leading-snug">{issue}</span>
+                            </div>
+                            {fix && (
+                              <div className="flex items-start gap-2 ml-4">
+                                <span className="text-amber-300 shrink-0 text-[11px] mt-0.5">→</span>
+                                <span className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold leading-snug">{fix}</span>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   : <div className="flex flex-col gap-2"><Skeleton /><Skeleton w="4/5" /></div>}
               </div>
@@ -244,6 +257,11 @@ export default function MobileAnalysisTab({
                       : <Skeleton w="full" />}
                   </div>
                 </div>
+              )}
+
+              {/* 스타일리스트 팔로우업 채팅 */}
+              {critique && !isStreaming && (
+                <StylistChat critique={critique} />
               )}
 
               {/* 액션 버튼 */}

@@ -5,6 +5,7 @@ const DAILY_LIMITS: Record<string, number> = {
   'segment-clothes': 30, // 옷 추출: 하루 30회
   'curate-outfit': 15,   // 코디 추천: 하루 15회
   'shopping': 10,        // 쇼핑 추천: 하루 10회
+  'ask-stylist': 3,      // 스타일리스트 팔로우업: 하루 3회 (무료 플랜)
 };
 
 /**
