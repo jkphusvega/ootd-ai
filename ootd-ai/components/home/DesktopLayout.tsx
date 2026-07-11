@@ -433,11 +433,6 @@ export default function DesktopLayout({
                     </div>
                   )}
 
-                  {/* 스타일리스트 팔로우업 채팅 */}
-                  {critique && !isStreaming && (
-                    <StylistChat critique={critique} />
-                  )}
-
                   {critique && !isStreaming && (
                     <div className="flex flex-col gap-2.5 mt-1">
                       {/* 메인 CTA: 옷장 등록 */}
@@ -466,7 +461,7 @@ export default function DesktopLayout({
                       </button>
                       {/* 보조 액션 */}
                       <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => { setScanState('idle'); resetAnalysis(); }}
+                        <button onClick={retryAnalysis}
                           className="py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-extrabold tracking-tighter text-[11px] uppercase rounded-xl active:scale-95 transition hover:bg-zinc-50">
                           다시 분석
                         </button>
@@ -481,6 +476,11 @@ export default function DesktopLayout({
                         </button>
                       </div>
                     </div>
+                  )}
+
+                  {/* 스타일리스트 팔로우업 채팅 — 액션 버튼 아래 */}
+                  {critique && !isStreaming && (
+                    <StylistChat critique={critique} />
                   )}
                 </motion.div>
               )}
