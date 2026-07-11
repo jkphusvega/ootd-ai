@@ -349,6 +349,11 @@ export default function DesktopLayout({
                     })}
                   </div>
 
+                  {/* 스타일리스트 팔로우업 채팅 — 점수 바로 아래 (항상 뷰포트 내) */}
+                  {critique && !isStreaming && (
+                    <StylistChat critique={critique} />
+                  )}
+
                   {/* 잘된 점 + 개선점 — 나란히 */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-5">
@@ -478,10 +483,6 @@ export default function DesktopLayout({
                     </div>
                   )}
 
-                  {/* 스타일리스트 팔로우업 채팅 — 액션 버튼 아래 */}
-                  {critique && !isStreaming && (
-                    <StylistChat critique={critique} />
-                  )}
                 </motion.div>
               )}
             </AnimatePresence>

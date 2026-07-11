@@ -53,10 +53,10 @@ export default function AnnotationOverlay({ annotations }: { annotations: ItemAn
             />
             {/* Badge */}
             <div
-              className="absolute flex items-center gap-1.5 rounded-xl text-white font-semibold shadow-lg max-w-[32%]"
+              className="absolute flex items-start gap-1.5 rounded-xl text-white font-semibold shadow-lg"
               style={{
                 fontSize: 10,
-                lineHeight: 1.3,
+                lineHeight: 1.4,
                 padding: '5px 9px',
                 top: `${y}%`,
                 transform: 'translateY(-50%)',
@@ -64,13 +64,13 @@ export default function AnnotationOverlay({ annotations }: { annotations: ItemAn
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                maxWidth: '36%',
+                wordBreak: 'keep-all',
                 ...(isLeft ? { left: '2%' } : { right: '2%' }),
               }}
             >
-              <span style={{ fontSize: 9, flexShrink: 0 }}>{isStrength ? '✓' : '!'}</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {ann.text}
-              </span>
+              <span style={{ fontSize: 9, flexShrink: 0, marginTop: 1 }}>{isStrength ? '✓' : '!'}</span>
+              <span>{ann.text}</span>
             </div>
           </motion.div>
         );
