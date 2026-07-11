@@ -2,7 +2,8 @@
 import { motion } from 'framer-motion';
 import type { ItemAnnotation } from '../../hooks/useOotdAnalysis';
 
-const ZONE_Y: Record<string, number> = { head: 8, upper: 26, mid: 44, lower: 62, feet: 82 };
+// y% = 전신 사진 기준 해당 신체 부위 위치 (얼굴보다 아래에서 시작)
+const ZONE_Y: Record<string, number> = { head: 12, upper: 33, mid: 49, lower: 65, feet: 84 };
 
 export default function AnnotationOverlay({ annotations }: { annotations: ItemAnnotation[] }) {
   const sorted = [...annotations].sort((a, b) => (ZONE_Y[a.zone] ?? 50) - (ZONE_Y[b.zone] ?? 50));
