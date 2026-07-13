@@ -78,17 +78,20 @@ export async function POST(request: Request) {
     if (userProfile) {
       const embedding = userProfile.style_embedding;
       const fitPref = userProfile.fit_preference;
-      const bodyGoal = userProfile.body_goal;
+      const bodyGoal = userProfile.body_goal && userProfile.body_goal !== 'none' ? userProfile.body_goal : null;
+      const styleMoods: string[] = userProfile.style_moods ?? [];
       const styleDesc = embedding
         ? `Style aesthetic: ${embedding.dominant_styles?.join(', ')} · color palette: ${embedding.dominant_colors?.join(', ')} · vibes: ${embedding.dominant_vibes?.join(', ')}.`
-        : `Style moods: ${userProfile.style_moods?.join(', ') || 'not specified'}.`;
+        : styleMoods.length > 0
+          ? `Preferred style: ${styleMoods.join(', ')}`
+          : null;
 
       profileContext = [
         `USER PROFILE:`,
         `- Height: ${userProfile.height}cm, Weight: ${userProfile.weight}kg`,
-        fitPref ? `- Fit preference: ${FIT_LABEL[fitPref] || fitPref} → YOU MUST select items that match this fit` : '',
+        fitPref && fitPref !== 'regular' ? `- Fit preference: ${FIT_LABEL[fitPref] || fitPref} → YOU MUST select items that match this fit` : '',
         bodyGoal ? `- Styling goal: ${GOAL_LABEL[bodyGoal] || bodyGoal} → YOU MUST apply this styling strategy when choosing items` : '',
-        `- ${styleDesc}`,
+        styleDesc ? `- ${styleDesc} → YOU MUST prioritize items and combinations that match this aesthetic` : '',
       ].filter(Boolean).join('\n');
     }
 

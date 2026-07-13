@@ -37,6 +37,7 @@ export function useMobileCuration({
   const [isCurating, setIsCurating] = useState(false);
   const [curationError, setCurationError] = useState<string | null>(null);
   const [wardrobeCount, setWardrobeCount] = useState(0);
+  const [feedbackCount, setFeedbackCount] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackType>(null);
   const [isSavingFeedback, setIsSavingFeedback] = useState(false);
   const savingFeedbackRef = useRef(false);
@@ -50,6 +51,13 @@ export function useMobileCuration({
       .eq('user_id', user.id)
       .neq('category', 'ootd_feed')
       .then(({ count }: { count: number | null }) => setWardrobeCount(count || 0));
+
+    supabase
+      .from('clothes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('category', 'ootd_feed')
+      .then(({ count }: { count: number | null }) => setFeedbackCount(count || 0));
   }, [user, supabase]);
 
   useEffect(() => {
@@ -88,7 +96,7 @@ export function useMobileCuration({
     fetchPastOutfits();
   }, [user, weather, supabase]);
 
-  const generateCuration = async () => {
+  const generateCuration = async (occasion?: string) => {
     if (!user || isCurating) return;
     setIsCurating(true);
     setCurationError(null);
@@ -102,6 +110,7 @@ export function useMobileCuration({
         body: JSON.stringify({
           weatherInfo: weather || { temperature: 20, condition: 'Clear' },
           userProfile: profile || null,
+          occasion: occasion || 'daily',
         }),
       });
       const data = await res.json();
@@ -140,6 +149,7 @@ export function useMobileCuration({
 
       if (error) throw error;
       setFeedback(type);
+      setFeedbackCount(c => c + 1);
     } catch (err) {
       console.error('[submitFeedback]', err);
       toast('저장 중 오류가 발생했습니다.', 'error');
@@ -150,7 +160,7 @@ export function useMobileCuration({
   }, [user, curation, weather, supabase]);
 
   return {
-    curation, isCurating, curationError, wardrobeCount,
+    curation, isCurating, curationError, wardrobeCount, feedbackCount,
     feedback, isSavingFeedback, pastSimilarOutfits,
     generateCuration, submitFeedback,
   };

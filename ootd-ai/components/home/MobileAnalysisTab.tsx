@@ -5,6 +5,7 @@ import StylistChat from './StylistChat';
 import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 import AnnotationOverlay from './AnnotationOverlay';
+import FlowDemoOverlay from './FlowDemoOverlay';
 
 interface Props {
   scanState: 'idle' | 'scanning' | 'success' | 'error';
@@ -57,13 +58,22 @@ export default function MobileAnalysisTab({
 
   return (
     <motion.div key="analysis-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
+      <FlowDemoOverlay />
 
       {/* Idle Prompt */}
       <AnimatePresence>
         {scanState === 'idle' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-x-12 top-[22%] bottom-[32%] border-[2px] border-white/60 rounded-[3rem] pointer-events-none z-10 flex flex-col items-center justify-center gap-4 drop-shadow-md px-4">
-            {hasCustomImage && base64Image ? (
+            {isRateLimited ? (
+              <div className="pointer-events-auto flex flex-col items-center gap-2 text-center px-2">
+                <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md border border-zinc-200 flex items-center justify-center shadow-md mb-1">
+                  <span className="text-lg">🔒</span>
+                </div>
+                <p className="text-[12px] font-extrabold text-white drop-shadow-md">오늘 분석 횟수를 모두 사용했어요</p>
+                <p className="text-[10px] text-white/70 drop-shadow font-semibold">내일 다시 이용할 수 있어요</p>
+              </div>
+            ) : hasCustomImage && base64Image ? (
               <button onClick={retryAnalysis}
                 className="pointer-events-auto px-6 py-3 rounded-full bg-black text-white text-[11px] font-extrabold tracking-widest uppercase flex items-center gap-2 shadow-xl active:scale-95 transition">
                 <RefreshCw className="w-4 h-4" /> 다시 분석하기

@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Plus, Trash2, X, CloudSun, Sparkles, TrendingUp, TrendingDown, Star, Edit3, Link as LinkIcon, Save, Loader2, LayoutGrid, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import WardrobeGuideOverlay from '../../components/WardrobeGuideOverlay';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
@@ -198,6 +199,7 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 pb-28 lg:pb-8 font-sans">
+      <WardrobeGuideOverlay />
       <style>{`
         .sticker-effect {
           filter: drop-shadow(0px -3px 0px rgba(255,255,255,1)) drop-shadow(0px 3px 0px rgba(255,255,255,1)) drop-shadow(3px 0px 0px rgba(255,255,255,1)) drop-shadow(-3px 0px 0px rgba(255,255,255,1)) drop-shadow(0 15px 25px rgba(0,0,0,0.1));

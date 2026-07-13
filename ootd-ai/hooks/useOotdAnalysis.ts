@@ -245,7 +245,7 @@ export function useOotdAnalysis({
       toast('OOTD 갤러리에 저장되었습니다!\n(마이옷장 → OOTD Feeds 탭에서 확인하세요)', 'success');
       logEvent(user.id, 'ootd_saved_to_feed', { score: critique.score });
     } catch (e: unknown) {
-      toast('저장 실패: ' + (e instanceof Error ? e.message : '알 수 없는 오류'), 'error');
+      toast('저장에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setIsSaving(false);
     }

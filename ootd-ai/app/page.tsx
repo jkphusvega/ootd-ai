@@ -232,7 +232,7 @@ export default function Home() {
         <AnimatePresence mode="wait">
           {mobileTab === 'curation' && (
             <MobileCurationTab
-              weather={weather} wardrobeCount={curation.wardrobeCount}
+              weather={weather} wardrobeCount={curation.wardrobeCount} feedbackCount={curation.feedbackCount}
               curation={curation.curation} isCurating={curation.isCurating}
               curationError={curation.curationError} generateCuration={curation.generateCuration}
               feedback={curation.feedback} isSavingFeedback={curation.isSavingFeedback}

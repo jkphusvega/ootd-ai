@@ -1,8 +1,20 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, Lock } from 'lucide-react';
+import { Send, Sparkles, Lock, ExternalLink } from 'lucide-react';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
+
+function parseItems(text: string): { body: string; items: string[] } {
+  const itemsMatch = text.match(/##ITEMS:\s*(.+)$/m);
+  if (!itemsMatch) return { body: text, items: [] };
+  const items = itemsMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+  const body = text.replace(/\n?##ITEMS:\s*.+$/m, '').trim();
+  return { body, items };
+}
+
+function musinsaUrl(item: string) {
+  return `https://www.musinsa.com/search/goods?keyword=${encodeURIComponent(item)}`;
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,11 +25,39 @@ interface Props {
   critique: FashionCritique;
 }
 
-const SUGGESTED = [
-  '넣어입는게 나아, 크롭티로 바꾸는게 나아?',
-  '신발은 뭘 매치하면 좋아?',
-  '비슷한 느낌으로 더 더운 날 입을 수 있는 조합 알려줘',
-];
+function buildSuggestions(critique: FashionCritique): string[] {
+  const suggestions: string[] = [];
+
+  // 개선점에서 첫 번째 문제 → 구체적 질문 생성
+  if (critique.improvements?.length) {
+    const issue = critique.improvements[0].split(' → ')[0].trim();
+    suggestions.push(`${issue}를 어떻게 고치면 좋아?`);
+  }
+
+  // 가장 낮은 카테고리 점수 → 관련 질문
+  const cats = [
+    { key: 'fit' as const, label: '핏' },
+    { key: 'color' as const, label: '컬러 조합' },
+    { key: 'styling' as const, label: '스타일링' },
+  ];
+  const lowest = cats.sort((a, b) => (critique[a.key] ?? 100) - (critique[b.key] ?? 100))[0];
+  if (lowest && (critique[lowest.key] ?? 100) < 75) {
+    suggestions.push(`${lowest.label}을 더 좋게 만들 수 있는 방법 알려줘`);
+  }
+
+  // 잘된 점 기반 — 비슷한 스타일 확장 질문
+  if (critique.strengths?.length) {
+    suggestions.push('비슷한 무드로 다른 날씨에도 입을 수 있는 코디 알려줘');
+  }
+
+  // 폴백
+  if (suggestions.length < 2) {
+    suggestions.push('신발은 뭘 매치하면 좋아?');
+    suggestions.push('이 룩에 어울리는 아우터 추천해줘');
+  }
+
+  return suggestions.slice(0, 3);
+}
 
 export default function StylistChat({ critique }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,6 +68,7 @@ export default function StylistChat({ critique }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suggested = buildSuggestions(critique);
 
   useEffect(() => {
     if (isOpen) {
@@ -143,7 +184,7 @@ export default function StylistChat({ critique }: Props) {
               {messages.length === 0 && (
                 <div className="flex flex-col gap-2">
                   <p className="text-[11px] text-zinc-400 text-center mb-1">궁금한 것을 자유롭게 물어보세요</p>
-                  {SUGGESTED.map((s, i) => (
+                  {suggested.map((s, i) => (
                     <button
                       key={i}
                       onClick={() => send(s)}
@@ -155,25 +196,52 @@ export default function StylistChat({ critique }: Props) {
                 </div>
               )}
 
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-[12px] leading-relaxed font-medium
-                      ${msg.role === 'user'
-                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-br-sm'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-bl-sm'
-                      }`}
-                  >
-                    {msg.content || (
-                      <span className="flex gap-1 items-center py-0.5">
-                        <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </span>
-                    )}
+              {messages.map((msg, i) => {
+                if (msg.role === 'user') {
+                  return (
+                    <div key={i} className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-sm px-3 py-2 text-[12px] leading-relaxed font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900">
+                        {msg.content}
+                      </div>
+                    </div>
+                  );
+                }
+                const { body, items } = parseItems(msg.content);
+                return (
+                  <div key={i} className="flex justify-start">
+                    <div className="max-w-[90%] flex flex-col gap-2">
+                      <div className="rounded-2xl rounded-bl-sm px-3 py-2 text-[12px] leading-relaxed font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+                        {body || (
+                          <span className="flex gap-1 items-center py-0.5">
+                            <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        )}
+                      </div>
+                      {items.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <p className="text-[10px] text-zinc-400 font-semibold px-1">무신사에서 찾아보기</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {items.map((item, j) => (
+                              <a
+                                key={j}
+                                href={musinsaUrl(item)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                              >
+                                {item}
+                                <ExternalLink className="w-2.5 h-2.5 text-zinc-400 shrink-0" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {isLimited && (
                 <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800 mt-1">

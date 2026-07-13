@@ -149,7 +149,6 @@ export default function OnboardingPage() {
 
       if (error) {
         console.error('Supabase DB Error:', error);
-        toast(`DB 저장 에러: ${error.message} (${error.details || '상세없음'})`, 'error');
         throw error;
       }
 
@@ -157,11 +156,9 @@ export default function OnboardingPage() {
       localStorage.setItem('ootd_onboarded', 'true');
       router.push('/');
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Save profile error:', err);
-      if (err.message && !err.message.includes('DB 저장 에러')) {
-        toast(`저장 에러: ${err.message}`, 'error');
-      }
+      toast('프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setIsSaving(false);
     }

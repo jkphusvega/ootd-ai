@@ -14,9 +14,9 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#0c0c0f] px-6 text-center">
       <h1 className="text-6xl font-black text-zinc-200 mb-4">⚠️</h1>
-      <h2 className="text-xl font-extrabold text-zinc-800 mb-2">문제가 발생했습니다</h2>
+      <h2 className="text-xl font-extrabold text-zinc-800 dark:text-zinc-100 mb-2">문제가 발생했습니다</h2>
       <p className="text-sm text-zinc-400 mb-8 max-w-sm">
         일시적인 오류가 발생했습니다. 아래 버튼을 눌러 다시 시도해주세요.
       </p>

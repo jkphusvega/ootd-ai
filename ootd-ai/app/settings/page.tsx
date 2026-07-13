@@ -20,9 +20,10 @@ const MOODS = [
 ];
 
 const BODY_GOALS = [
-  { id: 'taller', label: '비율 보완 (다리가 길어보이게)', emoji: '📏' },
-  { id: 'broader', label: '체형 보완 (어깨/상체 커버)', emoji: '🏋️' },
-  { id: 'slimmer', label: '슬림 핏 (전체적으로 갸름하게)', emoji: '🕴️' },
+  { id: 'taller',     label: '비율 보완 (다리가 길어보이게)',  emoji: '📏' },
+  { id: 'broader',    label: '상체 보완 (어깨/상체 넓어보이게)', emoji: '🏋️' },
+  { id: 'slimmer',    label: '슬림 핏 (전체적으로 갸름하게)',  emoji: '🕴️' },
+  { id: 'cover_legs', label: '하체 커버 (다리 라인 가리기)',   emoji: '👖' },
 ];
 
 // 서비스 전용 문의 이메일 (개인 이메일 대신 서비스용 이메일 사용)
