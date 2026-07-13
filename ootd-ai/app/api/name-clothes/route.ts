@@ -24,9 +24,11 @@ export async function POST(req: Request) {
     const mimeType = image.slice(0, commaIdx).split(':')[1]?.split(';')[0] || 'image/jpeg';
     const base64Data = image.slice(commaIdx + 1);
 
-    const prompt = `This is a clothing item image (category: ${category}).
-Give it a short, specific Korean name that describes color + style + item type.
-Examples: "오버핏 블랙 후드집업", "베이지 린넨 슬랙스", "화이트 크롭 반팔티", "카키 카고 팬츠"
+    const prompt = `This is a cropped clothing item image (category: ${category}).
+Give it a short, specific Korean name that describes the EXACT color you see + style + item type.
+Examples: "오버핏 네이비 후드티", "베이지 린넨 슬랙스", "화이트 크롭 반팔티", "카키 카고 팬츠"
+
+IMPORTANT: Identify the ACTUAL color visible in the image — do not default to white.
 
 Return ONLY raw JSON: { "name": "<Korean name, 15 chars max>" }`;
 

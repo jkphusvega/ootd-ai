@@ -24,13 +24,11 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://ootdai.me",
     siteName: "OOTD AI",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "OOTD AI" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "OOTD AI — AI 패션 스타일리스트",
     description: "사진 한 장으로 AI가 코디를 분석하고 스타일링을 추천합니다",
-    images: ["/og-image.png"],
   },
 };
 

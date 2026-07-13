@@ -26,6 +26,7 @@ interface ExtractedItem {
   name: string;
   nameLoading: boolean;
   isManual?: boolean;
+  _rawCrop?: string | null;
 }
 
 interface FailedItem {
@@ -89,10 +90,9 @@ export default function AddClothesPage() {
   const [isExtractingManual, setIsExtractingManual] = useState(false);
   const pickerImgRef = useRef<HTMLImageElement>(null);
   const pointerDownRef = useRef(false);
-  const startClientRef = useRef<{x:number,y:number}|null>(null);
 
   // 단계별 진행 상태
-  const [extractPhase, setExtractPhase] = useState<1 | 2 | 3>(1);
+  const [extractPhase, setExtractPhase] = useState<1 | 2>(1);
   const [extractCurrent, setExtractCurrent] = useState(0);
   const [extractTotal, setExtractTotal] = useState(0);
 
@@ -156,7 +156,7 @@ export default function AddClothesPage() {
 
   const extractSingleItem = async (
     imgSrc: string, category: string, y_start: number, y_end: number
-  ): Promise<string> => {
+  ): Promise<{ display: string; rawCrop: string | null }> => {
     let xmin = 0.05, xmax = 0.95;
     const cat = category.toLowerCase();
     if (cat.includes('bottom')) { xmin = 0.10; xmax = 0.90; }
@@ -166,13 +166,13 @@ export default function AddClothesPage() {
     else if (cat.includes('bottom')) ymin = Math.max(ymin, 0.35);
     else if (cat.includes('shoe')) ymin = Math.max(ymin, 0.80);
 
-    // 기본 크롭 먼저 확보 (배경제거 실패 시 fallback용)
+    // 배경제거 없는 순수 크롭 — 명명(naming)용으로 색상 정확도가 높음
     const baseStrategy = STRATEGIES[0];
-    let fallbackCropped: string | null = null;
+    let rawCrop: string | null = null;
     try {
       const cropped = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax, baseStrategy);
-      fallbackCropped = await blobToBase64(cropped);
-    } catch { /* fallback 없이 진행 */ }
+      rawCrop = await blobToBase64(cropped);
+    } catch { /* rawCrop 없이 진행 */ }
 
     for (let s = 0; s < STRATEGIES.length; s++) {
       const strategy = STRATEGIES[s];
@@ -187,14 +187,14 @@ export default function AddClothesPage() {
           removeBg(cropped),
           new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000)),
         ]);
-        return await blobToBase64(removed);
+        return { display: await blobToBase64(removed), rawCrop };
       } catch {
         if (s < STRATEGIES.length - 1) await new Promise(r => setTimeout(r, 500));
       }
     }
 
     // 배경제거 모두 실패 → 크롭 이미지라도 반환
-    if (fallbackCropped) return fallbackCropped;
+    if (rawCrop) return { display: rawCrop, rawCrop };
     throw new Error('추출 실패');
   };
 
@@ -282,55 +282,45 @@ export default function AddClothesPage() {
       if (!data.items?.length) throw new Error('옷을 찾지 못했어요. 정면 전신샷으로 다시 시도해보세요.');
 
       const total = data.items.length;
-      const newItems: ExtractedItem[] = [];
-      let failed = 0;
 
-      // Phase 2: background removal per item
+      // Phase 2: background removal — 모든 아이템 병렬 처리
       setExtractPhase(2);
       setExtractTotal(total);
       setExtractCurrent(0);
 
-      for (let i = 0; i < total; i++) {
-        const item = data.items[i];
-        try {
-          const image = await extractSingleItem(originalImage, item.category, item.y_start, item.y_end);
-          const id = Math.random().toString(36).slice(2);
-          newItems.push({ id, category: item.category, image, name: CATEGORY_LABELS[item.category] || item.category, nameLoading: true });
-        } catch {
-          failed++;
-          setFailedCount(failed);
-        }
-        setExtractCurrent(i + 1);
-      }
+      type SegmentItem = { category: string; y_start: number; y_end: number; name?: string };
+      const extractResults = await Promise.all(
+        (data.items as SegmentItem[]).map(async (item) => {
+          try {
+            const { display, rawCrop } = await extractSingleItem(originalImage, item.category, item.y_start, item.y_end);
+            setExtractCurrent(prev => prev + 1);
+            return { ok: true as const, item, display, rawCrop };
+          } catch {
+            setExtractCurrent(prev => prev + 1);
+            return { ok: false as const };
+          }
+        })
+      );
+
+      const failed = extractResults.filter(r => !r.ok).length;
+      if (failed > 0) setFailedCount(failed);
+
+      const newItems: ExtractedItem[] = extractResults
+        .filter((r): r is { ok: true; item: SegmentItem; display: string; rawCrop: string | null } => r.ok)
+        .map(r => ({
+          id: Math.random().toString(36).slice(2),
+          category: r.item.category,
+          image: r.display,
+          // segment API에서 이미 이름 추출 — 별도 naming API 호출 불필요
+          name: r.item.name || CATEGORY_LABELS[r.item.category] || r.item.category,
+          nameLoading: false,
+          _rawCrop: r.rawCrop,
+        }));
 
       if (newItems.length === 0) {
         toast('추출된 옷이 없어요. 다른 사진으로 시도해보세요.', 'error');
         setStep('upload');
         return;
-      }
-
-      // Phase 3: AI naming (awaited)
-      setExtractPhase(3);
-      setExtractTotal(newItems.length);
-      setExtractCurrent(0);
-
-      for (let i = 0; i < newItems.length; i++) {
-        const item = newItems[i];
-        try {
-          const res = await fetch('/api/name-clothes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: item.image, category: item.category }),
-          });
-          if (res.ok) {
-            const nameData = await res.json();
-            item.name = nameData.name || CATEGORY_LABELS[item.category] || item.category;
-          }
-        } catch {
-          item.name = CATEGORY_LABELS[item.category] || item.category;
-        }
-        item.nameLoading = false;
-        setExtractCurrent(i + 1);
       }
 
       setResultItems(newItems);
@@ -577,15 +567,13 @@ export default function AddClothesPage() {
             {/* Step rows */}
             <div className="flex flex-col gap-3 w-full max-w-[240px]">
               {([
-                { phase: 1, label: '위치 분석', detail: '' },
+                { phase: 1, label: 'AI 분석', detail: '' },
                 { phase: 2, label: '배경 제거', detail: extractPhase === 2 && extractTotal > 0 ? `${extractCurrent}/${extractTotal}` : '' },
-                { phase: 3, label: '이름 생성', detail: extractPhase === 3 && extractTotal > 0 ? `${extractCurrent}/${extractTotal}` : '' },
               ] as { phase: number; label: string; detail: string }[]).map(({ phase, label, detail }) => {
                 const done = extractPhase > phase;
                 const active = extractPhase === phase;
                 return (
                   <div key={phase} className="flex items-center gap-3">
-                    {/* State icon */}
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${
                       done ? 'bg-black dark:bg-white' : active ? 'border-2 border-zinc-900 dark:border-white' : 'border-2 border-zinc-300 dark:border-zinc-700'
                     }`}>
@@ -593,15 +581,13 @@ export default function AddClothesPage() {
                         <span className={active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}>{phase}</span>
                       )}
                     </div>
-                    {/* Label */}
                     <div className="flex-1">
                       <span className={`text-sm font-bold ${done ? 'text-zinc-400 dark:text-zinc-500' : active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}`}>
                         {label}
                       </span>
                       {detail && <span className="ml-1.5 text-xs text-zinc-400">{detail}</span>}
                     </div>
-                    {/* Phase indicator */}
-                    <span className={`text-[10px] font-bold ${done || active ? 'text-zinc-400' : 'text-zinc-300 dark:text-zinc-700'}`}>{phase}/3</span>
+                    <span className={`text-[10px] font-bold ${done || active ? 'text-zinc-400' : 'text-zinc-300 dark:text-zinc-700'}`}>{phase}/2</span>
                   </div>
                 );
               })}
@@ -744,27 +730,15 @@ export default function AddClothesPage() {
                   onPointerDown={e => {
                     e.currentTarget.setPointerCapture(e.pointerId);
                     pointerDownRef.current = true;
-                    startClientRef.current = { x: e.clientX, y: e.clientY };
                     const rel = toRelative(e.clientX, e.clientY);
                     if (!rel) return;
-                    if (!pickStart || pickEnd) {
-                      // 첫 번째 탭 or 완성된 선택 후 재시작
-                      setPickStart(rel); setPickEnd(null);
-                    } else {
-                      // 두 번째 탭 — 끝점 확정
-                      setPickEnd(rel);
-                      pointerDownRef.current = false;
-                    }
+                    setPickStart(rel);
+                    setPickEnd(null);
                   }}
                   onPointerMove={e => {
-                    if (!pointerDownRef.current || !pickStart || !startClientRef.current) return;
-                    const dx = Math.abs(e.clientX - startClientRef.current.x);
-                    const dy = Math.abs(e.clientY - startClientRef.current.y);
-                    // 8px 이상 움직여야 드래그로 인식 (터치 미세 떨림 무시)
-                    if (dx > 8 || dy > 8) {
-                      const rel = toRelative(e.clientX, e.clientY);
-                      if (rel) setPickEnd(rel);
-                    }
+                    if (!pointerDownRef.current) return;
+                    const rel = toRelative(e.clientX, e.clientY);
+                    if (rel) setPickEnd(rel);
                   }}
                   onPointerUp={() => { pointerDownRef.current = false; }}
                 />

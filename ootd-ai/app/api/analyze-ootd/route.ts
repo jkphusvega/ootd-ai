@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         userProfile.height && userProfile.weight ? `키 ${userProfile.height}cm, 몸무게 ${userProfile.weight}kg` : '',
         userProfile.fit_preference ? `선호 핏: ${userProfile.fit_preference}` : '',
         userProfile.style_moods?.length ? `스타일: ${userProfile.style_moods.join(', ')}` : '',
-        userProfile.body_goal ? `바디 목표: ${userProfile.body_goal}` : '',
+        userProfile.body_goal && userProfile.body_goal !== 'none' ? `바디 목표: ${userProfile.body_goal}` : '',
       ].filter(Boolean);
       if (parts.length) profileContext = `\n착용자 정보: ${parts.join(' / ')}`;
     }

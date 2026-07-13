@@ -37,15 +37,16 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Y-range only 접근: Gemini에 세로 위치 비율만 요청 (가로는 전체 사용)
+    // Y-range + name 통합: 위치와 이름을 한 번에 추출 (별도 naming API 호출 불필요)
     const prompt = `Analyze this full-body photo of a person wearing clothes.
 
-Your job: identify each visible clothing item and tell me WHERE it is vertically in the image.
+Your job: identify each visible clothing item, where it is vertically, AND give it a Korean name.
 
 For each item, provide:
 - "category": one of "tops", "outer", "bottoms", "shoes"
 - "y_start": where the item starts vertically (0.0 = very top of image, 1.0 = very bottom)
 - "y_end": where the item ends vertically
+- "name": short Korean name — EXACT color you see + style + item type, max 15 chars
 
 IMPORTANT GUIDELINES:
 - "tops" (shirts, sweaters, hoodies): usually starts around 0.15-0.25 (neckline), ends around 0.45-0.55 (waist)
@@ -55,13 +56,14 @@ IMPORTANT GUIDELINES:
 - Do NOT include "outer" if there is only one upper body layer.
 - NEVER include the face/head. tops y_start must be at or below the neckline.
 - Items must NOT overlap significantly in their y ranges.
+- Name the ACTUAL color you see — do not default to white. Examples: "네이비 오버핏 후드티", "베이지 와이드 슬랙스", "화이트 에어포스원", "블랙 카고 팬츠"
 
 Return ONLY raw JSON (no markdown, no code fences):
 {
   "items": [
-    { "category": "tops", "y_start": 0.22, "y_end": 0.50 },
-    { "category": "bottoms", "y_start": 0.50, "y_end": 0.88 },
-    { "category": "shoes", "y_start": 0.90, "y_end": 0.99 }
+    { "category": "tops", "y_start": 0.22, "y_end": 0.50, "name": "네이비 오버핏 후드티" },
+    { "category": "bottoms", "y_start": 0.50, "y_end": 0.88, "name": "베이지 와이드 슬랙스" },
+    { "category": "shoes", "y_start": 0.90, "y_end": 0.99, "name": "화이트 에어포스원" }
   ]
 }`;
 

@@ -26,3 +26,7 @@
 - Supabase (auth + DB)
 - Gemini API (분석 + 스타일리스트 채팅)
 - Vercel 배포
+
+## Gemini 모델 목록 (실존 모델)
+`gemini-3.5-flash`, `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.0-flash` 모두 실존하는 모델임.
+`gemini-3.5-flash`가 존재하지 않는다고 절대 단정하지 말 것.
