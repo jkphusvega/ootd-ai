@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { Sparkles, RefreshCw, ExternalLink, Shirt, ThumbsUp, ThumbsDown, Check } from 'lucide-react';
+import { Sparkles, RefreshCw, ExternalLink, Shirt, ThumbsUp, ThumbsDown, Check, Package } from 'lucide-react';
 import Link from 'next/link';
 import WeatherDashboard from './WeatherDashboard';
 import CurationDemoSheet from './CurationDemoSheet';
@@ -18,6 +18,21 @@ const OCCASIONS = [
 
 type OccasionId = typeof OCCASIONS[number]['id'];
 
+const STYLE_PRESETS = [
+  { id: 'minimal', name: '미니멀 클린', emoji: '🤍', description: '화이트/블랙/그레이 기본 아이템 위주. 깔끔한 실루엣, 군더더기 없는 코디, 단색 배합.' },
+  { id: 'street',  name: '스트릿',     emoji: '🧢', description: '오버핏 위주. 그래픽 티, 카고 팬츠, 스니커즈. 볼드한 아이템 조합과 레이어링.' },
+  { id: 'earth',   name: '어스톤',     emoji: '🌿', description: '베이지/카키/브라운/올리브 계열. 자연스러운 레이어링, 편안하고 따뜻한 실루엣.' },
+  { id: 'biz',     name: '비즈캐주얼', emoji: '👔', description: '슬랙스+셔츠/니트 조합. 단정하면서 세련된 느낌, 깔끔한 색감.' },
+  { id: 'sporty',  name: '스포티',     emoji: '🏃', description: '트랙 팬츠, 후드티, 스포티한 아이템. 기능성과 스타일의 균형.' },
+] as const;
+
+type StylePresetId = typeof STYLE_PRESETS[number]['id'] | null;
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  outer: '🧥', tops: '👕', bottoms: '👖', shoes: '👟',
+  socks: '🧦', bag: '👜', accessory: '⌚',
+};
+
 interface Props {
   weather: WeatherData | null;
   wardrobeCount: number;
@@ -28,7 +43,7 @@ interface Props {
   feedback: FeedbackType;
   isSavingFeedback: boolean;
   pastSimilarOutfits?: Array<{ image_url: string; title: string; style: string }>;
-  generateCuration: (occasion?: string) => void;
+  generateCuration: (occasion?: string, stylePreset?: { name: string; description: string } | null) => void;
   submitFeedback: (type: 'like' | 'dislike' | 'worn') => void;
 }
 
@@ -46,6 +61,8 @@ export default function MobileCurationTab({
   generateCuration, submitFeedback,
 }: Props) {
   const [occasion, setOccasion] = useState<OccasionId>('daily');
+  const [stylePresetId, setStylePresetId] = useState<StylePresetId>(null);
+  const activePreset = STYLE_PRESETS.find(p => p.id === stylePresetId) ?? null;
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-10, 10]);
@@ -59,7 +76,7 @@ export default function MobileCurationTab({
       submitFeedback('like');
     } else if (info.offset.x < -100) {
       submitFeedback('dislike');
-      setTimeout(() => generateCuration(occasion), 300);
+      setTimeout(() => generateCuration(occasion, activePreset), 300);
     }
   };
 
@@ -86,6 +103,11 @@ export default function MobileCurationTab({
           <Link href="/add-clothes">
             <button className="mt-2 px-6 py-3 bg-black text-white text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-lg active:scale-95 transition">
               옷 등록하러 가기
+            </button>
+          </Link>
+          <Link href="/add-from-order">
+            <button className="flex items-center gap-1.5 px-5 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[11px] font-bold rounded-2xl active:scale-95 transition">
+              <Package className="w-3.5 h-3.5" /> 주문내역으로 등록
             </button>
           </Link>
         </div>
@@ -123,8 +145,39 @@ export default function MobileCurationTab({
             ))}
           </div>
 
+          {/* 스타일 프리셋 */}
+          <div className="w-full">
+            <p className="text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase mb-2 text-center">스타일 방향</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden -mx-6 px-6">
+              <button
+                onClick={() => setStylePresetId(null)}
+                className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-bold transition active:scale-95 border ${
+                  stylePresetId === null
+                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-md'
+                    : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                기본
+              </button>
+              {STYLE_PRESETS.map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => setStylePresetId(preset.id)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-bold transition active:scale-95 border ${
+                    stylePresetId === preset.id
+                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-md'
+                      : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'
+                  }`}
+                >
+                  <span className="text-sm leading-none">{preset.emoji}</span>
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
-            onClick={() => generateCuration(occasion)}
+            onClick={() => generateCuration(occasion, activePreset)}
             className="px-8 py-4 bg-black dark:bg-white text-white dark:text-zinc-900 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-xl active:scale-95 transition flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" /> AI 코디 추천받기
@@ -176,7 +229,8 @@ export default function MobileCurationTab({
             className="w-10 h-10 border-2 border-zinc-200 border-t-zinc-900 rounded-full" />
           <p className="text-sm font-bold text-zinc-500">AI 스타일리스트가 고민 중...</p>
           <p className="text-[10px] text-zinc-400">
-            {OCCASIONS.find(o => o.id === occasion)?.emoji} {OCCASIONS.find(o => o.id === occasion)?.label} 룩 추천 중
+            {OCCASIONS.find(o => o.id === occasion)?.emoji} {OCCASIONS.find(o => o.id === occasion)?.label}
+            {activePreset ? ` · ${activePreset.emoji} ${activePreset.name}` : ''} 룩 추천 중
           </p>
         </div>
       )}
@@ -192,7 +246,7 @@ export default function MobileCurationTab({
             <p className="text-xs text-zinc-400 leading-relaxed">잠시 후 다시 시도해주세요</p>
           </div>
           <button
-            onClick={() => generateCuration(occasion)}
+            onClick={() => generateCuration(occasion, activePreset)}
             className="px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl active:scale-95 transition flex items-center gap-2"
           >
             <RefreshCw className="w-3.5 h-3.5" /> 다시 시도
@@ -247,8 +301,12 @@ export default function MobileCurationTab({
                 className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
               >
                 <div className="aspect-square bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center p-3">
-                  <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain"
-                    style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name} className="max-w-full max-h-full object-contain"
+                      style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
+                  ) : (
+                    <span className="text-4xl">{CATEGORY_EMOJIS[item.category] || '👕'}</span>
+                  )}
                 </div>
                 <div className="p-3">
                   <span className="text-[8px] font-extrabold tracking-widest text-zinc-400 uppercase block mb-0.5">{item.category}</span>
@@ -311,7 +369,7 @@ export default function MobileCurationTab({
           </motion.button>
 
           <button
-            onClick={() => generateCuration(occasion)}
+            onClick={() => generateCuration(occasion, activePreset)}
             disabled={isCurating}
             className="w-full py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-[11px] font-extrabold tracking-widest uppercase rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2"
           >

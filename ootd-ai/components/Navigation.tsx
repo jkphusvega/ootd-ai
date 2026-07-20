@@ -23,7 +23,7 @@ const MOBILE_NAV = [
 ];
 
 // 네비게이션을 숨길 페이지 경로
-const HIDDEN_PATHS = ['/login', '/signup', '/onboarding', '/auth', '/landing-minimal', '/landing-impact', '/shared', '/add-clothes'];
+const HIDDEN_PATHS = ['/login', '/signup', '/onboarding', '/auth', '/landing-minimal', '/landing-impact', '/shared', '/add-clothes', '/add-from-order'];
 
 export default function Navigation() {
   const pathname = usePathname();

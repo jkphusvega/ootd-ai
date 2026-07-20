@@ -96,11 +96,11 @@ export function useMobileCuration({
     fetchPastOutfits();
   }, [user, weather, supabase]);
 
-  const generateCuration = async (occasion?: string) => {
+  const generateCuration = async (occasion?: string, stylePreset?: { name: string; description: string } | null) => {
     if (!user || isCurating) return;
     setIsCurating(true);
     setCurationError(null);
-    setFeedback(null); // 새 추천 시 피드백 초기화
+    setFeedback(null);
     try {
       const { data: profile } = await supabase
         .from('user_profiles').select('*').eq('user_id', user.id).single();
@@ -111,6 +111,7 @@ export function useMobileCuration({
           weatherInfo: weather || { temperature: 20, condition: 'Clear' },
           userProfile: profile || null,
           occasion: occasion || 'daily',
+          stylePreset: stylePreset || null,
         }),
       });
       const data = await res.json();

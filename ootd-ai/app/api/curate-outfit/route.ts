@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { weatherInfo, userProfile, occasion } = await request.json();
+    const { weatherInfo, userProfile, occasion, stylePreset } = await request.json();
 
     const OCCASION_LABELS: Record<string, string> = {
       daily: '일상 외출',
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
         fitPref && fitPref !== 'regular' ? `- Fit preference: ${FIT_LABEL[fitPref] || fitPref} → YOU MUST select items that match this fit` : '',
         bodyGoal ? `- Styling goal: ${GOAL_LABEL[bodyGoal] || bodyGoal} → YOU MUST apply this styling strategy when choosing items` : '',
         styleDesc ? `- ${styleDesc} → YOU MUST prioritize items and combinations that match this aesthetic` : '',
+        stylePreset ? `- Style direction: "${stylePreset.name}" — ${stylePreset.description} → YOU MUST make the outfit fit this aesthetic` : '',
       ].filter(Boolean).join('\n');
     }
 
