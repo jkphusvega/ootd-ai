@@ -50,11 +50,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   bag: '가방', accessory: '액세서리',
 };
 
-const EXTRACT_MESSAGES = [
+const EXTRACT_PHASE1_MESSAGES = [
   '사진 속 옷들을 찾는 중이에요...',
   '어디 보자... 상의? 하의? 아우터?',
   'AI가 코디를 꼼꼼히 살펴보는 중...',
-  '금방 됩니다, 조금만 기다려주세요!',
+  '옷 하나하나 체크하는 중이에요',
+] as const;
+
+const EXTRACT_PHASE2_MESSAGES = [
+  '배경을 깔끔하게 지우는 중이에요...',
+  'AI가 옷만 쏙 빼내는 중...',
+  '서버에서 열심히 처리 중이에요...',
+  '거의 다 됐어요!',
 ] as const;
 
 type Step = 'upload' | 'extracting' | 'confirm';
@@ -91,7 +98,12 @@ export default function AddClothesPage() {
   const pointerDownRef = useRef(false);
 
   // 단계별 진행 상태
-  const [extractMsg, extractMsgIdx] = useRotatingMessage(EXTRACT_MESSAGES);
+  const [extractPhase, setExtractPhase] = useState<1 | 2>(1);
+  const [extractCurrent, setExtractCurrent] = useState(0);
+  const [extractTotal, setExtractTotal] = useState(0);
+  const [extractMsg, extractMsgIdx] = useRotatingMessage(
+    extractPhase === 1 ? EXTRACT_PHASE1_MESSAGES : EXTRACT_PHASE2_MESSAGES
+  );
 
   // ── 유틸 ──
   const blobToBase64 = (blob: Blob): Promise<string> =>
@@ -166,6 +178,20 @@ export default function AddClothesPage() {
     const strategy = STRATEGIES[0];
     const cropped = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax, strategy);
     const rawCrop = await blobToBase64(cropped);
+
+    // 서버사이드 배경 제거 (fal.ai) — 실패 시 rawCrop 그대로 사용
+    try {
+      const res = await fetch('/api/remove-bg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: rawCrop }),
+      });
+      if (res.ok) {
+        const { image } = await res.json();
+        return { display: image, rawCrop };
+      }
+    } catch { /* fall through */ }
+
     return { display: rawCrop, rawCrop };
   };
 
@@ -220,6 +246,9 @@ export default function AddClothesPage() {
     setStep('extracting');
     setResultItems([]);
     setFailedCount(0);
+    setExtractPhase(1);
+    setExtractCurrent(0);
+    setExtractTotal(0);
 
     try {
       const res = await fetch('/api/segment-clothes', {
@@ -234,13 +263,20 @@ export default function AddClothesPage() {
       const data = await res.json();
       if (!data.items?.length) throw new Error('옷을 찾지 못했어요. 정면 전신샷으로 다시 시도해보세요.');
 
+      const total = data.items.length;
+      setExtractPhase(2);
+      setExtractTotal(total);
+      setExtractCurrent(0);
+
       type SegmentItem = { category: string; y_start: number; y_end: number; name?: string };
       const extractResults = await Promise.all(
         (data.items as SegmentItem[]).map(async (item) => {
           try {
             const { display, rawCrop } = await extractSingleItem(originalImage, item.category, item.y_start, item.y_end);
+            setExtractCurrent(prev => prev + 1);
             return { ok: true as const, item, display, rawCrop };
           } catch {
+            setExtractCurrent(prev => prev + 1);
             return { ok: false as const };
           }
         })
@@ -508,7 +544,35 @@ export default function AddClothesPage() {
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               className="w-12 h-12 border-2 border-zinc-200 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white rounded-full" />
 
-            {/* Rotating message */}
+            {/* Phase 표시 */}
+            <div className="flex flex-col gap-3 w-full max-w-[240px]">
+              {([
+                { phase: 1, label: 'AI 분석' },
+                { phase: 2, label: '배경 제거', detail: extractPhase === 2 && extractTotal > 0 ? `${extractCurrent}/${extractTotal}` : '' },
+              ] as { phase: number; label: string; detail?: string }[]).map(({ phase, label, detail }) => {
+                const done = extractPhase > phase;
+                const active = extractPhase === phase;
+                return (
+                  <div key={phase} className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${
+                      done ? 'bg-black dark:bg-white' : active ? 'border-2 border-zinc-900 dark:border-white' : 'border-2 border-zinc-300 dark:border-zinc-700'
+                    }`}>
+                      {done ? <Check className="w-3 h-3 text-white dark:text-black" /> : (
+                        <span className={active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}>{phase}</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <span className={`text-sm font-bold ${done ? 'text-zinc-400 dark:text-zinc-500' : active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                        {label}
+                      </span>
+                      {detail && <span className="ml-1.5 text-xs text-zinc-400">{detail}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Rotating fun message */}
             <AnimatePresence mode="wait">
               <motion.p
                 key={extractMsgIdx}
@@ -516,7 +580,7 @@ export default function AddClothesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.3 }}
-                className="text-sm font-bold text-zinc-600 dark:text-zinc-400 text-center"
+                className="text-xs text-zinc-400 text-center"
               >
                 {extractMsg}
               </motion.p>
