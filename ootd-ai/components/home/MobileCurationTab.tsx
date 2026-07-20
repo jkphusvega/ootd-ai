@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { Sparkles, RefreshCw, ExternalLink, Shirt, ThumbsUp, ThumbsDown, Check, Package } from 'lucide-react';
 import Link from 'next/link';
 import WeatherDashboard from './WeatherDashboard';
 import CurationDemoSheet from './CurationDemoSheet';
 import type { CurationResult, FeedbackType } from '../../hooks/useMobileCuration';
 import type { WeatherData } from '../../hooks/useWeather';
+import { useRotatingMessage } from '../../hooks/useRotatingMessage';
 
 const OCCASIONS = [
   { id: 'daily',   label: '일상',     emoji: '☀️' },
@@ -47,6 +48,14 @@ interface Props {
   submitFeedback: (type: 'like' | 'dislike' | 'worn') => void;
 }
 
+const CURATION_MESSAGES = [
+  '사용자님의 옷장을 뒤져보는 중...',
+  '오늘 날씨에 딱 맞는 조합 찾는 중...',
+  '완벽한 코디 조합을 계산하는 중...',
+  'AI 스타일리스트가 열심히 픽하는 중...',
+  '잠깐만요, 거의 다 됐어요!',
+] as const;
+
 const getSearchUrls = (name: string) => {
   const q = encodeURIComponent(name);
   return {
@@ -63,6 +72,7 @@ export default function MobileCurationTab({
   const [occasion, setOccasion] = useState<OccasionId>('daily');
   const [stylePresetId, setStylePresetId] = useState<StylePresetId>(null);
   const activePreset = STYLE_PRESETS.find(p => p.id === stylePresetId) ?? null;
+  const [curationMsg, curationMsgIdx] = useRotatingMessage(CURATION_MESSAGES);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-10, 10]);
@@ -227,7 +237,18 @@ export default function MobileCurationTab({
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             className="w-10 h-10 border-2 border-zinc-200 border-t-zinc-900 rounded-full" />
-          <p className="text-sm font-bold text-zinc-500">AI 스타일리스트가 고민 중...</p>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={curationMsgIdx}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.3 }}
+              className="text-sm font-bold text-zinc-500"
+            >
+              {curationMsg}
+            </motion.p>
+          </AnimatePresence>
           <p className="text-[10px] text-zinc-400">
             {OCCASIONS.find(o => o.id === occasion)?.emoji} {OCCASIONS.find(o => o.id === occasion)?.label}
             {activePreset ? ` · ${activePreset.emoji} ${activePreset.name}` : ''} 룩 추천 중

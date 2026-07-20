@@ -6,6 +6,7 @@ import { ChevronLeft, Check, Pencil, Package, Sparkles } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
+import { useRotatingMessage } from '../../hooks/useRotatingMessage';
 
 const CATEGORY_LABELS: Record<string, string> = {
   outer: '아우터', tops: '상의', bottoms: '하의', shoes: '신발',
@@ -16,6 +17,13 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   outer: '🧥', tops: '👕', bottoms: '👖', shoes: '👟',
   socks: '🧦', bag: '👜', accessory: '⌚',
 };
+
+const PARSING_MESSAGES = [
+  '주문내역에서 아이템을 찾는 중이에요...',
+  '쇼핑 목록을 꼼꼼히 읽는 중...',
+  '어떤 옷들을 주문했는지 확인하는 중...',
+  'AI가 아이템을 분류하고 있어요...',
+] as const;
 
 interface ParsedItem {
   id: string;
@@ -45,6 +53,7 @@ export default function AddFromOrderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [parsingMsg, parsingMsgIdx] = useRotatingMessage(PARSING_MESSAGES);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -196,8 +205,18 @@ export default function AddFromOrderPage() {
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               className="w-12 h-12 border-2 border-zinc-200 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white rounded-full" />
             <div className="text-center">
-              <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">주문내역 분석 중...</p>
-              <p className="text-xs text-zinc-400 mt-1">AI가 아이템을 추출하고 있어요</p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={parsingMsgIdx}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-sm font-bold text-zinc-700 dark:text-zinc-300"
+                >
+                  {parsingMsg}
+                </motion.p>
+              </AnimatePresence>
             </div>
           </motion.div>
         )}

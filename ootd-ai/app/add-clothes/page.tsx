@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ToastProvider';
 import { logEvent } from '../../lib/analytics';
 import { logCorrections, CorrectionEntry } from '../../lib/logCorrection';
+import { useRotatingMessage } from '../../hooks/useRotatingMessage';
 
 let removeBackgroundFn: typeof import('@imgly/background-removal').removeBackground | null = null;
 
@@ -58,6 +59,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   bag: '가방', accessory: '액세서리',
 };
 
+const EXTRACT_PHASE1_MESSAGES = [
+  '사진 속 옷들을 찾는 중이에요...',
+  '어디 보자... 상의? 하의? 아우터?',
+  'AI가 코디를 꼼꼼히 살펴보는 중...',
+  '옷 하나하나 체크하는 중이에요',
+] as const;
+
+const EXTRACT_PHASE2_MESSAGES = [
+  '열심히 배경을 지우는 중이에요...',
+  '옷 주변을 깔끔하게 정리 중...',
+  '배경이랑 옷이랑 분리하는 중...',
+  '오래 걸려도 꼼꼼하게 하고 있어요!',
+] as const;
+
 type Step = 'upload' | 'extracting' | 'confirm';
 
 export default function AddClothesPage() {
@@ -95,6 +110,9 @@ export default function AddClothesPage() {
   const [extractPhase, setExtractPhase] = useState<1 | 2>(1);
   const [extractCurrent, setExtractCurrent] = useState(0);
   const [extractTotal, setExtractTotal] = useState(0);
+  const [extractMsg, extractMsgIdx] = useRotatingMessage(
+    extractPhase === 1 ? EXTRACT_PHASE1_MESSAGES : EXTRACT_PHASE2_MESSAGES
+  );
 
   // ── 유틸 ──
   const blobToBase64 = (blob: Blob): Promise<string> =>
@@ -592,6 +610,20 @@ export default function AddClothesPage() {
                 );
               })}
             </div>
+
+            {/* Rotating fun message */}
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={extractMsgIdx}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.3 }}
+                className="text-xs text-zinc-400 text-center"
+              >
+                {extractMsg}
+              </motion.p>
+            </AnimatePresence>
           </motion.div>
         )}
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { FashionCritique } from '../../hooks/useOotdAnalysis';
 import AnnotationOverlay from './AnnotationOverlay';
 import FlowDemoOverlay from './FlowDemoOverlay';
+import { useRotatingMessage } from '../../hooks/useRotatingMessage';
 
 interface Props {
   scanState: 'idle' | 'scanning' | 'success' | 'error';
@@ -42,6 +43,13 @@ function barColor(v: number | undefined) {
 }
 
 
+const ANALYSIS_MESSAGES = [
+  '착장 분석 중...',
+  '코디 점수 계산 중...',
+  '스타일 체크하는 중...',
+  'AI 패션 에디터 가동 중...',
+] as const;
+
 function Skeleton({ w = 'full' }: { w?: string }) {
   return <div className={`h-3 w-${w} bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse`} />;
 }
@@ -55,6 +63,7 @@ export default function MobileAnalysisTab({
   const router = useRouter();
   const d = critique ?? partialCritique;
   const isFirstTime = wardrobeCount < 5;
+  const [analysisMsg] = useRotatingMessage(ANALYSIS_MESSAGES);
 
   return (
     <motion.div key="analysis-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
@@ -119,7 +128,7 @@ export default function MobileAnalysisTab({
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
                 className="px-6 py-4 bg-white/95 backdrop-blur-xl rounded-full border border-zinc-200 text-black font-extrabold tracking-widest text-[11px] uppercase shadow-xl flex items-center gap-3">
-                <Sparkles className="w-4 h-4" /> 착장 분석 중...
+                <Sparkles className="w-4 h-4" /> {analysisMsg}
               </motion.div>
             </div>
           </motion.div>
