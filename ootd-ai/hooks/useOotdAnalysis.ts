@@ -98,7 +98,7 @@ export function useOotdAnalysis({
     return r;
   };
 
-  const compressImage = (file: File, maxDim = 768, quality = 0.75): Promise<string> =>
+  const compressImage = (file: File, maxDim = 600, quality = 0.7): Promise<string> =>
     new Promise(resolve => {
       const reader = new FileReader();
       reader.onloadend = () => {

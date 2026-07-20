@@ -10,15 +10,6 @@ import { logEvent } from '../../lib/analytics';
 import { logCorrections, CorrectionEntry } from '../../lib/logCorrection';
 import { useRotatingMessage } from '../../hooks/useRotatingMessage';
 
-let removeBackgroundFn: typeof import('@imgly/background-removal').removeBackground | null = null;
-
-async function getRemoveBackground() {
-  if (!removeBackgroundFn) {
-    const { removeBackground } = await import('@imgly/background-removal');
-    removeBackgroundFn = removeBackground;
-  }
-  return removeBackgroundFn;
-}
 
 interface ExtractedItem {
   id: string;
@@ -59,18 +50,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   bag: '가방', accessory: '액세서리',
 };
 
-const EXTRACT_PHASE1_MESSAGES = [
+const EXTRACT_MESSAGES = [
   '사진 속 옷들을 찾는 중이에요...',
   '어디 보자... 상의? 하의? 아우터?',
   'AI가 코디를 꼼꼼히 살펴보는 중...',
-  '옷 하나하나 체크하는 중이에요',
-] as const;
-
-const EXTRACT_PHASE2_MESSAGES = [
-  '열심히 배경을 지우는 중이에요...',
-  '옷 주변을 깔끔하게 정리 중...',
-  '배경이랑 옷이랑 분리하는 중...',
-  '오래 걸려도 꼼꼼하게 하고 있어요!',
+  '금방 됩니다, 조금만 기다려주세요!',
 ] as const;
 
 type Step = 'upload' | 'extracting' | 'confirm';
@@ -107,12 +91,7 @@ export default function AddClothesPage() {
   const pointerDownRef = useRef(false);
 
   // 단계별 진행 상태
-  const [extractPhase, setExtractPhase] = useState<1 | 2>(1);
-  const [extractCurrent, setExtractCurrent] = useState(0);
-  const [extractTotal, setExtractTotal] = useState(0);
-  const [extractMsg, extractMsgIdx] = useRotatingMessage(
-    extractPhase === 1 ? EXTRACT_PHASE1_MESSAGES : EXTRACT_PHASE2_MESSAGES
-  );
+  const [extractMsg, extractMsgIdx] = useRotatingMessage(EXTRACT_MESSAGES);
 
   // ── 유틸 ──
   const blobToBase64 = (blob: Blob): Promise<string> =>
@@ -184,36 +163,10 @@ export default function AddClothesPage() {
     else if (cat.includes('bottom')) ymin = Math.max(ymin, 0.35);
     else if (cat.includes('shoe')) ymin = Math.max(ymin, 0.80);
 
-    // 배경제거 없는 순수 크롭 — 명명(naming)용으로 색상 정확도가 높음
-    const baseStrategy = STRATEGIES[0];
-    let rawCrop: string | null = null;
-    try {
-      const cropped = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax, baseStrategy);
-      rawCrop = await blobToBase64(cropped);
-    } catch { /* rawCrop 없이 진행 */ }
-
-    for (let s = 0; s < STRATEGIES.length; s++) {
-      const strategy = STRATEGIES[s];
-      try {
-        const sXmin = Math.max(0, xmin - strategy.xExpand);
-        const sXmax = Math.min(1, xmax + strategy.xExpand);
-        const sYmin = Math.max(0, ymin - strategy.yExpand);
-        const sYmax = Math.min(1, ymax + strategy.yExpand);
-        const cropped = await getSegmentedBlob(imgSrc, sXmin, sYmin, sXmax, sYmax, strategy);
-        const removeBg = await getRemoveBackground();
-        const removed = await Promise.race([
-          removeBg(cropped),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000)),
-        ]);
-        return { display: await blobToBase64(removed), rawCrop };
-      } catch {
-        if (s < STRATEGIES.length - 1) await new Promise(r => setTimeout(r, 500));
-      }
-    }
-
-    // 배경제거 모두 실패 → 크롭 이미지라도 반환
-    if (rawCrop) return { display: rawCrop, rawCrop };
-    throw new Error('추출 실패');
+    const strategy = STRATEGIES[0];
+    const cropped = await getSegmentedBlob(imgSrc, xmin, ymin, xmax, ymax, strategy);
+    const rawCrop = await blobToBase64(cropped);
+    return { display: rawCrop, rawCrop };
   };
 
   const toRelative = (clientX: number, clientY: number) => {
@@ -244,21 +197,7 @@ export default function AddClothesPage() {
         fallback = await blobToBase64(c);
       } catch { /* ignore */ }
 
-      let extracted = fallback;
-      for (let s = 0; s < STRATEGIES.length; s++) {
-        try {
-          const cropped = await getSegmentedBlob(originalImage, xmin, ymin, xmax, ymax, STRATEGIES[s]);
-          const removeBg = await getRemoveBackground();
-          const removed = await Promise.race([
-            removeBg(cropped),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000)),
-          ]);
-          extracted = await blobToBase64(removed);
-          break;
-        } catch {
-          if (s < STRATEGIES.length - 1) await new Promise(r => setTimeout(r, 500));
-        }
-      }
+      const extracted = fallback;
       if (!extracted) throw new Error('추출 실패');
       const id = Math.random().toString(36).slice(2);
       setResultItems(prev => [...prev, {
@@ -281,12 +220,8 @@ export default function AddClothesPage() {
     setStep('extracting');
     setResultItems([]);
     setFailedCount(0);
-    setExtractPhase(1);
-    setExtractCurrent(0);
-    setExtractTotal(0);
 
     try {
-      // Phase 1: segment API
       const res = await fetch('/api/segment-clothes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -299,22 +234,13 @@ export default function AddClothesPage() {
       const data = await res.json();
       if (!data.items?.length) throw new Error('옷을 찾지 못했어요. 정면 전신샷으로 다시 시도해보세요.');
 
-      const total = data.items.length;
-
-      // Phase 2: background removal — 모든 아이템 병렬 처리
-      setExtractPhase(2);
-      setExtractTotal(total);
-      setExtractCurrent(0);
-
       type SegmentItem = { category: string; y_start: number; y_end: number; name?: string };
       const extractResults = await Promise.all(
         (data.items as SegmentItem[]).map(async (item) => {
           try {
             const { display, rawCrop } = await extractSingleItem(originalImage, item.category, item.y_start, item.y_end);
-            setExtractCurrent(prev => prev + 1);
             return { ok: true as const, item, display, rawCrop };
           } catch {
-            setExtractCurrent(prev => prev + 1);
             return { ok: false as const };
           }
         })
@@ -582,36 +508,7 @@ export default function AddClothesPage() {
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               className="w-12 h-12 border-2 border-zinc-200 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white rounded-full" />
 
-            {/* Step rows */}
-            <div className="flex flex-col gap-3 w-full max-w-[240px]">
-              {([
-                { phase: 1, label: 'AI 분석', detail: '' },
-                { phase: 2, label: '배경 제거', detail: extractPhase === 2 && extractTotal > 0 ? `${extractCurrent}/${extractTotal}` : '' },
-              ] as { phase: number; label: string; detail: string }[]).map(({ phase, label, detail }) => {
-                const done = extractPhase > phase;
-                const active = extractPhase === phase;
-                return (
-                  <div key={phase} className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${
-                      done ? 'bg-black dark:bg-white' : active ? 'border-2 border-zinc-900 dark:border-white' : 'border-2 border-zinc-300 dark:border-zinc-700'
-                    }`}>
-                      {done ? <Check className="w-3 h-3 text-white dark:text-black" /> : (
-                        <span className={active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}>{phase}</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <span className={`text-sm font-bold ${done ? 'text-zinc-400 dark:text-zinc-500' : active ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                        {label}
-                      </span>
-                      {detail && <span className="ml-1.5 text-xs text-zinc-400">{detail}</span>}
-                    </div>
-                    <span className={`text-[10px] font-bold ${done || active ? 'text-zinc-400' : 'text-zinc-300 dark:text-zinc-700'}`}>{phase}/2</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Rotating fun message */}
+            {/* Rotating message */}
             <AnimatePresence mode="wait">
               <motion.p
                 key={extractMsgIdx}
@@ -619,7 +516,7 @@ export default function AddClothesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.3 }}
-                className="text-xs text-zinc-400 text-center"
+                className="text-sm font-bold text-zinc-600 dark:text-zinc-400 text-center"
               >
                 {extractMsg}
               </motion.p>
